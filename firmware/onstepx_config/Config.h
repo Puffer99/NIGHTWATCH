@@ -37,12 +37,15 @@
 #define AXIS1_DRIVER_MODEL          TMC5160
 #define AXIS1_DRIVER_MICROSTEPS     16
 #define AXIS1_DRIVER_MICROSTEPS_GOTO 4         // Lower microstepping for faster slews
-#define AXIS1_DRIVER_IHOLD          600        // mA holding current
-#define AXIS1_DRIVER_IRUN           1200       // mA running current
-#define AXIS1_DRIVER_IGOTO          1500       // mA goto current
+#define AXIS1_DRIVER_IHOLD          800        // mA holding current (POS: increased from 600)
+#define AXIS1_DRIVER_IRUN           1500       // mA running current (POS: increased from 1200)
+#define AXIS1_DRIVER_IGOTO          2000       // mA goto current (POS: increased from 1500)
 #define AXIS1_DRIVER_STATUS         ON
 #define AXIS1_DRIVER_DECAY          STEALTHCHOP
 #define AXIS1_DRIVER_DECAY_GOTO     SPREADCYCLE
+#define AXIS1_DRIVER_STEALTHCHOP_THRESHOLD 100 // POS: steps/sec threshold for mode switch
+#define AXIS1_DRIVER_STALLGUARD     ON         // POS: Enable stall detection for safety
+#define AXIS1_DRIVER_STALLGUARD_THRESHOLD 50   // POS: Sensitivity (lower = more sensitive)
 
 // Steps per degree calculation:
 // (200 steps/rev × 16 microsteps × 27 gearbox × 100 harmonic) / 360° = 24,000 steps/°
@@ -73,12 +76,15 @@
 #define AXIS2_DRIVER_MODEL          TMC5160
 #define AXIS2_DRIVER_MICROSTEPS     16
 #define AXIS2_DRIVER_MICROSTEPS_GOTO 4
-#define AXIS2_DRIVER_IHOLD          600
-#define AXIS2_DRIVER_IRUN           1200
-#define AXIS2_DRIVER_IGOTO          1500
+#define AXIS2_DRIVER_IHOLD          800        // POS: increased from 600
+#define AXIS2_DRIVER_IRUN           1500       // POS: increased from 1200
+#define AXIS2_DRIVER_IGOTO          2000       // POS: increased from 1500
 #define AXIS2_DRIVER_STATUS         ON
 #define AXIS2_DRIVER_DECAY          STEALTHCHOP
 #define AXIS2_DRIVER_DECAY_GOTO     SPREADCYCLE
+#define AXIS2_DRIVER_STEALTHCHOP_THRESHOLD 100 // POS: steps/sec threshold
+#define AXIS2_DRIVER_STALLGUARD     ON         // POS: Enable stall detection
+#define AXIS2_DRIVER_STALLGUARD_THRESHOLD 50   // POS: Sensitivity
 
 // Steps per degree calculation:
 // (200 steps/rev × 16 microsteps × 27 gearbox × 80 harmonic) / 360° = 19,200 steps/°

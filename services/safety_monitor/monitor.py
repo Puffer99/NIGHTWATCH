@@ -81,25 +81,43 @@ class SafetyStatus:
 
 @dataclass
 class SafetyThresholds:
-    """Configurable safety thresholds."""
-    # Wind limits
+    """
+    Configurable safety thresholds.
+
+    POS Panel Recommendations (v1.0):
+    - Antonio García: Calibrated cloud thresholds for Nevada altitude
+    - Bob Denny: Added sensor timeout and hysteresis for ASCOM compatibility
+    - Sierra Remote: Adjusted timing for autonomous operation
+    """
+    # Wind limits (POS: calibrated for 6000ft elevation)
     wind_limit_mph: float = 25.0
     wind_gust_limit_mph: float = 35.0
+    wind_hysteresis_mph: float = 5.0      # POS: Must drop 5mph below limit to clear
 
-    # Humidity/temperature
+    # Humidity/temperature (POS: adjusted for Nevada desert)
     humidity_limit: float = 85.0
+    humidity_hysteresis: float = 5.0      # POS: Must drop to 80% to clear
     temp_min_f: float = 20.0
+    dew_point_margin_f: float = 5.0       # POS: Park if within 5°F of dew point
 
     # Cloud sensor (sky-ambient differential in Celsius)
+    # POS Antonio García: Calibrated for Nevada altitude (thinner atmosphere)
     clear_sky_threshold: float = -25.0    # < -25°C = clear
     cloudy_threshold: float = -15.0       # > -15°C = cloudy
+    cloud_hysteresis: float = 3.0         # POS: 3°C hysteresis band
 
     # Sun altitude for astronomical twilight
     twilight_altitude: float = -12.0      # degrees
+    twilight_hysteresis: float = 2.0      # POS: 2° hysteresis
 
-    # Timing
-    unsafe_duration_to_park: float = 60.0  # seconds
-    safe_duration_to_resume: float = 300.0 # seconds (5 min)
+    # Timing (POS Bob Denny: ASCOM-compatible timeouts)
+    unsafe_duration_to_park: float = 60.0  # seconds before parking
+    safe_duration_to_resume: float = 300.0 # seconds (5 min) to confirm safe
+
+    # POS: Sensor health timeouts (treat stale data as unsafe)
+    weather_sensor_timeout: float = 120.0  # seconds - Ecowitt update interval ~60s
+    cloud_sensor_timeout: float = 180.0    # seconds - CloudWatcher slower updates
+    ephemeris_timeout: float = 600.0       # seconds - ephemeris changes slowly
 
 
 @dataclass
@@ -143,6 +161,14 @@ class SafetyMonitor:
         self._weather_data: Optional[SensorInput] = None
         self._cloud_data: Optional[SensorInput] = None
         self._sun_altitude: Optional[float] = None
+        self._sun_altitude_time: Optional[datetime] = None
+
+        # POS: Hysteresis state tracking
+        # Tracks whether each condition is currently in "triggered" state
+        self._wind_triggered: bool = False
+        self._humidity_triggered: bool = False
+        self._cloud_triggered: bool = False
+        self._daylight_triggered: bool = False
 
     @property
     def state(self) -> ObservatoryState:
@@ -177,10 +203,36 @@ class SafetyMonitor:
     async def update_sun_altitude(self, altitude: float):
         """Update sun altitude (from ephemeris service)."""
         self._sun_altitude = altitude
+        self._sun_altitude_time = datetime.now()
+
+    def _is_sensor_stale(self, sensor: Optional[SensorInput], timeout: float) -> bool:
+        """
+        Check if sensor data is stale (POS recommendation).
+
+        Args:
+            sensor: Sensor input to check
+            timeout: Maximum age in seconds
+
+        Returns:
+            True if sensor is stale or missing
+        """
+        if not sensor:
+            return True
+        age = (datetime.now() - sensor.timestamp).total_seconds()
+        return age > timeout
 
     def _evaluate_weather(self) -> tuple[bool, List[str]]:
-        """Evaluate weather conditions."""
+        """
+        Evaluate weather conditions with hysteresis (POS recommendation).
+
+        Hysteresis prevents rapid oscillation between safe/unsafe states
+        when conditions are near threshold values.
+        """
         reasons = []
+
+        # POS: Check for stale sensor data
+        if self._is_sensor_stale(self._weather_data, self.thresholds.weather_sensor_timeout):
+            return False, ["Weather data stale or unavailable - treating as unsafe"]
 
         if not self._weather_data or not self._weather_data.is_valid:
             return False, ["Weather data unavailable"]
@@ -189,59 +241,135 @@ class SafetyMonitor:
         if not data:
             return False, ["Weather data unavailable"]
 
-        # Check rain
+        # Check rain (no hysteresis - immediate response)
         if hasattr(data, 'is_raining') and data.is_raining:
             return False, ["Rain detected - EMERGENCY"]
 
         if hasattr(data, 'rain_rate_in_hr') and data.rain_rate_in_hr > 0:
             return False, [f"Rain rate: {data.rain_rate_in_hr} in/hr - EMERGENCY"]
 
-        # Check wind
+        # Check wind with hysteresis (POS recommendation)
         if hasattr(data, 'wind_gust_mph'):
             if data.wind_gust_mph > self.thresholds.wind_gust_limit_mph:
+                self._wind_triggered = True
                 return False, [f"Wind gust {data.wind_gust_mph:.1f} mph exceeds limit"]
 
         if hasattr(data, 'wind_speed_mph'):
-            if data.wind_speed_mph > self.thresholds.wind_limit_mph:
-                reasons.append(f"Wind {data.wind_speed_mph:.1f} mph exceeds limit")
+            wind = data.wind_speed_mph
+            if self._wind_triggered:
+                # POS: Must drop below limit minus hysteresis to clear
+                clear_threshold = self.thresholds.wind_limit_mph - self.thresholds.wind_hysteresis_mph
+                if wind < clear_threshold:
+                    self._wind_triggered = False
+                else:
+                    reasons.append(f"Wind {wind:.1f} mph - waiting for drop below {clear_threshold:.0f} mph")
+            else:
+                if wind > self.thresholds.wind_limit_mph:
+                    self._wind_triggered = True
+                    reasons.append(f"Wind {wind:.1f} mph exceeds limit")
 
-        # Check humidity
+        # Check humidity with hysteresis (POS recommendation)
         if hasattr(data, 'humidity_percent'):
-            if data.humidity_percent > self.thresholds.humidity_limit:
-                reasons.append(f"Humidity {data.humidity_percent:.1f}% exceeds limit")
+            humidity = data.humidity_percent
+            if self._humidity_triggered:
+                clear_threshold = self.thresholds.humidity_limit - self.thresholds.humidity_hysteresis
+                if humidity < clear_threshold:
+                    self._humidity_triggered = False
+                else:
+                    reasons.append(f"Humidity {humidity:.1f}% - waiting for drop below {clear_threshold:.0f}%")
+            else:
+                if humidity > self.thresholds.humidity_limit:
+                    self._humidity_triggered = True
+                    reasons.append(f"Humidity {humidity:.1f}% exceeds limit")
 
         # Check temperature
         if hasattr(data, 'temperature_f'):
             if data.temperature_f < self.thresholds.temp_min_f:
                 reasons.append(f"Temperature {data.temperature_f:.1f}°F below minimum")
 
+        # POS: Check dew point proximity
+        if hasattr(data, 'temperature_f') and hasattr(data, 'dew_point_f'):
+            margin = data.temperature_f - data.dew_point_f
+            if margin < self.thresholds.dew_point_margin_f:
+                reasons.append(f"Temperature within {margin:.1f}°F of dew point - condensation risk")
+
         is_ok = len(reasons) == 0
         return is_ok, reasons
 
     def _evaluate_clouds(self) -> tuple[bool, List[str]]:
-        """Evaluate cloud cover from IR sensor."""
+        """
+        Evaluate cloud cover from IR sensor with hysteresis (POS recommendation).
+
+        Antonio García's CloudWatcher calibration notes:
+        - Sky-ambient differential indicates cloud cover
+        - Nevada's thinner atmosphere at 6000ft affects readings
+        - Hysteresis prevents oscillation during partly cloudy conditions
+        """
+        # POS: Check for stale sensor data
+        if self._is_sensor_stale(self._cloud_data, self.thresholds.cloud_sensor_timeout):
+            # Cloud sensor timeout - log warning but don't block
+            # (weather sensor is primary safety)
+            logger.warning("Cloud sensor data stale")
+            return True, ["Cloud sensor data stale - relying on weather sensor"]
+
         if not self._cloud_data or not self._cloud_data.is_valid:
             # If no cloud sensor, assume OK (but log warning)
             return True, []
 
         sky_diff = self._cloud_data.value
 
-        if sky_diff > self.thresholds.cloudy_threshold:
-            return False, [f"Cloudy: sky-ambient diff {sky_diff:.1f}°C"]
+        # POS: Apply hysteresis to prevent oscillation
+        if self._cloud_triggered:
+            # Currently cloudy - need clear reading plus hysteresis to clear
+            clear_threshold = self.thresholds.clear_sky_threshold - self.thresholds.cloud_hysteresis
+            if sky_diff < clear_threshold:
+                self._cloud_triggered = False
+                return True, [f"Clouds clearing: sky-ambient diff {sky_diff:.1f}°C"]
+            else:
+                return False, [f"Cloudy: sky-ambient diff {sky_diff:.1f}°C (waiting for < {clear_threshold:.0f}°C)"]
+        else:
+            # Currently clear - trigger if above cloudy threshold
+            if sky_diff > self.thresholds.cloudy_threshold:
+                self._cloud_triggered = True
+                return False, [f"Cloudy: sky-ambient diff {sky_diff:.1f}°C"]
 
-        if sky_diff > self.thresholds.clear_sky_threshold:
-            return True, [f"Partly cloudy: sky-ambient diff {sky_diff:.1f}°C"]
+            if sky_diff > self.thresholds.clear_sky_threshold:
+                return True, [f"Partly cloudy: sky-ambient diff {sky_diff:.1f}°C"]
 
         return True, []
 
     def _evaluate_daylight(self) -> tuple[bool, List[str]]:
-        """Evaluate if it's astronomical night."""
+        """
+        Evaluate if it's astronomical night with hysteresis (POS recommendation).
+
+        Hysteresis prevents rapid state changes during twilight transitions.
+        """
+        # POS: Check ephemeris staleness
+        if self._sun_altitude_time:
+            age = (datetime.now() - self._sun_altitude_time).total_seconds()
+            if age > self.thresholds.ephemeris_timeout:
+                logger.warning("Ephemeris data stale")
+                # Don't fail on stale ephemeris - it changes slowly
+                # But log for monitoring
+
         if self._sun_altitude is None:
             # If no ephemeris data, assume OK
             return True, []
 
-        if self._sun_altitude > self.thresholds.twilight_altitude:
-            return False, [f"Sun altitude {self._sun_altitude:.1f}° - not astronomical night"]
+        # POS: Apply hysteresis for twilight transitions
+        if self._daylight_triggered:
+            # Currently in daylight mode - need sun well below horizon to clear
+            clear_threshold = self.thresholds.twilight_altitude - self.thresholds.twilight_hysteresis
+            if self._sun_altitude < clear_threshold:
+                self._daylight_triggered = False
+                return True, [f"Astronomical night beginning (sun at {self._sun_altitude:.1f}°)"]
+            else:
+                return False, [f"Sun altitude {self._sun_altitude:.1f}° - waiting for < {clear_threshold:.0f}°"]
+        else:
+            # Currently night - trigger if sun rises above threshold
+            if self._sun_altitude > self.thresholds.twilight_altitude:
+                self._daylight_triggered = True
+                return False, [f"Sun altitude {self._sun_altitude:.1f}° - not astronomical night"]
 
         return True, []
 

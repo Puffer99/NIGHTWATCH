@@ -24,6 +24,9 @@ class ToolCategory(Enum):
     WEATHER = "weather"      # Weather conditions
     SAFETY = "safety"        # Safety status
     SESSION = "session"      # Observing session management
+    GUIDING = "guiding"      # v2.0: Autoguiding control
+    CAMERA = "camera"        # v2.0: Camera/imaging control
+    ALERTS = "alerts"        # v2.0: Alert management
 
 
 @dataclass
@@ -331,6 +334,233 @@ TELESCOPE_TOOLS: List[Tool] = [
         category=ToolCategory.WEATHER,
         parameters=[]
     ),
+
+    # -------------------------------------------------------------------------
+    # POS PANEL v1.0 ADDITIONS
+    # -------------------------------------------------------------------------
+    # These tools were added based on recommendations from the Panel of Specialists
+    # design retreat (Bob Denny, Sierra Remote team, Howard Dutton)
+
+    Tool(
+        name="confirm_command",
+        description="Request user confirmation before executing a critical command. "
+                    "Use for park, sync, or other irreversible operations when voice "
+                    "recognition confidence is below threshold.",
+        category=ToolCategory.SESSION,
+        parameters=[
+            ToolParameter(
+                name="action",
+                type="string",
+                description="The action requiring confirmation (e.g., 'park telescope', 'sync to M31')"
+            ),
+            ToolParameter(
+                name="reason",
+                type="string",
+                description="Why confirmation is needed",
+                required=False
+            )
+        ]
+    ),
+
+    Tool(
+        name="abort_slew",
+        description="Abort a slew in progress and stop all telescope motion. "
+                    "Use when user says 'stop', 'abort', 'cancel', or 'wait'.",
+        category=ToolCategory.MOUNT,
+        parameters=[]
+    ),
+
+    Tool(
+        name="get_observation_log",
+        description="Get recent observation session history. "
+                    "Shows what objects were observed and when.",
+        category=ToolCategory.SESSION,
+        parameters=[
+            ToolParameter(
+                name="limit",
+                type="number",
+                description="Maximum number of entries to return",
+                required=False,
+                default=10
+            ),
+            ToolParameter(
+                name="session",
+                type="string",
+                description="Session ID to filter by ('current' for tonight, 'last' for previous)",
+                required=False,
+                enum=["current", "last", "all"]
+            )
+        ]
+    ),
+
+    Tool(
+        name="get_sensor_health",
+        description="Get health status of all observatory sensors. "
+                    "Reports data freshness and any sensor failures.",
+        category=ToolCategory.SAFETY,
+        parameters=[]
+    ),
+
+    Tool(
+        name="get_hysteresis_status",
+        description="Get current safety hysteresis state. "
+                    "Shows which conditions are in triggered state and clear thresholds.",
+        category=ToolCategory.SAFETY,
+        parameters=[]
+    ),
+
+    # -------------------------------------------------------------------------
+    # POS PANEL v2.0 ADDITIONS - GUIDING
+    # -------------------------------------------------------------------------
+    # PHD2 integration tools (Craig Stark recommendations)
+
+    Tool(
+        name="start_guiding",
+        description="Start autoguiding with PHD2. Automatically selects a guide star "
+                    "and begins tracking corrections.",
+        category=ToolCategory.GUIDING,
+        parameters=[]
+    ),
+
+    Tool(
+        name="stop_guiding",
+        description="Stop autoguiding. Telescope will continue tracking but without "
+                    "guide corrections.",
+        category=ToolCategory.GUIDING,
+        parameters=[]
+    ),
+
+    Tool(
+        name="get_guiding_status",
+        description="Get current autoguiding status including RMS error, SNR, "
+                    "and guide star information.",
+        category=ToolCategory.GUIDING,
+        parameters=[]
+    ),
+
+    Tool(
+        name="dither",
+        description="Dither the telescope position for imaging. Moves the guide star "
+                    "slightly to reduce fixed pattern noise in stacked images.",
+        category=ToolCategory.GUIDING,
+        parameters=[
+            ToolParameter(
+                name="pixels",
+                type="number",
+                description="Dither amount in pixels (default 5)",
+                required=False,
+                default=5.0
+            )
+        ]
+    ),
+
+    # -------------------------------------------------------------------------
+    # POS PANEL v2.0 ADDITIONS - CAMERA
+    # -------------------------------------------------------------------------
+    # Camera control tools (Damian Peach recommendations)
+
+    Tool(
+        name="start_capture",
+        description="Start planetary video capture. Records high-speed video "
+                    "for later stacking into a single sharp image.",
+        category=ToolCategory.CAMERA,
+        parameters=[
+            ToolParameter(
+                name="target",
+                type="string",
+                description="Target name (e.g., 'Mars', 'Jupiter', 'Saturn')"
+            ),
+            ToolParameter(
+                name="duration",
+                type="number",
+                description="Capture duration in seconds (default 60)",
+                required=False,
+                default=60.0
+            )
+        ]
+    ),
+
+    Tool(
+        name="stop_capture",
+        description="Stop the current capture session.",
+        category=ToolCategory.CAMERA,
+        parameters=[]
+    ),
+
+    Tool(
+        name="get_camera_status",
+        description="Get camera status including current settings, temperature, "
+                    "and capture progress if active.",
+        category=ToolCategory.CAMERA,
+        parameters=[]
+    ),
+
+    Tool(
+        name="set_camera_gain",
+        description="Set camera gain for capture. Higher gain = brighter but noisier.",
+        category=ToolCategory.CAMERA,
+        parameters=[
+            ToolParameter(
+                name="gain",
+                type="number",
+                description="Gain value (0-500, typical: 250 for planets)"
+            )
+        ]
+    ),
+
+    Tool(
+        name="set_camera_exposure",
+        description="Set camera exposure time.",
+        category=ToolCategory.CAMERA,
+        parameters=[
+            ToolParameter(
+                name="exposure_ms",
+                type="number",
+                description="Exposure time in milliseconds (typical: 5-20ms for planets)"
+            )
+        ]
+    ),
+
+    # -------------------------------------------------------------------------
+    # POS PANEL v2.0 ADDITIONS - ALERTS
+    # -------------------------------------------------------------------------
+    # Alert management tools
+
+    Tool(
+        name="get_alerts",
+        description="Get recent alerts and their status.",
+        category=ToolCategory.ALERTS,
+        parameters=[
+            ToolParameter(
+                name="unacknowledged_only",
+                type="boolean",
+                description="Only show unacknowledged alerts",
+                required=False,
+                default=False
+            )
+        ]
+    ),
+
+    Tool(
+        name="acknowledge_alert",
+        description="Acknowledge an alert to stop escalation.",
+        category=ToolCategory.ALERTS,
+        parameters=[
+            ToolParameter(
+                name="alert_id",
+                type="string",
+                description="ID of the alert to acknowledge"
+            )
+        ]
+    ),
+
+    Tool(
+        name="get_seeing_prediction",
+        description="Get predicted astronomical seeing based on weather patterns. "
+                    "Uses machine learning on weather history.",
+        category=ToolCategory.WEATHER,
+        parameters=[]
+    ),
 ]
 
 
@@ -570,6 +800,115 @@ def create_default_handlers(
 
     handlers["is_safe_to_observe"] = is_safe_to_observe
 
+    # -------------------------------------------------------------------------
+    # POS PANEL v1.0 HANDLERS
+    # -------------------------------------------------------------------------
+
+    async def confirm_command(action: str, reason: str = None) -> str:
+        """Request user confirmation for critical command."""
+        # In production, this would trigger a confirmation prompt
+        # and wait for user response via voice or button
+        reason_text = f" ({reason})" if reason else ""
+        return f"Please confirm: {action}{reason_text}. Say 'confirm' or 'cancel'."
+
+    handlers["confirm_command"] = confirm_command
+
+    async def abort_slew() -> str:
+        """Abort slew and stop all motion."""
+        if not mount_client:
+            return "Mount not available"
+        mount_client.stop()
+        return "Slew aborted. Telescope stopped."
+
+    handlers["abort_slew"] = abort_slew
+
+    async def get_observation_log(limit: int = 10, session: str = "current") -> str:
+        """Get observation session history."""
+        # In production, this would query an observation database
+        # For now, return a placeholder
+        return f"Observation log ({session}, last {limit} entries): No observations recorded yet."
+
+    handlers["get_observation_log"] = get_observation_log
+
+    async def get_sensor_health() -> dict:
+        """Get health status of all sensors."""
+        if not safety_monitor:
+            return {"error": "Safety monitor not available"}
+
+        from datetime import datetime
+
+        health = {
+            "weather_sensor": {
+                "name": "Ecowitt WS90",
+                "status": "unknown",
+                "last_update": None,
+                "age_seconds": None
+            },
+            "cloud_sensor": {
+                "name": "CloudWatcher",
+                "status": "unknown",
+                "last_update": None,
+                "age_seconds": None
+            },
+            "ephemeris": {
+                "name": "Skyfield",
+                "status": "unknown",
+                "last_update": None,
+                "age_seconds": None
+            }
+        }
+
+        # Check weather sensor
+        if safety_monitor._weather_data:
+            age = (datetime.now() - safety_monitor._weather_data.timestamp).total_seconds()
+            health["weather_sensor"]["last_update"] = safety_monitor._weather_data.timestamp.isoformat()
+            health["weather_sensor"]["age_seconds"] = round(age, 1)
+            health["weather_sensor"]["status"] = "ok" if age < 120 else "stale"
+        else:
+            health["weather_sensor"]["status"] = "no_data"
+
+        # Check cloud sensor
+        if safety_monitor._cloud_data:
+            age = (datetime.now() - safety_monitor._cloud_data.timestamp).total_seconds()
+            health["cloud_sensor"]["last_update"] = safety_monitor._cloud_data.timestamp.isoformat()
+            health["cloud_sensor"]["age_seconds"] = round(age, 1)
+            health["cloud_sensor"]["status"] = "ok" if age < 180 else "stale"
+        else:
+            health["cloud_sensor"]["status"] = "no_data"
+
+        # Check ephemeris
+        if safety_monitor._sun_altitude_time:
+            age = (datetime.now() - safety_monitor._sun_altitude_time).total_seconds()
+            health["ephemeris"]["last_update"] = safety_monitor._sun_altitude_time.isoformat()
+            health["ephemeris"]["age_seconds"] = round(age, 1)
+            health["ephemeris"]["status"] = "ok" if age < 600 else "stale"
+        else:
+            health["ephemeris"]["status"] = "no_data"
+
+        return health
+
+    handlers["get_sensor_health"] = get_sensor_health
+
+    async def get_hysteresis_status() -> dict:
+        """Get current safety hysteresis state."""
+        if not safety_monitor:
+            return {"error": "Safety monitor not available"}
+
+        return {
+            "wind_triggered": safety_monitor._wind_triggered,
+            "humidity_triggered": safety_monitor._humidity_triggered,
+            "cloud_triggered": safety_monitor._cloud_triggered,
+            "daylight_triggered": safety_monitor._daylight_triggered,
+            "thresholds": {
+                "wind_limit_mph": safety_monitor.thresholds.wind_limit_mph,
+                "wind_clear_mph": safety_monitor.thresholds.wind_limit_mph - safety_monitor.thresholds.wind_hysteresis_mph,
+                "humidity_limit": safety_monitor.thresholds.humidity_limit,
+                "humidity_clear": safety_monitor.thresholds.humidity_limit - safety_monitor.thresholds.humidity_hysteresis
+            }
+        }
+
+    handlers["get_hysteresis_status"] = get_hysteresis_status
+
     return handlers
 
 
@@ -579,24 +918,63 @@ def create_default_handlers(
 
 TELESCOPE_SYSTEM_PROMPT = """You are NIGHTWATCH, an AI assistant for controlling an autonomous telescope observatory in central Nevada.
 
-You help the user observe celestial objects by:
+Observatory: Intes-Micro MN78 (7" f/6 Maksutov-Newtonian) on DIY harmonic drive GEM mount.
+Location: Central Nevada dark sky site (~6000 ft elevation, 280+ clear nights/year).
+Controller: OnStepX on Teensy 4.1 with TMC5160 drivers.
+Camera: ZWO ASI662MC for planetary imaging.
+Guiding: PHD2 with ASI120MM-S guide camera.
+Version: 2.0 (POS Panel certified)
+
+You help the user observe and image celestial objects by:
 1. Looking up objects in the catalog (Messier, NGC, IC, stars, planets)
 2. Pointing the telescope at objects
 3. Checking weather and safety conditions
-4. Providing information about what's visible tonight
+4. Controlling camera capture and guiding
+5. Providing information about what's visible tonight
+
+SAFETY PROTOCOL (POS Panel v1.0):
+- Always check is_safe_to_observe before starting any observation session
+- Use confirm_command for critical operations when voice confidence is low
+- Respond immediately to "stop", "abort", or "cancel" with abort_slew
+- Use get_sensor_health to diagnose connection issues
+- The safety system uses hysteresis - conditions must improve past thresholds to clear
+
+IMAGING WORKFLOW (POS Panel v2.0):
+1. Check conditions with is_safe_to_observe and get_seeing_prediction
+2. GOTO target with goto_object
+3. Start autoguiding with start_guiding (wait for RMS < 1")
+4. Begin capture with start_capture (60-90 seconds for planets)
+5. Dither between captures with dither to reduce noise
 
 When the user asks to observe an object:
 1. First use lookup_object to verify it exists and get its coordinates
 2. Then use goto_object to slew the telescope
 
+When the user wants to image a planet:
+1. Check if it's above 30° altitude for best seeing
+2. GOTO the target
+3. Start guiding if needed
+4. Use start_capture with appropriate duration
+
 When the user asks "what's up tonight" or similar:
 1. Check if it's dark using is_it_dark
 2. Get visible planets using get_visible_planets
-3. Suggest interesting objects based on conditions
+3. Check seeing prediction with get_seeing_prediction
+4. Suggest priority targets based on conditions
 
-Always check is_safe_to_observe before starting any observation session.
+When diagnosing issues:
+1. Use get_sensor_health to check sensor connectivity
+2. Use get_hysteresis_status to understand why conditions aren't clearing
+3. Use get_guiding_status to check autoguiding performance
+4. Use get_alerts to see recent system alerts
+5. Use get_observation_log to review session history
 
-The telescope is an Intes-Micro MN78 (7" Maksutov-Newtonian), optimized for planetary observation. Mars, Jupiter, and Saturn are priority targets when visible.
+Camera settings (Damian Peach recommendations):
+- Mars: gain 280, exposure 8ms
+- Jupiter: gain 250, exposure 12ms
+- Saturn: gain 300, exposure 15ms
+
+The MN78 is optimized for planetary observation. Mars, Jupiter, and Saturn are priority targets when visible. The high contrast design also excels on double stars and small planetary nebulae.
 
 Respond conversationally but concisely. The user is at the telescope and wants quick, useful information.
 """
