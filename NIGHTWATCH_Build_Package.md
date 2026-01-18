@@ -1084,16 +1084,53 @@ For weather protection when not observing:
 
 ## Appendix A: Component Links
 
-*To be populated during research phase*
+*Research conducted 2026-01-18 - See docs/research/SOURCING_RESEARCH.md for details*
+
+### Optical Tube Assembly
+
+| Component | Vendor | URL | Price Est. | Notes |
+|-----------|--------|-----|------------|-------|
+| MN78 OTA | APM Telescopes | apm-telescopes.net | $2,400-3,000 | Contact for availability |
+| MN78 OTA | ENS Optical UK | ensoptical.co.uk | $2,200-2,800 | Check stock |
+| MN78 (used) | Astromart | astromart.com | $1,500-2,200 | Monitor classifieds |
+| MN66 (backup) | APM Telescopes | apm-telescopes.net | $1,500-1,800 | 6" alternative |
+
+### Harmonic Drives
+
+| Component | Vendor | URL | Price Est. | Notes |
+|-----------|--------|-----|------------|-------|
+| CSF-32-100 | Harmonic Drive LLC | harmonicdrive.net | $800-1,200 | 30+ week lead time |
+| CSF-32-100 | eBay (surplus) | ebay.com | $400-600 | Verify completeness |
+| CSF-25-80 | Harmonic Drive LLC | harmonicdrive.net | $600-900 | 30+ week lead time |
+| CSF-25-80 | eBay (surplus) | ebay.com | $300-500 | Verify completeness |
+| CSF-xx (Chinese) | Alibaba | alibaba.com | $150-400 | Higher risk, lower cost |
+
+### Electronics
 
 | Component | Vendor | URL | Price | Notes |
 |-----------|--------|-----|-------|-------|
-| MN78 | TBD | | | |
-| CSF-32-100 | TBD | | | |
-| CSF-25-80 | TBD | | | |
-| TMC5160 | TBD | | | |
-| Teensy 4.1 | PJRC | pjrc.com | $30 | |
-| ... | | | | |
+| Teensy 4.1 | PJRC | pjrc.com | $30 | Main controller |
+| TMC5160 (Watterott) | Digikey | digikey.com | $25 each | Ground CLK pin |
+| TMC5160 (BTT) | Amazon/AliExpress | various | $15 each | Cut CLK pin only |
+| AMT103-V | CUI Devices | cuidevices.com | $50 each | Motor-side encoder |
+| AS5600 | Amazon/AliExpress | various | $5 each | Axis-side absolute |
+| NEMA17 + 27:1 gearbox | StepperOnline | stepperonline.com | $80 each | Integrated unit |
+
+### Reference DIY Projects
+
+| Project | GitHub | Notes |
+|---------|--------|-------|
+| HEMY v2 | github.com/polvinc/HEMY | Best reference, <4kg, 15kg capacity |
+| DHEM | github.com/polvinc/DHEM | No machine tools needed |
+| Alkaid | alanz.info/blog/alkaid-mount | 5.5kg, waterjet aluminum |
+
+### Software/Firmware
+
+| Component | Source | URL | Notes |
+|-----------|--------|-----|-------|
+| OnStepX | GitHub | github.com/hjd1964/OnStepX | v10.24i+ required |
+| OnStep Wiki | Groups.io | onstep.groups.io/g/main/wiki | Configuration reference |
+| HEMY Config | GitHub | github.com/polvinc/HEMY | Adapted for NIGHTWATCH |
 
 ---
 
@@ -1126,31 +1163,35 @@ For weather protection when not observing:
 
 ## Appendix D: Software Repository Structure
 
+*Structure created 2026-01-18*
+
 ```
-nightwatch/
+NIGHTWATCH/
+├── NIGHTWATCH_Build_Package.md      # This specification document
 ├── firmware/
 │   └── onstepx_config/
-│       ├── Config.h
-│       └── Config.*.h
+│       └── Config.h                 # CREATED - Initial OnStepX config
 ├── services/
-│   ├── catalog/
-│   ├── ephemeris/
-│   ├── mount_control/
-│   ├── weather/
-│   └── safety_monitor/
+│   ├── catalog/                     # CREATED - SQLite object database
+│   ├── ephemeris/                   # Pending - Skyfield integration
+│   ├── mount_control/               # CREATED - LX200 protocol client
+│   ├── weather/                     # CREATED - Ecowitt API integration
+│   └── safety_monitor/              # CREATED - Automation logic
 ├── voice/
-│   ├── stt/
-│   ├── llm/
-│   ├── tools/
-│   └── tts/
+│   ├── stt/                         # Pending - Whisper integration
+│   ├── llm/                         # Pending - Llama 3.x tools
+│   ├── tools/                       # Pending - Function calling
+│   └── tts/                         # Pending - Piper/Coqui
 ├── dashboard/
-│   └── web/
+│   └── web/                         # Pending - Remote monitoring UI
 ├── scripts/
-│   ├── install.sh
-│   └── calibration/
+│   ├── install.sh                   # Pending
+│   └── calibration/                 # Pending - Encoder/PEC routines
 └── docs/
-    ├── assembly/
-    └── operation/
+    ├── assembly/                    # Pending - Build instructions
+    ├── operation/                   # Pending - User manual
+    └── research/
+        └── SOURCING_RESEARCH.md     # CREATED - Component sourcing
 ```
 
 ---
@@ -1160,6 +1201,62 @@ nightwatch/
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-17 | Claude | Initial combined build package |
+| 1.1 | 2026-01-18 | Claude | Component sourcing research completed, Appendix A populated |
+| 1.2 | 2026-01-18 | Claude | Core Python services implemented |
+
+---
+
+## Progress Log
+
+### 2026-01-18: Core Services Implemented
+
+**Completed:**
+- Mount Control Service (services/mount_control/)
+  - LX200 protocol client for OnStepX communication
+  - TCP and serial connection support
+  - Full command set: goto, tracking, parking, status
+- Weather Service (services/weather/)
+  - Ecowitt WS90 API integration
+  - Real-time data polling with safety thresholds
+- Safety Monitor (services/safety_monitor/)
+  - Automated observatory safety logic
+  - Weather, cloud, and daylight evaluation
+  - Emergency park capability
+- Catalog Service (services/catalog/)
+  - SQLite astronomical object database
+  - Messier, NGC, IC, named star support
+  - Voice-friendly lookup interface
+
+**HEMY Reference Design Analysis:**
+- Mount type: Harmonic drive with timing belts
+- Payload: 15 kg without counterweights
+- Weight: < 4 kg excluding base
+- Performance: ~1 arcsec RMS, ~0.14 arcsec resolution
+- Electronics: Teensy 4.0 MicroMod + TMC5160 drivers
+- Cost: 800-1000 EUR total build
+
+### 2026-01-18: Research Phase Initiated
+
+**Completed:**
+- Created project directory structure per Appendix D specification
+- Researched MN78 telescope sourcing (APM, ENS Optical, used market)
+- Researched harmonic drive sourcing (HD LLC, eBay surplus, Alibaba)
+- Identified reference DIY projects (HEMY, DHEM, Alkaid)
+- Researched OnStepX configuration for TMC5160 + encoder feedback
+- Created initial OnStepX Config.h for NIGHTWATCH hardware
+- Documented all findings in docs/research/SOURCING_RESEARCH.md
+
+**Key Findings:**
+- Harmonic drives: 30+ week lead time from HD LLC; eBay surplus is viable
+- MN78: Contact APM Telescopes Germany for current availability
+- HEMY project: Best reference design (<4kg, 15kg capacity, ~1 arcsec RMS)
+- OnStepX: v10.24i or later required for HEMY-style configurations
+
+**Next Steps:**
+- Contact APM Telescopes for MN78 quote
+- Set eBay alerts for CSF-32 and CSF-25 harmonic drives
+- Implement ephemeris service with Skyfield
+- Begin voice pipeline development
 
 ---
 
