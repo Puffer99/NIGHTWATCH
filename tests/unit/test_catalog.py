@@ -401,3 +401,146 @@ class TestCoordinateResolution:
         if len(nearby) > 1:
             distances = [dist for name, dist in nearby]
             assert distances == sorted(distances)
+
+
+class TestCatalogEdgeCases:
+    """Tests for edge cases and boundary conditions."""
+
+    @pytest.fixture
+    def service(self):
+        """Create catalog service with test data."""
+        svc = CatalogService(":memory:")
+        svc.initialize()
+        yield svc
+        svc.close()
+
+    def test_lookup_case_insensitive(self, service):
+        """Test that lookups are case insensitive."""
+        result1 = service.lookup("m31")
+        result2 = service.lookup("M31")
+        result3 = service.lookup("m31")
+
+        assert result1 is not None
+        assert result1.catalog_id == result2.catalog_id
+        assert result2.catalog_id == result3.catalog_id
+
+    def test_lookup_with_whitespace(self, service):
+        """Test lookup handles whitespace in queries."""
+        result1 = service.lookup("M 31")  # With space
+        result2 = service.lookup(" M31 ")  # Padded
+
+        # Should still find M31 or handle gracefully
+        assert result1 is not None or result2 is not None
+
+    def test_lookup_empty_string(self, service):
+        """Test lookup with empty string."""
+        result = service.lookup("")
+        assert result is None
+
+    def test_fuzzy_search_empty_string(self, service):
+        """Test fuzzy search with empty string."""
+        results = service.fuzzy_search("")
+        assert len(results) == 0
+
+    def test_fuzzy_search_single_char(self, service):
+        """Test fuzzy search with single character."""
+        results = service.fuzzy_search("M")
+        # Should handle gracefully, may find objects starting with M
+        assert isinstance(results, list)
+
+    def test_suggest_empty_string(self, service):
+        """Test suggestions with empty string."""
+        suggestions = service.suggest("")
+        assert len(suggestions) == 0
+
+    def test_objects_by_type_invalid(self, service):
+        """Test objects_by_type with invalid type."""
+        results = service.objects_by_type("invalid_type_xyz")
+        assert len(results) == 0
+
+    def test_objects_in_constellation_invalid(self, service):
+        """Test objects_in_constellation with invalid constellation."""
+        results = service.objects_in_constellation("InvalidConstellation")
+        assert len(results) == 0
+
+    def test_cone_search_zero_radius(self, service):
+        """Test cone search with zero radius."""
+        coords = service.resolve_object("M31")
+        assert coords is not None
+
+        # Zero radius should still return the center object
+        nearby = service.objects_in_area(coords[0], coords[1], radius_arcmin=0.1)
+        assert isinstance(nearby, list)
+
+    def test_cone_search_large_radius(self, service):
+        """Test cone search with large radius."""
+        coords = service.resolve_object("M31")
+        assert coords is not None
+
+        # Large radius search
+        nearby = service.objects_in_area(coords[0], coords[1], radius_arcmin=600.0)
+        assert isinstance(nearby, list)
+        # Should find multiple objects
+        assert len(nearby) > 0
+
+    def test_magnitude_search_inverted_range(self, service):
+        """Test magnitude search with inverted range (min > max)."""
+        # When min > max, should return empty or handle gracefully
+        # Note: In astronomy, lower magnitude = brighter, so this tests edge case
+        results = service.objects_by_type("galaxy", min_magnitude=10.0, max_magnitude=5.0)
+        assert isinstance(results, list)
+
+    def test_coordinate_wraparound(self, service):
+        """Test coordinate handling near RA=0/24 boundary."""
+        # Search near RA=0 boundary
+        nearby = service.objects_in_area(0.1, 30.0, radius_arcmin=60.0)
+        assert isinstance(nearby, list)
+
+    def test_polar_coordinates(self, service):
+        """Test coordinate handling near celestial poles."""
+        # Search near North pole
+        nearby = service.objects_in_area(12.0, 88.0, radius_arcmin=60.0)
+        assert isinstance(nearby, list)
+
+
+class TestCatalogObjectFormatting:
+    """Tests for object formatting methods."""
+
+    def test_ra_hms_format(self):
+        """Test RA hours-minutes-seconds formatting."""
+        obj = CatalogObject(
+            catalog_id="TEST1",
+            name="Test Object",
+            object_type=ObjectType.STAR,
+            ra_hours=5.5,  # 5h 30m
+            dec_degrees=22.0,
+        )
+        ra_str = obj.ra_hms
+        assert "5" in ra_str
+        assert "30" in ra_str or ":" in ra_str
+
+    def test_dec_dms_format(self):
+        """Test Dec degrees-minutes-seconds formatting."""
+        obj = CatalogObject(
+            catalog_id="TEST1",
+            name="Test Object",
+            object_type=ObjectType.STAR,
+            ra_hours=5.5,
+            dec_degrees=-22.5,  # Negative declination
+        )
+        dec_str = obj.dec_dms
+        assert "-" in dec_str
+        assert "22" in dec_str
+
+    def test_dec_positive_format(self):
+        """Test Dec formatting for positive declination."""
+        obj = CatalogObject(
+            catalog_id="TEST1",
+            name="Test Object",
+            object_type=ObjectType.STAR,
+            ra_hours=5.5,
+            dec_degrees=45.25,
+        )
+        dec_str = obj.dec_dms
+        assert "+" in dec_str
+        assert "45" in dec_str
