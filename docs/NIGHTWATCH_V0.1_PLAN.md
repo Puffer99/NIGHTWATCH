@@ -86,25 +86,25 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 
 | Step ID | Phase | Category | Description | Dependencies | Complexity | Effort | Status | Notes |
 |---------|-------|----------|-------------|--------------|------------|--------|--------|-------|
-| 1 | Infrastructure & Configuration | config | Create nightwatch/config.py module skeleton | None | 2 | 2 | Not Started | Foundation for all services |
-| 2 | Infrastructure & Configuration | config | Implement YAML configuration loading with pydantic validation | 1 | 3 | 3 | Not Started | Use pydantic for type safety |
-| 3 | Infrastructure & Configuration | config | Define SiteConfig dataclass (latitude, longitude, elevation, timezone) | 2 | 2 | 1 | Not Started | Per POS Day 8 discussion |
-| 4 | Infrastructure & Configuration | config | Define MountConfig dataclass (type, host, port, serial_port, baudrate) | 2 | 2 | 1 | Not Started | Support TCP and serial |
-| 5 | Infrastructure & Configuration | config | Define WeatherConfig dataclass (enabled, type, host, poll_interval) | 2 | 2 | 1 | Not Started | Ecowitt WS90 settings |
-| 6 | Infrastructure & Configuration | config | Define VoiceConfig dataclass (STT model, device, compute_type) | 2 | 2 | 1 | Not Started | DGX Spark optimized defaults |
-| 7 | Infrastructure & Configuration | config | Define TTSConfig dataclass (model, use_cuda, cache_enabled) | 2 | 2 | 1 | Not Started | Piper configuration |
-| 8 | Infrastructure & Configuration | config | Define LLMConfig dataclass (model, max_tokens, temperature) | 2 | 2 | 1 | Not Started | Llama 3.2 local inference |
-| 9 | Infrastructure & Configuration | config | Define SafetyConfig dataclass (wind_limit, humidity_limit, temp_min) | 2 | 2 | 1 | Not Started | Per POS Day 4 thresholds |
-| 10 | Infrastructure & Configuration | config | Define CameraConfig dataclass (type, gain, exposure defaults) | 2 | 2 | 1 | Not Started | ZWO ASI settings |
-| 11 | Infrastructure & Configuration | config | Define GuiderConfig dataclass (phd2_host, phd2_port) | 2 | 2 | 1 | Not Started | PHD2 connection |
-| 12 | Infrastructure & Configuration | config | Define EncoderConfig dataclass (enabled, port, baudrate) | 2 | 2 | 1 | Not Started | EncoderBridge settings |
-| 13 | Infrastructure & Configuration | config | Define AlertConfig dataclass (email, sms, push enabled flags) | 2 | 2 | 1 | Not Started | Notification channels |
-| 14 | Infrastructure & Configuration | config | Define PowerConfig dataclass (ups_host, shutdown_threshold) | 2 | 2 | 1 | Not Started | NUT server settings |
-| 15 | Infrastructure & Configuration | config | Define EnclosureConfig dataclass (gpio_pins, timeout) | 2 | 2 | 1 | Not Started | Roof controller GPIO |
-| 16 | Infrastructure & Configuration | config | Implement NightwatchConfig master class aggregating all configs | 3,4,5,6,7,8,9,10,11,12,13,14,15 | 3 | 2 | Not Started | Single config object |
-| 17 | Infrastructure & Configuration | config | Add config file discovery (./nightwatch.yaml, ~/.nightwatch/config.yaml) | 16 | 2 | 1 | Not Started | Standard paths |
-| 18 | Infrastructure & Configuration | config | Implement config validation with helpful error messages | 17 | 3 | 2 | Not Started | User-friendly errors |
-| 19 | Infrastructure & Configuration | config | Add environment variable override support (NIGHTWATCH_MOUNT_HOST, etc.) | 18 | 2 | 2 | Not Started | Flexibility for containers |
+| 1 | Infrastructure & Configuration | config | Create nightwatch/config.py module skeleton | None | 2 | 2 | Complete | Foundation for all services |
+| 2 | Infrastructure & Configuration | config | Implement YAML configuration loading with pydantic validation | 1 | 3 | 3 | Complete | Use pydantic for type safety |
+| 3 | Infrastructure & Configuration | config | Define SiteConfig dataclass (latitude, longitude, elevation, timezone) | 2 | 2 | 1 | Complete | Per POS Day 8 discussion |
+| 4 | Infrastructure & Configuration | config | Define MountConfig dataclass (type, host, port, serial_port, baudrate) | 2 | 2 | 1 | Complete | Support TCP and serial |
+| 5 | Infrastructure & Configuration | config | Define WeatherConfig dataclass (enabled, type, host, poll_interval) | 2 | 2 | 1 | Complete | Ecowitt WS90 settings |
+| 6 | Infrastructure & Configuration | config | Define VoiceConfig dataclass (STT model, device, compute_type) | 2 | 2 | 1 | Complete | DGX Spark optimized defaults |
+| 7 | Infrastructure & Configuration | config | Define TTSConfig dataclass (model, use_cuda, cache_enabled) | 2 | 2 | 1 | Complete | Piper configuration |
+| 8 | Infrastructure & Configuration | config | Define LLMConfig dataclass (model, max_tokens, temperature) | 2 | 2 | 1 | Complete | Llama 3.2 local inference |
+| 9 | Infrastructure & Configuration | config | Define SafetyConfig dataclass (wind_limit, humidity_limit, temp_min) | 2 | 2 | 1 | Complete | Per POS Day 4 thresholds |
+| 10 | Infrastructure & Configuration | config | Define CameraConfig dataclass (type, gain, exposure defaults) | 2 | 2 | 1 | Complete | ZWO ASI settings |
+| 11 | Infrastructure & Configuration | config | Define GuiderConfig dataclass (phd2_host, phd2_port) | 2 | 2 | 1 | Complete | PHD2 connection |
+| 12 | Infrastructure & Configuration | config | Define EncoderConfig dataclass (enabled, port, baudrate) | 2 | 2 | 1 | Complete | EncoderBridge settings |
+| 13 | Infrastructure & Configuration | config | Define AlertConfig dataclass (email, sms, push enabled flags) | 2 | 2 | 1 | Complete | Notification channels |
+| 14 | Infrastructure & Configuration | config | Define PowerConfig dataclass (ups_host, shutdown_threshold) | 2 | 2 | 1 | Complete | NUT server settings |
+| 15 | Infrastructure & Configuration | config | Define EnclosureConfig dataclass (gpio_pins, timeout) | 2 | 2 | 1 | Complete | Roof controller GPIO |
+| 16 | Infrastructure & Configuration | config | Implement NightwatchConfig master class aggregating all configs | 3,4,5,6,7,8,9,10,11,12,13,14,15 | 3 | 2 | Complete | Single config object |
+| 17 | Infrastructure & Configuration | config | Add config file discovery (./nightwatch.yaml, ~/.nightwatch/config.yaml) | 16 | 2 | 1 | Complete | Standard paths |
+| 18 | Infrastructure & Configuration | config | Implement config validation with helpful error messages | 17 | 3 | 2 | Complete | User-friendly errors |
+| 19 | Infrastructure & Configuration | config | Add environment variable override support (NIGHTWATCH_MOUNT_HOST, etc.) | 18 | 2 | 2 | Complete | Flexibility for containers |
 | 20 | Infrastructure & Configuration | config | Create sample nightwatch.yaml with documented options | 19 | 2 | 2 | Not Started | User template |
 | 21 | Infrastructure & Configuration | config | Write unit tests for config loading and validation | 20 | 2 | 2 | Not Started | Test coverage |
 | 22 | Infrastructure & Configuration | logging | Create nightwatch/logging_config.py module | None | 2 | 1 | Complete | Centralized logging |
@@ -127,7 +127,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 39 | Infrastructure & Configuration | dependencies | Configure mypy in pyproject.toml | 37 | 2 | 1 | Complete | Type checking rules |
 | 40 | Infrastructure & Configuration | dependencies | Configure pytest in pyproject.toml | 37 | 2 | 1 | Complete | Test configuration |
 | 41 | Infrastructure & Configuration | dependencies | Create .pre-commit-config.yaml | 36 | 2 | 1 | Complete | Pre-commit hooks |
-| 42 | Infrastructure & Configuration | dependencies | Document dependency installation in README | 41 | 2 | 1 | Not Started | User guidance |
+| 42 | Infrastructure & Configuration | dependencies | Document dependency installation in README | 41 | 2 | 1 | Complete | User guidance |
 | 43 | Infrastructure & Configuration | startup | Create nightwatch/main.py entry point | 21,29 | 3 | 2 | Not Started | Application entry |
 | 44 | Infrastructure & Configuration | startup | Implement argument parser (--config, --log-level, --dry-run) | 43 | 2 | 1 | Not Started | CLI options |
 | 45 | Infrastructure & Configuration | startup | Add signal handlers (SIGINT, SIGTERM) for graceful shutdown | 44 | 3 | 2 | Not Started | Clean shutdown |

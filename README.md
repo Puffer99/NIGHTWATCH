@@ -103,17 +103,58 @@ NIGHTWATCH/
 - AAG CloudWatcher cloud sensor
 
 ### Software
-- Python 3.10+
+- Python 3.11+ (3.12 also supported)
 - OnStepX firmware
 - CUDA toolkit (for DGX Spark inference)
 
-### Python Dependencies
-```bash
-# Voice pipeline
-pip install -r voice/requirements.txt
+## Installation
 
-# Observatory services
-pip install -r services/requirements.txt
+### Quick Start (Development)
+
+```bash
+# Clone the repository
+git clone https://github.com/THOClabs/NIGHTWATCH.git
+cd NIGHTWATCH
+
+# Create a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies in order
+pip install -r services/requirements.txt    # Observatory services
+pip install -r voice/requirements.txt       # Voice pipeline
+pip install -r requirements-dev.txt         # Development tools
+
+# Install pre-commit hooks (recommended)
+pre-commit install
+```
+
+### Using pyproject.toml (Alternative)
+
+```bash
+# Install core package only
+pip install -e .
+
+# Install with all optional dependencies
+pip install -e ".[all]"
+
+# Install specific features
+pip install -e ".[services]"    # Observatory services
+pip install -e ".[voice]"       # Voice pipeline
+pip install -e ".[dev]"         # Development tools
+```
+
+### Verify Installation
+
+```bash
+# Run tests
+pytest
+
+# Check linting
+ruff check .
+
+# Check types
+mypy nightwatch/
 ```
 
 ## Documentation
