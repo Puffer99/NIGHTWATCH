@@ -101,9 +101,12 @@ class EventType(Enum):
     SAFETY_VETO = "safety_veto"
 
     # Guiding events (Step 246)
+    GUIDING_STATE_CHANGED = "guiding_state_changed"
     GUIDING_STARTED = "guiding_started"
     GUIDING_STOPPED = "guiding_stopped"
     GUIDING_LOST = "guiding_lost"
+    GUIDING_SETTLED = "guiding_settled"
+    GUIDING_DITHER = "guiding_dither"
 
     # Session events
     SESSION_STARTED = "session_started"

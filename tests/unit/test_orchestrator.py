@@ -457,9 +457,12 @@ class TestEventType:
 
     def test_guiding_events(self):
         """Test guiding event types exist."""
+        assert EventType.GUIDING_STATE_CHANGED.value == "guiding_state_changed"
         assert EventType.GUIDING_STARTED.value == "guiding_started"
         assert EventType.GUIDING_STOPPED.value == "guiding_stopped"
         assert EventType.GUIDING_LOST.value == "guiding_lost"
+        assert EventType.GUIDING_SETTLED.value == "guiding_settled"
+        assert EventType.GUIDING_DITHER.value == "guiding_dither"
 
     def test_session_events(self):
         """Test session event types exist."""

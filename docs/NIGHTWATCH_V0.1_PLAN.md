@@ -331,11 +331,11 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 243 | Orchestrator Development | orchestrator | Add mount position changed event | 242 | 2 | 1 | Complete | Position updates |
 | 244 | Orchestrator Development | orchestrator | Add weather changed event | 243 | 2 | 1 | Complete | Weather updates |
 | 245 | Orchestrator Development | orchestrator | Add safety state changed event | 244 | 2 | 1 | Complete | Safety alerts |
-| 246 | Orchestrator Development | orchestrator | Add guiding state changed event | 245 | 2 | 1 | Not Started | Guide status |
+| 246 | Orchestrator Development | orchestrator | Add guiding state changed event | 245 | 2 | 1 | Complete | Guide status |
 | 247 | Orchestrator Development | orchestrator | Implement metrics collection | 246 | 3 | 2 | Not Started | Performance data |
 | 248 | Orchestrator Development | orchestrator | Add command latency metrics | 247 | 2 | 1 | Complete | Timing data |
 | 249 | Orchestrator Development | orchestrator | Add service uptime metrics | 248 | 2 | 1 | Complete | Availability |
-| 250 | Orchestrator Development | orchestrator | Add error rate metrics | 249 | 2 | 1 | Not Started | Failure tracking |
+| 250 | Orchestrator Development | orchestrator | Add error rate metrics | 249 | 2 | 1 | Complete | Failure tracking |
 | 251 | Orchestrator Development | orchestrator | Implement graceful shutdown sequence | 250 | 3 | 2 | Not Started | Clean exit |
 | 252 | Orchestrator Development | orchestrator | Add park on shutdown | 251 | 2 | 1 | Complete | Safety |
 | 253 | Orchestrator Development | orchestrator | Add close enclosure on shutdown | 252 | 2 | 1 | Complete | Safety |
@@ -362,7 +362,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 274 | Orchestrator Development | response_formatter | Implement error message formatting | 273 | 2 | 1 | Complete | format_error() method |
 | 275 | Orchestrator Development | response_formatter | Add voice style adaptation (normal, alert, calm) | 274 | 3 | 2 | Not Started | Per POS Day 5 |
 | 276 | Orchestrator Development | response_formatter | Write unit tests for response formatter | 275 | 2 | 2 | Complete | 31 tests in test_response_formatter.py |
-| 277 | Voice Pipeline Integration | llm | Create nightwatch/llm_client.py module | 21 | 3 | 2 | Not Started | LLM integration |
+| 277 | Voice Pipeline Integration | llm | Create nightwatch/llm_client.py module | 21 | 3 | 2 | Complete | LLM integration |
 | 278 | Voice Pipeline Integration | llm | Implement local Llama 3.2 client using llama-cpp-python | 277 | 4 | 3 | Not Started | Local inference |
 | 279 | Voice Pipeline Integration | llm | Add model loading with GPU offload | 278 | 3 | 2 | Not Started | CUDA acceleration |
 | 280 | Voice Pipeline Integration | llm | Implement chat completion with tool definitions | 279 | 4 | 3 | Not Started | Function calling |
@@ -370,14 +370,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 282 | Voice Pipeline Integration | llm | Implement tool call parsing from LLM response | 281 | 4 | 3 | Not Started | Extract tool calls |
 | 283 | Voice Pipeline Integration | llm | Add multi-turn conversation support | 282 | 3 | 2 | Not Started | Context retention |
 | 284 | Voice Pipeline Integration | llm | Implement conversation history management | 283 | 3 | 2 | Not Started | Memory limit |
-| 285 | Voice Pipeline Integration | llm | Add system prompt with observatory context | 284 | 2 | 1 | Not Started | Telescope domain |
+| 285 | Voice Pipeline Integration | llm | Add system prompt with observatory context | 284 | 2 | 1 | Complete | Telescope domain |
 | 286 | Voice Pipeline Integration | llm | Implement Anthropic API client as fallback | 285 | 3 | 2 | Not Started | Optional cloud |
 | 287 | Voice Pipeline Integration | llm | Add OpenAI API client as fallback | 286 | 3 | 2 | Not Started | Optional cloud |
-| 288 | Voice Pipeline Integration | llm | Implement client selection based on config | 287 | 2 | 1 | Not Started | Flexible backend |
+| 288 | Voice Pipeline Integration | llm | Implement client selection based on config | 287 | 2 | 1 | Complete | Flexible backend |
 | 289 | Voice Pipeline Integration | llm | Add response confidence scoring | 288 | 4 | 3 | Not Started | Quality check |
 | 290 | Voice Pipeline Integration | llm | Implement low confidence confirmation request | 289 | 3 | 2 | Not Started | Ask for clarification |
-| 291 | Voice Pipeline Integration | llm | Add token usage tracking | 290 | 2 | 1 | Not Started | Cost monitoring |
-| 292 | Voice Pipeline Integration | llm | Write unit tests for LLM client | 291 | 2 | 2 | Not Started | Test coverage |
+| 291 | Voice Pipeline Integration | llm | Add token usage tracking | 290 | 2 | 1 | Complete | Cost monitoring |
+| 292 | Voice Pipeline Integration | llm | Write unit tests for LLM client | 291 | 2 | 2 | Complete | Test coverage |
 | 293 | Voice Pipeline Integration | voice_pipeline | Create nightwatch/voice_pipeline.py module | 277 | 3 | 2 | Not Started | End-to-end voice |
 | 294 | Voice Pipeline Integration | voice_pipeline | Define VoicePipeline class integrating STT, LLM, TTS | 293 | 3 | 2 | Not Started | Pipeline coordinator |
 | 295 | Voice Pipeline Integration | voice_pipeline | Implement audio capture with VAD | 294 | 3 | 2 | Not Started | Voice detection |
