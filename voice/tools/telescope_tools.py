@@ -852,6 +852,69 @@ TELESCOPE_TOOLS: List[Tool] = [
             )
         ]
     ),
+
+    # -------------------------------------------------------------------------
+    # INDI DEVICE TOOLS (Phase 5.1 - INDI Integration)
+    # -------------------------------------------------------------------------
+    # INDI device control for cross-platform device layer (pyindi-client)
+
+    Tool(
+        name="indi_list_devices",
+        description="List all connected INDI devices. Shows cameras, filter wheels, "
+                    "focusers, and other equipment connected via INDI server.",
+        category=ToolCategory.CAMERA,
+        parameters=[]
+    ),
+
+    Tool(
+        name="indi_set_filter",
+        description="Change filter wheel position using INDI. Accepts filter name "
+                    "(L, R, G, B, Ha, OIII, SII) or position number (1-7).",
+        category=ToolCategory.CAMERA,
+        parameters=[
+            ToolParameter(
+                name="filter_name",
+                type="string",
+                description="Filter name (L, R, G, B, Ha, OIII, SII) or position number (1-7)",
+                required=True
+            )
+        ]
+    ),
+
+    Tool(
+        name="indi_get_filter",
+        description="Get the current filter wheel position and filter name.",
+        category=ToolCategory.CAMERA,
+        parameters=[]
+    ),
+
+    Tool(
+        name="indi_move_focuser",
+        description="Move INDI focuser to absolute position or by relative steps.",
+        category=ToolCategory.FOCUS,
+        parameters=[
+            ToolParameter(
+                name="position",
+                type="number",
+                description="Target position (absolute) or steps to move (if relative=true)"
+            ),
+            ToolParameter(
+                name="relative",
+                type="boolean",
+                description="If true, move by relative steps instead of absolute position",
+                required=False,
+                default=False
+            )
+        ]
+    ),
+
+    Tool(
+        name="indi_get_focuser_status",
+        description="Get INDI focuser status including position, temperature, "
+                    "and movement state.",
+        category=ToolCategory.FOCUS,
+        parameters=[]
+    ),
 ]
 
 
@@ -953,6 +1016,9 @@ def create_default_handlers(
     encoder_bridge=None,
     onstepx_extended=None,
     tts_service=None,
+    indi_client=None,
+    indi_filter_wheel=None,
+    indi_focuser=None,
 ) -> Dict[str, Callable]:
     """
     Create default handler functions connected to services.
@@ -966,6 +1032,9 @@ def create_default_handlers(
         encoder_bridge: EncoderBridge instance for high-resolution position feedback
         onstepx_extended: OnStepXExtended instance for PEC and driver diagnostics
         tts_service: TTSService instance for voice style control
+        indi_client: NightwatchINDIClient instance for INDI device communication
+        indi_filter_wheel: INDIFilterWheel adapter instance
+        indi_focuser: INDIFocuser adapter instance
 
     Returns:
         Dictionary of handler functions
@@ -1395,6 +1464,126 @@ def create_default_handlers(
 
     handlers["set_voice_style"] = set_voice_style
 
+    # -------------------------------------------------------------------------
+    # INDI DEVICE HANDLERS (Phase 5.1)
+    # -------------------------------------------------------------------------
+
+    async def indi_list_devices() -> str:
+        """List all connected INDI devices."""
+        if not indi_client:
+            return "INDI client not available. Ensure INDI server is running."
+
+        devices = list(indi_client._devices.keys())
+        if not devices:
+            return "No INDI devices connected. Check INDI server status."
+
+        # Group devices by type based on common naming conventions
+        device_list = []
+        for name in sorted(devices):
+            device_list.append(f"  - {name}")
+
+        return f"Connected INDI devices ({len(devices)}):\n" + "\n".join(device_list)
+
+    handlers["indi_list_devices"] = indi_list_devices
+
+    async def indi_set_filter(filter_name: str) -> str:
+        """Set filter wheel position by name or number."""
+        if not indi_filter_wheel:
+            return "INDI filter wheel not available"
+
+        # Check if it's a number
+        try:
+            position = int(filter_name)
+            success = indi_filter_wheel.set_filter(position)
+            if success:
+                return f"Moving filter wheel to position {position}"
+            return f"Failed to move filter wheel to position {position}"
+        except ValueError:
+            pass
+
+        # It's a filter name - try to set by name
+        filter_name_upper = filter_name.upper()
+        if hasattr(indi_filter_wheel, 'set_filter_by_name'):
+            success = indi_filter_wheel.set_filter_by_name(filter_name_upper)
+            if success:
+                return f"Moving filter wheel to {filter_name_upper} filter"
+            return f"Failed to move to filter '{filter_name}'. Available filters may include: L, R, G, B, Ha, OIII, SII"
+        else:
+            # Fall back to looking up position from filter names
+            filter_names = indi_filter_wheel.get_filter_names() if hasattr(indi_filter_wheel, 'get_filter_names') else []
+            for idx, name in enumerate(filter_names):
+                if name.upper() == filter_name_upper:
+                    success = indi_filter_wheel.set_filter(idx + 1)
+                    if success:
+                        return f"Moving filter wheel to {filter_name_upper} filter (position {idx + 1})"
+                    return f"Failed to move filter wheel to position {idx + 1}"
+            return f"Filter '{filter_name}' not found. Available: {', '.join(filter_names) if filter_names else 'unknown'}"
+
+    handlers["indi_set_filter"] = indi_set_filter
+
+    async def indi_get_filter() -> str:
+        """Get current filter wheel position."""
+        if not indi_filter_wheel:
+            return "INDI filter wheel not available"
+
+        position = indi_filter_wheel.get_filter()
+        if position is None:
+            return "Could not read filter position"
+
+        # Try to get filter name
+        filter_name = None
+        if hasattr(indi_filter_wheel, 'get_filter_name'):
+            filter_name = indi_filter_wheel.get_filter_name()
+
+        if filter_name:
+            return f"Current filter: {filter_name} (position {position})"
+        return f"Current filter position: {position}"
+
+    handlers["indi_get_filter"] = indi_get_filter
+
+    async def indi_move_focuser(position: int, relative: bool = False) -> str:
+        """Move INDI focuser to position."""
+        if not indi_focuser:
+            return "INDI focuser not available"
+
+        if relative:
+            success = indi_focuser.move_relative(position)
+            direction = "out" if position > 0 else "in"
+            if success:
+                return f"Moving focuser {abs(position)} steps {direction}"
+            return f"Failed to move focuser"
+        else:
+            success = indi_focuser.move_absolute(position)
+            if success:
+                return f"Moving focuser to position {position}"
+            return f"Failed to move focuser to position {position}"
+
+    handlers["indi_move_focuser"] = indi_move_focuser
+
+    async def indi_get_focuser_status() -> str:
+        """Get INDI focuser status."""
+        if not indi_focuser:
+            return "INDI focuser not available"
+
+        position = indi_focuser.get_position()
+        is_moving = indi_focuser.is_moving() if hasattr(indi_focuser, 'is_moving') else None
+        temperature = indi_focuser.get_temperature() if hasattr(indi_focuser, 'get_temperature') else None
+
+        status_parts = []
+        if position is not None:
+            status_parts.append(f"Position: {position} steps")
+        if is_moving is not None:
+            status_parts.append(f"Moving: {'Yes' if is_moving else 'No'}")
+        if temperature is not None:
+            status_parts.append(f"Temperature: {temperature:.1f}°C")
+
+        if not status_parts:
+            return "Could not read focuser status"
+
+        return "INDI Focuser status:\n  " + "\n  ".join(status_parts)
+
+    handlers["indi_get_focuser_status"] = indi_get_focuser_status
+
     return handlers
 
 
@@ -1412,7 +1601,7 @@ Guide Camera: ASI120MM-S with PHD2 autoguiding.
 Focuser: ZWO EAF with temperature compensation.
 Enclosure: Roll-off roof with weather interlocks.
 Power: APC Smart-UPS with NUT monitoring.
-Version: 3.0 (POS Panel certified - Full Automation)
+Version: 3.2 (POS Panel certified - Full Automation + INDI Support)
 
 You help the user observe and image celestial objects by:
 1. Managing the complete observatory (roof, power, safety)
@@ -1495,6 +1684,15 @@ VOICE INTERFACE (v3.1 - Voice Pipeline Enhancement):
   - "calm": Slower, relaxed delivery for visual observation sessions
   - "technical": Detailed diagnostic output with precise numerical values
 - Switch to "calm" for relaxed visual observing, "alert" during imaging runs
+
+INDI DEVICE CONTROL (v3.2 - Cross-Platform Device Layer):
+- indi_list_devices: List all connected INDI devices (cameras, filter wheels, focusers)
+- indi_set_filter: Change filter by name (L, R, G, B, Ha, OIII, SII) or position (1-7)
+- indi_get_filter: Get current filter wheel position and name
+- indi_move_focuser: Move INDI focuser to position (absolute or relative)
+- indi_get_focuser_status: Get focuser position, temperature, and movement state
+- INDI provides cross-platform device control via standard Linux drivers
+- Use these tools when controlling devices through INDI server (port 7624)
 
 Camera settings (Damian Peach recommendations):
 - Mars: gain 280, exposure 8ms
