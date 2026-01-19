@@ -7,7 +7,7 @@
 
 ## Document Purpose
 
-This document serves as the complete specification and research handoff for an autonomous telescope system combining the optical excellence of the Intes-Micro MN78 Maksutov-Newtonian with the automation infrastructure of a fully encoder-equipped, weather-aware observatory. The target environment is an isolated dark sky property in central Nevada with no neighbors, enabling permanent installation without constraints on noise, light, or operating hours.
+This document serves as the complete specification and research handoff for an autonomous telescope system combining the optical excellence of the Intes-Micro MN76 (sometimes called MN78) Maksutov-Newtonian with the automation infrastructure of a fully encoder-equipped, weather-aware observatory. The target environment is an isolated dark sky property in central Nevada with no neighbors, enabling permanent installation without constraints on noise, light, or operating hours.
 
 This package is designed to be unpacked by Claude Code for:
 1. Component research and sourcing
@@ -25,7 +25,7 @@ This package is designed to be unpacked by Claude Code for:
 
 NIGHTWATCH merges two distinct telescope philosophies into a single coherent system:
 
-**From the Russian Giant (#2):** The Intes-Micro MN78 represents peak optical engineering in an unusual configuration. The 7-inch f/6 Maksutov-Newtonian combines closed-tube thermal stability with fast Newtonian-class focal ratios and minimal central obstruction. Hand-figured Russian optics deliver planetary performance that rivals APO refractors at a fraction of the cost-per-inch. The closed tube is ideal for Nevada's dusty, high-temperature-swing desert environment.
+**From the Russian Giant (#2):** The Intes-Micro MN76 represents peak optical engineering in an unusual configuration. The 7-inch f/6 Maksutov-Newtonian combines closed-tube thermal stability with fast Newtonian-class focal ratios and minimal central obstruction. Hand-figured Russian optics deliver planetary performance that rivals APO refractors at a fraction of the cost-per-inch. The closed tube is ideal for Nevada's dusty, high-temperature-swing desert environment.
 
 **From the Autonomous Station (#15):** Full encoder feedback on both axes enables precise positioning without drift or lost-step concerns. Weather awareness through integrated sensors allows autonomous operation decisions. All-sky camera provides cloud monitoring and session logging. The system can operate unattended within defined safety parameters, capturing data while the owner sleeps or is off-property.
 
@@ -43,7 +43,7 @@ NIGHTWATCH merges two distinct telescope philosophies into a single coherent sys
 
 | Parameter | Specification |
 |-----------|---------------|
-| Optical Tube Assembly | Intes-Micro MN78 (178mm f/6 Mak-Newt) |
+| Optical Tube Assembly | Intes-Micro MN76 (178mm f/6 Mak-Newt) |
 | Focal Length | 1068mm native, 2136mm+ with Barlow |
 | Mount Type | DIY German Equatorial, harmonic drive |
 | Payload Capacity | 25 kg (55 lb) minimum |
@@ -60,9 +60,9 @@ NIGHTWATCH merges two distinct telescope philosophies into a single coherent sys
 
 ## Optical Tube Assembly
 
-### Intes-Micro MN78 Specifications
+### Intes-Micro MN76 Specifications
 
-The MN78 is the flagship planetary instrument from Intes-Micro, a Russian manufacturer with four decades of experience producing premium amateur optics. The Maksutov-Newtonian design uses a full-aperture meniscus corrector (like a Maksutov-Cassegrain) but routes light to a Newtonian-style side-mounted focuser rather than through a hole in the primary.
+The MN76 is the flagship planetary instrument from Intes-Micro, a Russian manufacturer with four decades of experience producing premium amateur optics. The Maksutov-Newtonian design uses a full-aperture meniscus corrector (like a Maksutov-Cassegrain) but routes light to a Newtonian-style side-mounted focuser rather than through a hole in the primary.
 
 | Parameter | Specification |
 |-----------|---------------|
@@ -81,22 +81,37 @@ The MN78 is the flagship planetary instrument from Intes-Micro, a Russian manufa
 | Weight | ~9 kg (19.8 lb) |
 | Dovetail | Losmandy-style recommended |
 
-### Why This OTA
+### Why the Intes Micro 178 mm f/6 Mak-Newtonian
 
-**Optical Quality:** Intes-Micro hand-figures optics to 1/8 wave or better. The Mak-Newt design eliminates coma (the bane of fast Newtonians) while maintaining faster focal ratios than Mak-Cass designs. The 25% central obstruction is significantly smaller than typical SCTs (33-35%), yielding superior contrast transfer at medium spatial frequencies—exactly where planetary detail lives.
+The Intes Micro MN76 (sometimes called MN78) represents an optimal intersection of aperture, focal ratio, and optical design for high-resolution planetary imaging and lucky imaging workflows.
 
-**Thermal Behavior:** The closed tube design is critical for Nevada. Open-tube Newtonians suffer from thermal currents rising off the mirror when ambient temperature drops. The MN78's sealed tube dramatically reduces this effect. The corrector plate acts as a thermal buffer. While cooldown time exceeds open designs, a permanent installation can pre-equilibrate hours before observing.
+**Central Obstruction (~25% by diameter):** The MN76's secondary mirror creates a central obstruction of approximately 25% by diameter—substantially smaller than typical Schmidt-Cassegrain telescopes (33–35%) and most commercial Maksutov-Cassegrains. This reduced obstruction preserves contrast transfer at medium spatial frequencies (3–10 cycles/mm at the focal plane), which is precisely where planetary surface detail resides. The result is noticeably crisper views of Martian albedo features, Jovian belt structure, and subtle lunar rille detail compared to larger-obstruction designs of similar aperture.
 
-**Mechanical Robustness:** The closed tube protects optics from dust, insects, and the occasional curious wildlife. Nevada's alkaline dust is particularly damaging to exposed optical surfaces. The MN78 can remain on its pier under a cover for months without optical degradation.
+**Closed Tube Benefits for Desert Conditions:** The sealed Maksutov-Newtonian design provides two critical advantages for central Nevada's high-desert environment:
 
-**Focal Ratio Sweet Spot:** At f/6, the MN78 is fast enough for efficient lucky imaging (good frame rates) while slow enough that the optical design remains manageable. Faster Mak-Newts exist but become significantly more expensive and thermally challenging.
+1. *Thermal stability:* The full-aperture meniscus corrector acts as a thermal buffer, dramatically reducing tube currents compared to open-tube Newtonians. While initial cooldown is slower (1.5–2 hours from indoor storage), a permanently pier-mounted instrument can pre-equilibrate for hours before observing, eliminating this concern entirely.
+
+2. *Dust and debris protection:* Nevada's alkaline dust is particularly abrasive to optical coatings. The closed tube protects primary and secondary mirrors from dust infiltration, insect intrusion, and condensation. The MN76 can remain on its pier under a simple cover for months without optical degradation—essential for an autonomous installation.
+
+**Side-Mounted Focuser Eliminating Image Shift:** Unlike Cassegrain-family telescopes that focus by moving the primary mirror, the MN76 uses a Crayford-style focuser mounted at the side of the tube (Newtonian position). This completely eliminates the image shift that plagues SCTs during focus adjustment—a critical advantage for lucky imaging where precise, repeatable focus is essential. The 2-inch Crayford with 10:1 fine focus provides smooth, backlash-free motion ideal for achieving and maintaining critical focus on planetary targets.
+
+**Hand-Figured Optics and High Strehl Ratios:** Intes Micro continues the Russian tradition of hand-figured optics, with each MN76 individually corrected by skilled opticians. Production units typically achieve Strehl ratios of 0.90–0.95 (1/6 to 1/8 wave P-V), with exceptional examples exceeding 0.95. This level of optical quality approaches diffraction-limited performance, meaning the telescope's resolution is limited by atmospheric seeing rather than optical imperfections—exactly what planetary imaging demands.
+
+**Compatibility with Lucky Imaging at f/6:** The f/6 focal ratio strikes an optimal balance for high-speed planetary capture:
+
+- *Sufficient image scale:* At 1068mm focal length, planetary disks are large enough for effective wavelet sharpening (Mars at opposition: ~150 pixels diameter with typical planetary cameras; Jupiter: ~300+ pixels)
+- *Reasonable exposure times:* f/6 is fast enough to freeze atmospheric turbulence cells (10–30ms exposures typical for planetary imaging)
+- *Barlow flexibility:* Adding a quality 2× Barlow (e.g., Tele Vue Powermate) yields f/12 at 2136mm, providing additional image scale for smaller targets while maintaining manageable exposure times
+- *Camera sensor compatibility:* Modern high-speed planetary cameras (ZWO ASI462MC, Player One Mars-C II) perform optimally in the f/5–f/8 range where pixel sampling matches typical seeing conditions
+
+> **Scientific Reference:** For rigorous derivations of the optical theory underlying these design choices—including Maksutov aberration correction, MTF analysis with central obstruction, Strehl ratio calculations, Kolmogorov turbulence theory, and lucky imaging probability—see [docs/SCIENTIFIC_FOUNDATIONS.md](docs/SCIENTIFIC_FOUNDATIONS.md). This companion document provides PhD-level treatment with peer-reviewed citations from Born & Wolf, Fried (1978), Mahajan (1983), Schroeder (2000), and other foundational sources.
 
 ### Sourcing Research Tasks
 
 ```
-RESEARCH_TASK: MN78_SOURCING
+RESEARCH_TASK: MN76_SOURCING
 Priority: HIGH
-Objective: Identify current availability and pricing for Intes-Micro MN78
+Objective: Identify current availability and pricing for Intes-Micro MN76
 
 Search targets:
 - Intes-Micro direct (Russia) - inquire about export process
@@ -113,7 +128,7 @@ Data to collect:
 - Shipping logistics from Russia/Europe to USA
 - Import duties and customs considerations
 - Warranty terms and service options
-- Alternative: Intes-Micro MN66 (6" f/6) if MN78 unavailable
+- Alternative: Intes-Micro MN66 (6" f/6) if MN76 unavailable
 
 Expected price range: $2,200 - $3,000 new, $1,500 - $2,200 used
 ```
@@ -148,7 +163,7 @@ Harmonic drives (strain wave gears) provide zero-backlash motion transmission wi
 
 **Sizing Rationale:**
 
-The MN78 weighs ~9 kg. Add counterweights (~9 kg), dovetail, accessories, and cameras: total rotating mass ~22 kg. The CSF-32 on RA is rated for significantly higher loads, providing safety margin for:
+The MN76 weighs ~9 kg. Add counterweights (~9 kg), dovetail, accessories, and cameras: total rotating mass ~22 kg. The CSF-32 on RA is rated for significantly higher loads, providing safety margin for:
 - Future heavier OTAs
 - Wind loading
 - Asymmetric accessory mounting
@@ -850,7 +865,7 @@ For weather protection when not observing:
 
 | Category | Component | Est. Cost |
 |----------|-----------|-----------|
-| **Optics** | Intes-Micro MN78 | $2,400 |
+| **Optics** | Intes-Micro MN76 | $2,400 |
 | | Baader 2" diagonal | $250 |
 | | Tele Vue 2x Powermate | $290 |
 | | ZWO ADC | $180 |
@@ -940,7 +955,7 @@ For weather protection when not observing:
 ### Phase 3: OTA Integration (Weeks 11-12)
 
 **Objectives:**
-- Mount MN78 on system
+- Mount MN76 on system
 - Balance on both axes
 - Initial collimation check
 - First light observation
@@ -1016,7 +1031,7 @@ For weather protection when not observing:
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| MN78 unavailable/long lead time | Medium | High | Identify backup OTAs, monitor used market |
+| MN76 unavailable/long lead time | Medium | High | Identify backup OTAs, monitor used market |
 | Harmonic drive sourcing issues | Low | High | Multiple supplier research, budget for premium pricing |
 | Machining quality problems | Medium | Medium | Use reputable shop, inspect before assembly |
 | OnStepX configuration difficulty | Medium | Medium | Engage OnStep community early, study reference configs |
@@ -1031,8 +1046,8 @@ For weather protection when not observing:
 
 ### Optics
 
-1. **MN78 current production status?** Is Intes-Micro still manufacturing, or used market only?
-2. **MN78 vs. MN86 trade-off?** Larger 8" version exists—worth the weight/cost increase?
+1. **MN76 current production status?** Is Intes-Micro still manufacturing, or used market only?
+2. **MN76 vs. MN86 trade-off?** Larger 8" version exists—worth the weight/cost increase?
 3. **Corrector plate coating maintenance?** Nevada dust cleaning protocol?
 
 ### Mount
@@ -1090,9 +1105,9 @@ For weather protection when not observing:
 
 | Component | Vendor | URL | Price Est. | Notes |
 |-----------|--------|-----|------------|-------|
-| MN78 OTA | APM Telescopes | apm-telescopes.net | $2,400-3,000 | Contact for availability |
-| MN78 OTA | ENS Optical UK | ensoptical.co.uk | $2,200-2,800 | Check stock |
-| MN78 (used) | Astromart | astromart.com | $1,500-2,200 | Monitor classifieds |
+| MN76 OTA | APM Telescopes | apm-telescopes.net | $2,400-3,000 | Contact for availability |
+| MN76 OTA | ENS Optical UK | ensoptical.co.uk | $2,200-2,800 | Check stock |
+| MN76 (used) | Astromart | astromart.com | $1,500-2,200 | Monitor classifieds |
 | MN66 (backup) | APM Telescopes | apm-telescopes.net | $1,500-1,800 | 6" alternative |
 
 ### Harmonic Drives
@@ -1188,6 +1203,7 @@ NIGHTWATCH/
 │   ├── install.sh                   # Pending
 │   └── calibration/                 # Pending - Encoder/PEC routines
 └── docs/
+    ├── SCIENTIFIC_FOUNDATIONS.md   # CREATED - PhD-level optical/atmospheric theory
     ├── assembly/                    # Pending - Build instructions
     ├── operation/                   # Pending - User manual
     └── research/
@@ -1203,6 +1219,8 @@ NIGHTWATCH/
 | 1.0 | 2026-01-17 | Claude | Initial combined build package |
 | 1.1 | 2026-01-18 | Claude | Component sourcing research completed, Appendix A populated |
 | 1.2 | 2026-01-18 | Claude | Core Python services implemented |
+| 1.3 | 2026-01-19 | Claude | Expanded optics section with detailed MN76 Mak-Newtonian rationale; corrected model designation to MN76 (sometimes called MN78) |
+| 1.4 | 2026-01-19 | Claude | Added SCIENTIFIC_FOUNDATIONS.md with PhD-level optical theory, atmospheric physics, and peer-reviewed references |
 
 ---
 
@@ -1239,7 +1257,7 @@ NIGHTWATCH/
 
 **Completed:**
 - Created project directory structure per Appendix D specification
-- Researched MN78 telescope sourcing (APM, ENS Optical, used market)
+- Researched MN76 telescope sourcing (APM, ENS Optical, used market)
 - Researched harmonic drive sourcing (HD LLC, eBay surplus, Alibaba)
 - Identified reference DIY projects (HEMY, DHEM, Alkaid)
 - Researched OnStepX configuration for TMC5160 + encoder feedback
@@ -1248,12 +1266,12 @@ NIGHTWATCH/
 
 **Key Findings:**
 - Harmonic drives: 30+ week lead time from HD LLC; eBay surplus is viable
-- MN78: Contact APM Telescopes Germany for current availability
+- MN76: Contact APM Telescopes Germany for current availability
 - HEMY project: Best reference design (<4kg, 15kg capacity, ~1 arcsec RMS)
 - OnStepX: v10.24i or later required for HEMY-style configurations
 
 **Next Steps:**
-- Contact APM Telescopes for MN78 quote
+- Contact APM Telescopes for MN76 quote
 - Set eBay alerts for CSF-32 and CSF-25 harmonic drives
 - Implement ephemeris service with Skyfield
 - Begin voice pipeline development
