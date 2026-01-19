@@ -74,9 +74,16 @@ class AlertConfig:
     webhook_enabled: bool = False
     webhook_urls: List[str] = field(default_factory=list)
 
+    # ntfy.sh local push notification
+    ntfy_enabled: bool = False
+    ntfy_server: str = "https://ntfy.sh"  # Self-hosted or ntfy.sh
+    ntfy_topic: str = "nightwatch"
+    ntfy_auth_token: str = ""  # Optional authentication
+
     # Rate limiting
     min_interval_seconds: float = 60.0    # Minimum time between same alerts
     max_alerts_per_hour: int = 20         # Maximum alerts per hour
+    email_min_interval_per_type: float = 3600.0  # 1 hour between same email alert type
 
     # Escalation
     escalation_timeout_sec: float = 300.0  # Time before escalation
@@ -169,10 +176,12 @@ class AlertManager:
         self.config = config or AlertConfig()
         self._history: List[Alert] = []
         self._recent_alerts: Dict[str, datetime] = {}  # For rate limiting
+        self._recent_emails: Dict[str, datetime] = {}  # Per-type email rate limiting
         self._alert_count_hour = 0
         self._last_hour_reset = datetime.now()
         self._escalation_tasks: Dict[str, asyncio.Task] = {}
         self._callbacks: List[Callable] = []
+        self._http_session = None  # Lazy initialized for webhook/ntfy
 
     def _get_channels_for_level(self, level: AlertLevel) -> List[AlertChannel]:
         """Get notification channels for alert level."""
@@ -268,7 +277,7 @@ class AlertManager:
                 await self._send_email(alert)
 
         elif channel == AlertChannel.PUSH:
-            if self.config.push_enabled:
+            if self.config.push_enabled or self.config.ntfy_enabled:
                 await self._send_push(alert)
 
         elif channel == AlertChannel.SMS:
@@ -288,10 +297,25 @@ class AlertManager:
         Send email notification via SMTP.
 
         Creates HTML and plain text versions of the email.
+        Implements per-alert-type rate limiting (max 1 email per hour per type).
         """
         if not self.config.email_smtp_host:
             logger.warning("Email SMTP host not configured, skipping email")
             return
+
+        # Check per-type email rate limiting
+        email_key = f"{alert.source}:{alert.level.name}"
+        if email_key in self._recent_emails:
+            elapsed = (datetime.now() - self._recent_emails[email_key]).total_seconds()
+            if elapsed < self.config.email_min_interval_per_type:
+                logger.debug(
+                    f"Email rate limited for {email_key}, "
+                    f"last sent {elapsed:.0f}s ago"
+                )
+                return
+
+        # Update rate limiting tracker
+        self._recent_emails[email_key] = datetime.now()
 
         # Build email content
         subject = f"[NIGHTWATCH {alert.level.name}] {alert.source}: {alert.message[:50]}"
@@ -453,9 +477,67 @@ class AlertManager:
                 )
 
     async def _send_push(self, alert: Alert):
-        """Send push notification."""
-        # Would use Firebase or APNS
-        logger.debug(f"Would send push: {alert.message}")
+        """
+        Send push notification via ntfy.sh (self-hosted or public).
+
+        ntfy.sh is a simple HTTP-based pub/sub notification service
+        that works great for local/self-hosted observatory systems.
+        """
+        if not self.config.ntfy_enabled:
+            logger.debug(f"ntfy not enabled, skipping push: {alert.message}")
+            return
+
+        try:
+            import aiohttp
+        except ImportError:
+            logger.warning("aiohttp not installed, cannot send ntfy push")
+            return
+
+        url = f"{self.config.ntfy_server.rstrip('/')}/{self.config.ntfy_topic}"
+
+        # Map alert level to ntfy priority
+        priority_map = {
+            AlertLevel.DEBUG: "1",      # min
+            AlertLevel.INFO: "2",       # low
+            AlertLevel.WARNING: "3",    # default
+            AlertLevel.CRITICAL: "4",   # high
+            AlertLevel.EMERGENCY: "5",  # urgent
+        }
+        priority = priority_map.get(alert.level, "3")
+
+        # Map alert level to emoji tag
+        emoji_map = {
+            AlertLevel.DEBUG: "information_source",
+            AlertLevel.INFO: "information_source",
+            AlertLevel.WARNING: "warning",
+            AlertLevel.CRITICAL: "rotating_light",
+            AlertLevel.EMERGENCY: "sos",
+        }
+        emoji = emoji_map.get(alert.level, "telescope")
+
+        headers = {
+            "Title": f"NIGHTWATCH {alert.level.name}",
+            "Priority": priority,
+            "Tags": f"{emoji},{alert.source}",
+        }
+
+        if self.config.ntfy_auth_token:
+            headers["Authorization"] = f"Bearer {self.config.ntfy_auth_token}"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    data=alert.message,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    if response.status == 200:
+                        logger.debug(f"ntfy push sent: {alert.message[:50]}")
+                    else:
+                        logger.error(f"ntfy push failed: {response.status}")
+        except Exception as e:
+            logger.error(f"ntfy push error: {e}")
 
     async def _send_sms(self, alert: Alert):
         """Send SMS notification."""
@@ -468,9 +550,85 @@ class AlertManager:
         logger.debug(f"Would make call: {alert.message}")
 
     async def _send_webhook(self, alert: Alert):
-        """Send webhook notification."""
-        # Would use aiohttp
-        logger.debug(f"Would send webhook: {alert.message}")
+        """
+        Send webhook notification (generic JSON POST).
+
+        Supports Slack, Discord, and generic webhook endpoints.
+        """
+        try:
+            import aiohttp
+        except ImportError:
+            logger.warning("aiohttp not installed, cannot send webhook")
+            return
+
+        # Build generic JSON payload
+        payload = {
+            "id": alert.id,
+            "level": alert.level.name,
+            "source": alert.source,
+            "message": alert.message,
+            "timestamp": alert.timestamp.isoformat(),
+            "data": alert.data or {},
+        }
+
+        # Build Slack-compatible payload
+        slack_color_map = {
+            AlertLevel.DEBUG: "#6c757d",
+            AlertLevel.INFO: "#17a2b8",
+            AlertLevel.WARNING: "#ffc107",
+            AlertLevel.CRITICAL: "#dc3545",
+            AlertLevel.EMERGENCY: "#721c24",
+        }
+
+        slack_payload = {
+            "attachments": [{
+                "color": slack_color_map.get(alert.level, "#333"),
+                "title": f"NIGHTWATCH {alert.level.name}",
+                "text": alert.message,
+                "fields": [
+                    {"title": "Source", "value": alert.source, "short": True},
+                    {"title": "Time", "value": alert.timestamp.strftime('%H:%M:%S'), "short": True},
+                ],
+                "footer": f"Alert ID: {alert.id}",
+            }]
+        }
+
+        # Build Discord-compatible payload (different format)
+        discord_payload = {
+            "embeds": [{
+                "title": f"NIGHTWATCH {alert.level.name}",
+                "description": alert.message,
+                "color": int(slack_color_map.get(alert.level, "#333").replace("#", ""), 16),
+                "fields": [
+                    {"name": "Source", "value": alert.source, "inline": True},
+                    {"name": "Time", "value": alert.timestamp.strftime('%H:%M:%S'), "inline": True},
+                ],
+                "footer": {"text": f"Alert ID: {alert.id}"},
+            }]
+        }
+
+        for webhook_url in self.config.webhook_urls:
+            try:
+                # Determine payload based on URL
+                if "slack" in webhook_url.lower() or "hooks.slack.com" in webhook_url:
+                    send_payload = slack_payload
+                elif "discord" in webhook_url.lower() or "discord.com/api/webhooks" in webhook_url:
+                    send_payload = discord_payload
+                else:
+                    send_payload = payload
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        webhook_url,
+                        json=send_payload,
+                        timeout=aiohttp.ClientTimeout(total=10)
+                    ) as response:
+                        if response.status in (200, 204):
+                            logger.debug(f"Webhook sent to {webhook_url[:50]}")
+                        else:
+                            logger.error(f"Webhook failed: {response.status}")
+            except Exception as e:
+                logger.error(f"Webhook error for {webhook_url[:30]}: {e}")
 
     def _level_to_logging(self, level: AlertLevel) -> int:
         """Convert AlertLevel to logging level."""
