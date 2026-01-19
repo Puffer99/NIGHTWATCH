@@ -621,12 +621,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 533 | Hardware-in-Loop Simulation | simulators | Implement JSON-RPC protocol | 532 | 3 | 2 | Not Started | PHD2 API |
 | 534 | Hardware-in-Loop Simulation | simulators | Add simulated guide star tracking | 533 | 3 | 2 | Not Started | Virtual guiding |
 | 535 | Hardware-in-Loop Simulation | simulators | Add configurable RMS levels | 534 | 2 | 1 | Not Started | Quality simulation |
-| 536 | Hardware-in-Loop Simulation | test_fixtures | Create tests/fixtures/__init__.py | 501 | 1 | 1 | Not Started | Package |
-| 537 | Hardware-in-Loop Simulation | test_fixtures | Create mock_mount.py fixture | 536 | 3 | 2 | Not Started | Mount mock |
-| 538 | Hardware-in-Loop Simulation | test_fixtures | Create mock_weather.py fixture | 537 | 3 | 2 | Not Started | Weather mock |
-| 539 | Hardware-in-Loop Simulation | test_fixtures | Create mock_camera.py fixture | 538 | 3 | 2 | Not Started | Camera mock |
-| 540 | Hardware-in-Loop Simulation | test_fixtures | Create mock_guider.py fixture | 539 | 3 | 2 | Not Started | Guider mock |
-| 541 | Hardware-in-Loop Simulation | test_fixtures | Create mock_focuser.py fixture | 540 | 3 | 2 | Not Started | Focuser mock |
+| 536 | Hardware-in-Loop Simulation | test_fixtures | Create tests/fixtures/__init__.py | 501 | 1 | 1 | Complete | Package |
+| 537 | Hardware-in-Loop Simulation | test_fixtures | Create mock_mount.py fixture | 536 | 3 | 2 | Complete | Mount mock |
+| 538 | Hardware-in-Loop Simulation | test_fixtures | Create mock_weather.py fixture | 537 | 3 | 2 | Complete | Weather mock |
+| 539 | Hardware-in-Loop Simulation | test_fixtures | Create mock_camera.py fixture | 538 | 3 | 2 | Complete | Camera mock |
+| 540 | Hardware-in-Loop Simulation | test_fixtures | Create mock_guider.py fixture | 539 | 3 | 2 | Complete | Guider mock |
+| 541 | Hardware-in-Loop Simulation | test_fixtures | Create mock_focuser.py fixture | 540 | 3 | 2 | Complete | Focuser mock |
 | 542 | Hardware-in-Loop Simulation | test_fixtures | Create mock_enclosure.py fixture | 541 | 3 | 2 | Not Started | Enclosure mock |
 | 543 | Hardware-in-Loop Simulation | test_fixtures | Create mock_power.py fixture | 542 | 3 | 2 | Not Started | Power mock |
 | 544 | Hardware-in-Loop Simulation | test_fixtures | Create mock_llm.py fixture | 543 | 3 | 2 | Not Started | LLM mock |
