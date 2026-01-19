@@ -157,13 +157,13 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 69 | Core Service Completion | catalog | Add named stars (100 brightest) | 68 | 2 | 2 | Complete | Vega, Polaris, etc. |
 | 70 | Core Service Completion | catalog | Add double stars (50 showpiece doubles) | 69 | 2 | 1 | Complete | Albireo, etc. |
 | 71 | Core Service Completion | catalog | Implement search by name (fuzzy matching) | 70 | 3 | 2 | Complete | User-friendly search |
-| 72 | Core Service Completion | catalog | Implement search by coordinates (cone search) | 71 | 3 | 2 | Not Started | RA/Dec range |
-| 73 | Core Service Completion | catalog | Implement search by object type | 72 | 2 | 1 | Not Started | Galaxy, nebula, etc. |
-| 74 | Core Service Completion | catalog | Implement search by magnitude range | 73 | 2 | 1 | Not Started | Brightness filter |
-| 75 | Core Service Completion | catalog | Implement search by constellation | 74 | 2 | 1 | Not Started | Regional filter |
-| 76 | Core Service Completion | catalog | Add object metadata (size, surface brightness) | 75 | 2 | 2 | Not Started | Additional data |
-| 77 | Core Service Completion | catalog | Implement get_object_details() method | 76 | 2 | 1 | Not Started | Full object info |
-| 78 | Core Service Completion | catalog | Implement resolve_object() for name to coordinates | 77 | 2 | 1 | Not Started | Critical for goto |
+| 72 | Core Service Completion | catalog | Implement search by coordinates (cone search) | 71 | 3 | 2 | Complete | RA/Dec range |
+| 73 | Core Service Completion | catalog | Implement search by object type | 72 | 2 | 1 | Complete | Galaxy, nebula, etc. |
+| 74 | Core Service Completion | catalog | Implement search by magnitude range | 73 | 2 | 1 | Complete | Brightness filter |
+| 75 | Core Service Completion | catalog | Implement search by constellation | 74 | 2 | 1 | Complete | Regional filter |
+| 76 | Core Service Completion | catalog | Add object metadata (size, surface brightness) | 75 | 2 | 2 | Complete | Additional data |
+| 77 | Core Service Completion | catalog | Implement get_object_details() method | 76 | 2 | 1 | Complete | Full object info |
+| 78 | Core Service Completion | catalog | Implement resolve_object() for name to coordinates | 77 | 2 | 1 | Complete | Critical for goto |
 | 79 | Core Service Completion | catalog | Add caching for frequently accessed objects | 78 | 2 | 2 | Not Started | Performance |
 | 80 | Core Service Completion | catalog | Write unit tests for catalog search | 79 | 2 | 2 | Not Started | Test coverage |
 | 81 | Core Service Completion | catalog | Write unit tests for coordinate resolution | 80 | 2 | 1 | Not Started | Test coverage |
