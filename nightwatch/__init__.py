@@ -37,3 +37,12 @@ from nightwatch.types import (
     SafetyState,
     WeatherData,
 )
+
+# Orchestrator (central control)
+from nightwatch.orchestrator import (
+    Orchestrator,
+    ServiceRegistry,
+    ServiceStatus,
+    SessionState,
+    create_orchestrator,
+)

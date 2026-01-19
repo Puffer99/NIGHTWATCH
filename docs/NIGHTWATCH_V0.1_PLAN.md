@@ -297,26 +297,26 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 209 | Core Service Completion | weather | Write unit tests for weather service | 208 | 2 | 2 | Not Started | Test coverage |
 | 210 | Core Service Completion | ephemeris | Review skyfield_service.py current implementation | None | 2 | 1 | Complete | Full Skyfield integration, J2000/JNow, planets, twilight |
 | 211 | Core Service Completion | ephemeris | Add proper motion correction for stars | 210 | 4 | 3 | Not Started | Epoch adjustment |
-| 212 | Core Service Completion | Orchestrator Development | orchestrator | Create nightwatch/orchestrator.py module skeleton | 21 | 3 | 2 | Not Started | Central control |
-| 213 | Orchestrator Development | orchestrator | Define Orchestrator class with config injection | 212 | 2 | 1 | Not Started | Constructor |
-| 214 | Orchestrator Development | orchestrator | Implement service registry for dependency injection | 213 | 3 | 2 | Not Started | Service locator |
-| 215 | Orchestrator Development | orchestrator | Add mount service registration | 214 | 2 | 1 | Not Started | Mount control |
-| 216 | Orchestrator Development | orchestrator | Add catalog service registration | 215 | 2 | 1 | Not Started | Object lookup |
-| 217 | Orchestrator Development | orchestrator | Add ephemeris service registration | 216 | 2 | 1 | Not Started | Planet positions |
-| 218 | Orchestrator Development | orchestrator | Add weather service registration | 217 | 2 | 1 | Not Started | Weather data |
-| 219 | Orchestrator Development | orchestrator | Add safety monitor registration | 218 | 2 | 1 | Not Started | Safety checks |
-| 220 | Orchestrator Development | orchestrator | Add camera service registration | 219 | 2 | 1 | Not Started | Imaging |
-| 221 | Orchestrator Development | orchestrator | Add guiding service registration | 220 | 2 | 1 | Not Started | Autoguiding |
-| 222 | Orchestrator Development | orchestrator | Add focus service registration | 221 | 2 | 1 | Not Started | Focus control |
-| 223 | Orchestrator Development | orchestrator | Add astrometry service registration | 222 | 2 | 1 | Not Started | Plate solving |
-| 224 | Orchestrator Development | orchestrator | Add alert service registration | 223 | 2 | 1 | Not Started | Notifications |
-| 225 | Orchestrator Development | orchestrator | Add power service registration | 224 | 2 | 1 | Not Started | Power management |
-| 226 | Orchestrator Development | orchestrator | Add enclosure service registration | 225 | 2 | 1 | Not Started | Roof control |
-| 227 | Orchestrator Development | orchestrator | Implement async initialization sequence | 226 | 3 | 2 | Not Started | Service startup |
-| 228 | Orchestrator Development | orchestrator | Add service health monitoring loop | 227 | 3 | 2 | Not Started | Continuous checks |
+| 212 | Core Service Completion | Orchestrator Development | orchestrator | Create nightwatch/orchestrator.py module skeleton | 21 | 3 | 2 | Complete | Central orchestrator with protocols |
+| 213 | Orchestrator Development | orchestrator | Define Orchestrator class with config injection | 212 | 2 | 1 | Complete | Config-based initialization |
+| 214 | Orchestrator Development | orchestrator | Implement service registry for dependency injection | 213 | 3 | 2 | Complete | ServiceRegistry class |
+| 215 | Orchestrator Development | orchestrator | Add mount service registration | 214 | 2 | 1 | Complete | register_mount() |
+| 216 | Orchestrator Development | orchestrator | Add catalog service registration | 215 | 2 | 1 | Complete | register_catalog() |
+| 217 | Orchestrator Development | orchestrator | Add ephemeris service registration | 216 | 2 | 1 | Complete | register_ephemeris() |
+| 218 | Orchestrator Development | orchestrator | Add weather service registration | 217 | 2 | 1 | Complete | register_weather() |
+| 219 | Orchestrator Development | orchestrator | Add safety monitor registration | 218 | 2 | 1 | Complete | register_safety() |
+| 220 | Orchestrator Development | orchestrator | Add camera service registration | 219 | 2 | 1 | Complete | register_camera() |
+| 221 | Orchestrator Development | orchestrator | Add guiding service registration | 220 | 2 | 1 | Complete | register_guiding() |
+| 222 | Orchestrator Development | orchestrator | Add focus service registration | 221 | 2 | 1 | Complete | register_focus() |
+| 223 | Orchestrator Development | orchestrator | Add astrometry service registration | 222 | 2 | 1 | Complete | register_astrometry() |
+| 224 | Orchestrator Development | orchestrator | Add alert service registration | 223 | 2 | 1 | Complete | register_alerts() |
+| 225 | Orchestrator Development | orchestrator | Add power service registration | 224 | 2 | 1 | Complete | register_power() |
+| 226 | Orchestrator Development | orchestrator | Add enclosure service registration | 225 | 2 | 1 | Complete | register_enclosure() |
+| 227 | Orchestrator Development | orchestrator | Implement async initialization sequence | 226 | 3 | 2 | Complete | start() method |
+| 228 | Orchestrator Development | orchestrator | Add service health monitoring loop | 227 | 3 | 2 | Complete | _health_loop() |
 | 229 | Orchestrator Development | orchestrator | Implement service restart on failure | 228 | 4 | 3 | Not Started | Auto-recovery |
-| 230 | Orchestrator Development | orchestrator | Add session state management | 229 | 3 | 2 | Not Started | Observation sessions |
-| 231 | Orchestrator Development | orchestrator | Implement session start logic | 230 | 2 | 1 | Not Started | Begin observation |
+| 230 | Orchestrator Development | orchestrator | Add session state management | 229 | 3 | 2 | Complete | SessionState dataclass |
+| 231 | Orchestrator Development | orchestrator | Implement session start logic | 230 | 2 | 1 | Complete | start_session(), end_session() |
 | 232 | Orchestrator Development | orchestrator | Implement session end logic (park, close) | 231 | 3 | 2 | Not Started | End observation |
 | 233 | Orchestrator Development | orchestrator | Add observation log recording | 232 | 3 | 2 | Not Started | Session history |
 | 234 | Orchestrator Development | orchestrator | Implement command queue | 233 | 3 | 2 | Not Started | Async command handling |
