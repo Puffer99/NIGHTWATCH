@@ -5,6 +5,7 @@ This guide covers hardware configuration for NIGHTWATCH observatory control.
 ## Table of Contents
 - [Mount Controller (OnStepX)](#mount-controller-onstepx)
 - [Weather Station (Ecowitt WS90)](#weather-station-ecowitt-ws90)
+- [Cloud Sensor (AAG CloudWatcher)](#cloud-sensor-aag-cloudwatcher)
 - [Audio Hardware](#audio-hardware)
 - [Network Architecture](#network-architecture)
 
@@ -231,6 +232,191 @@ curl http://localhost:8080/weather/current
   "is_safe": true
 }
 ```
+
+---
+
+## Cloud Sensor (AAG CloudWatcher)
+
+### Overview
+
+The AAG CloudWatcher is a cloud and rain detector providing real-time sky conditions for safety monitoring. NIGHTWATCH uses it as an additional safety sensor complementing the Ecowitt weather station.
+
+### Hardware Requirements
+
+| Component | Specification |
+|-----------|---------------|
+| Model | AAG CloudWatcher Solo or Pocket |
+| Interface | RS-232 Serial (9-pin) |
+| Adapter | USB to RS-232 (FTDI recommended) |
+| Power | 12V DC, 500mA |
+| Cable | DB9 serial cable (straight-through) |
+
+### Wiring Diagram
+
+```
+AAG CloudWatcher          USB-Serial Adapter          NIGHTWATCH Server
+-----------------         ------------------          ------------------
+DB9 Connector    <------> DB9 or USB-Serial  <------> USB Port
+Pin 2 (TX)       -------> Pin 2 (RX)
+Pin 3 (RX)       <------- Pin 3 (TX)
+Pin 5 (GND)      -------> Pin 5 (GND)
+
+Power Supply (12V DC)
+```
+
+### Serial Connection Settings
+
+| Parameter | Value |
+|-----------|-------|
+| Baud Rate | 9600 |
+| Data Bits | 8 |
+| Stop Bits | 1 |
+| Parity | None |
+| Flow Control | None |
+
+### USB Serial Adapter Setup
+
+```bash
+# List USB serial devices
+ls -la /dev/ttyUSB*
+
+# Check which device is the CloudWatcher
+dmesg | grep -i "ttyUSB\|ftdi\|serial"
+
+# Add user to dialout group for serial access
+sudo usermod -aG dialout $USER
+
+# Create persistent device symlink (optional)
+sudo tee /etc/udev/rules.d/99-cloudwatcher.rules << 'EOF'
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="cloudwatcher"
+EOF
+
+# Reload udev rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+### Testing Serial Communication
+
+```bash
+# Test with screen
+screen /dev/ttyUSB0 9600
+
+# Or with minicom
+minicom -D /dev/ttyUSB0 -b 9600
+
+# Send command and read response (Python)
+python3 -c "
+import serial
+ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=2)
+ser.write(b'!2')  # Request sensor data
+print(ser.read(100))
+ser.close()
+"
+```
+
+### AAG Protocol Commands
+
+| Command | Description | Response |
+|---------|-------------|----------|
+| `!1` | Get firmware version | Version string |
+| `!2` | Get sensor readings | Temperature, sky IR, rain |
+| `!3` | Get thresholds | Current threshold settings |
+| `!K` | Get constants | Device calibration values |
+
+### Data Fields
+
+| Field | Description | Safety Relevant |
+|-------|-------------|-----------------|
+| Sky Temperature | IR temperature of sky (°C) | Yes |
+| Ambient Temperature | Sensor temperature (°C) | No |
+| Rain Frequency | Rain sensor oscillator (Hz) | Yes |
+| Light Level | Ambient light (rel. units) | No |
+| Switch Status | Open/Closed recommendation | Yes |
+
+### NIGHTWATCH Configuration
+
+```yaml
+# /etc/nightwatch/config.yaml
+cloud_sensor:
+  enabled: true
+  type: "aag_cloudwatcher"
+  port: "/dev/ttyUSB0"  # Or /dev/cloudwatcher with udev rule
+  baudrate: 9600
+  poll_interval_sec: 30
+
+# Safety thresholds for cloud sensor
+safety:
+  # Sky temperature thresholds (lower = clearer sky)
+  sky_temp_clear_c: -20      # Below this = clear
+  sky_temp_cloudy_c: -5      # Above this = cloudy
+  sky_temp_overcast_c: 0     # Above this = overcast (unsafe)
+
+  # Rain sensor thresholds
+  rain_threshold_hz: 2000    # Below this = rain detected
+
+  # Use CloudWatcher switch status for safety
+  cloud_sensor_veto: true
+```
+
+### Interpreting Sky Temperature
+
+The sky IR temperature indicates cloud cover:
+
+| Sky Temp (°C) | Condition | Safe for Observing |
+|---------------|-----------|-------------------|
+| < -25 | Very Clear | Yes |
+| -25 to -15 | Clear | Yes |
+| -15 to -5 | Partly Cloudy | Marginal |
+| -5 to 0 | Cloudy | No |
+| > 0 | Overcast/Rain | No |
+
+**Note:** Actual thresholds depend on ambient temperature and local conditions. Calibrate for your site.
+
+### Verifying Data
+
+```bash
+# Check if receiving data
+curl http://localhost:8080/cloud/current
+
+# Expected response:
+{
+  "sky_temp_c": -22.5,
+  "ambient_temp_c": 15.2,
+  "rain_hz": 3200,
+  "switch_safe": true,
+  "condition": "clear",
+  "is_safe": true
+}
+```
+
+### Troubleshooting
+
+#### No Response from Device
+
+```bash
+# Verify serial port exists
+ls -la /dev/ttyUSB*
+
+# Check permissions
+groups $USER  # Should include 'dialout'
+
+# Test with different baud rates
+stty -F /dev/ttyUSB0 9600
+```
+
+#### Erratic Readings
+
+- Check 12V power supply is stable
+- Verify serial cable connections
+- Clean the IR sensor lens
+- Shield from direct sunlight during day
+
+#### Rain Sensor False Positives
+
+- Clean rain sensor surface with distilled water
+- Check heater is functioning (keeps sensor dry)
+- Adjust rain threshold in configuration
 
 ---
 

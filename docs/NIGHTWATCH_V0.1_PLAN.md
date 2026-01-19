@@ -719,17 +719,17 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 631 | Deployment Preparation | hardware | Document Teensy 4.1 pin assignments | 630 | 2 | 1 | Complete | Pin table in HARDWARE_SETUP.md |
 | 632 | Deployment Preparation | hardware | Document encoder wiring | 631 | 2 | 1 | Complete | AMT103-V in HARDWARE_SETUP.md |
 | 633 | Deployment Preparation | hardware | Document Ecowitt WS90 network setup | 632 | 2 | 1 | Complete | Network config in HARDWARE_SETUP.md |
-| 634 | Deployment Preparation | hardware | Document AAG CloudWatcher serial setup | 633 | 2 | 1 | Not Started | Cloud sensor |
+| 634 | Deployment Preparation | hardware | Document AAG CloudWatcher serial setup | 633 | 2 | 1 | Complete | Cloud sensor section in HARDWARE_SETUP.md |
 | 635 | Deployment Preparation | hardware | Document DGX Spark setup | 634 | 3 | 2 | Not Started | AI compute |
 | 636 | Deployment Preparation | hardware | Document microphone selection and setup | 635 | 2 | 1 | Complete | Audio section in HARDWARE_SETUP.md |
 | 637 | Deployment Preparation | hardware | Document speaker selection and setup | 636 | 2 | 1 | Complete | Audio section in HARDWARE_SETUP.md |
-| 638 | Deployment Preparation | hardware | Create pre-flight checklist | 637 | 2 | 1 | Not Started | First light prep |
+| 638 | Deployment Preparation | hardware | Create pre-flight checklist | 637 | 2 | 1 | Complete | PREFLIGHT_CHECKLIST.md |
 | 639 | Deployment Preparation | testing | Write hardware integration test plan | 638 | 3 | 2 | Not Started | Real hardware |
-| 640 | Deployment Preparation | testing | Create mount communication test | 639 | 2 | 1 | Not Started | LX200 verify |
-| 641 | Deployment Preparation | testing | Create weather station test | 640 | 2 | 1 | Not Started | Ecowitt verify |
+| 640 | Deployment Preparation | testing | Create mount communication test | 639 | 2 | 1 | Complete | tests/hardware/test_mount.py |
+| 641 | Deployment Preparation | testing | Create weather station test | 640 | 2 | 1 | Complete | tests/hardware/test_weather.py |
 | 642 | Deployment Preparation | testing | Create cloud sensor test | 641 | 2 | 1 | Not Started | AAG verify |
-| 643 | Deployment Preparation | testing | Create encoder test | 642 | 2 | 1 | Not Started | Position verify |
-| 644 | Deployment Preparation | testing | Create voice pipeline test | 643 | 2 | 1 | Not Started | Audio verify |
+| 643 | Deployment Preparation | testing | Create encoder test | 642 | 2 | 1 | Complete | tests/hardware/test_encoder.py |
+| 644 | Deployment Preparation | testing | Create voice pipeline test | 643 | 2 | 1 | Complete | tests/hardware/test_voice.py |
 | 645 | Deployment Preparation | testing | Create full system integration test | 644 | 3 | 2 | Not Started | All systems |
 | 646 | Deployment Preparation | release | Create v0.1.0 release checklist | 645 | 2 | 1 | Complete | RELEASE_CHECKLIST.md |
 | 647 | Deployment Preparation | release | Verify all tests passing | 646 | 2 | 1 | Not Started | Quality gate |
@@ -737,8 +737,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 649 | Deployment Preparation | release | Generate changelog | 648 | 2 | 1 | Complete | CHANGELOG.md updated |
 | 650 | Deployment Preparation | release | Create GitHub release | 649 | 2 | 1 | Not Started | Tag v0.1.0 |
 | 651 | Deployment Preparation | release | Record demo video | 650 | 3 | 3 | Not Started | Showcase |
-| 652 | Deployment Preparation | release | Write release announcement | 651 | 2 | 1 | Not Started | Communication |
-| 653 | Deployment Preparation | release | Update project roadmap for v0.2 | 652 | 2 | 1 | Not Started | Next phase |
+| 652 | Deployment Preparation | release | Write release announcement | 651 | 2 | 1 | Complete | RELEASE_v0.1.0.md |
+| 653 | Deployment Preparation | release | Update project roadmap for v0.2 | 652 | 2 | 1 | Complete | ROADMAP.md |
 
 ---
 
