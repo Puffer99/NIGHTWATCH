@@ -1,0 +1,74 @@
+# NIGHTWATCH Wyoming Voice Protocol Service
+#
+# Systemd unit file for the Wyoming protocol voice services.
+# Provides STT (Whisper) and TTS (Piper) endpoints for Home Assistant
+# and local voice control integration.
+#
+# Installation:
+#   sudo cp nightwatch-wyoming.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable nightwatch-wyoming.service
+#   sudo systemctl start nightwatch-wyoming.service
+#
+# Wyoming Protocol Ports:
+#   STT (Whisper): 10300
+#   TTS (Piper):   10200
+#
+# Logs:
+#   journalctl -u nightwatch-wyoming -f
+
+[Unit]
+Description=NIGHTWATCH Wyoming Voice Protocol Services (STT/TTS)
+Documentation=https://github.com/THOClabs/NIGHTWATCH
+After=network.target sound.target
+Before=nightwatch.service
+
+[Service]
+Type=simple
+User=nightwatch
+Group=nightwatch
+WorkingDirectory=/opt/nightwatch
+
+# Environment
+Environment=NIGHTWATCH_HOME=/opt/nightwatch
+Environment=WYOMING_STT_PORT=10300
+Environment=WYOMING_TTS_PORT=10200
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=PYTHONUNBUFFERED=1
+
+# Start Wyoming services (STT and TTS)
+ExecStart=/opt/nightwatch/venv/bin/python -m voice.wyoming_server \
+    --stt-port 10300 \
+    --tts-port 10200 \
+    --whisper-model base.en \
+    --piper-voice en_US-lessac-medium \
+    --device cuda
+
+# Graceful shutdown
+ExecStop=/bin/kill -SIGTERM $MAINPID
+TimeoutStopSec=30
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=0
+
+# Limit restart attempts
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/log/nightwatch /var/cache/nightwatch
+
+# Resource limits (voice processing needs GPU)
+MemoryMax=8G
+
+# Audio access
+SupplementaryGroups=audio
+
+[Install]
+WantedBy=multi-user.target

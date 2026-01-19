@@ -666,7 +666,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 578 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_session_flow.py | 577 | 4 | 3 | Not Started | Full session |
 | 579 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_emergency_shutdown.py | 578 | 3 | 2 | Not Started | Emergency flow |
 | 580 | Testing & Quality Assurance | e2e_tests | Add audio fixture files for voice tests | 579 | 2 | 2 | Not Started | Test audio |
-| 581 | Testing & Quality Assurance | ci_cd | Review .github/workflows/ci.yml | None | 2 | 1 | Not Started | Current state |
+| 581 | Testing & Quality Assurance | ci_cd | Review .github/workflows/ci.yml | None | 2 | 1 | Complete | Has unit tests, integration, lint, docker validation |
 | 582 | Testing & Quality Assurance | ci_cd | Add unit test job with coverage | 581 | 2 | 1 | Not Started | pytest-cov |
 | 583 | Testing & Quality Assurance | ci_cd | Add coverage threshold check (80%) | 582 | 2 | 1 | Not Started | Quality gate |
 | 584 | Testing & Quality Assurance | ci_cd | Add integration test job with simulators | 583 | 3 | 2 | Not Started | Docker tests |
@@ -710,11 +710,11 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 622 | Deployment Preparation | install | Create install.bat for Windows | 621 | 3 | 2 | Not Started | Windows install |
 | 623 | Deployment Preparation | install | Create upgrade.sh script | 622 | 2 | 1 | Not Started | Update path |
 | 624 | Deployment Preparation | install | Write installation documentation | 623 | 2 | 1 | Not Started | Install guide |
-| 625 | Deployment Preparation | systemd | Create nightwatch.service systemd unit | None | 3 | 2 | Not Started | Linux daemon |
-| 626 | Deployment Preparation | systemd | Add automatic restart on failure | 625 | 2 | 1 | Not Started | Resilience |
-| 627 | Deployment Preparation | systemd | Add watchdog integration | 626 | 2 | 1 | Not Started | Health check |
-| 628 | Deployment Preparation | systemd | Create nightwatch-wyoming.service | 627 | 2 | 1 | Not Started | Voice daemon |
-| 629 | Deployment Preparation | systemd | Write systemd documentation | 628 | 2 | 1 | Not Started | Usage guide |
+| 625 | Deployment Preparation | systemd | Create nightwatch.service systemd unit | None | 3 | 2 | Complete | Full service with security hardening |
+| 626 | Deployment Preparation | systemd | Add automatic restart on failure | 625 | 2 | 1 | Complete | RestartSec=10, StartLimitBurst=5 |
+| 627 | Deployment Preparation | systemd | Add watchdog integration | 626 | 2 | 1 | Complete | WatchdogSec=30, NotifyAccess=main |
+| 628 | Deployment Preparation | systemd | Create nightwatch-wyoming.service | 627 | 2 | 1 | Complete | STT/TTS on ports 10200/10300 |
+| 629 | Deployment Preparation | systemd | Write systemd documentation | 628 | 2 | 1 | Complete | Full README with install, manage, troubleshoot |
 | 630 | Deployment Preparation | hardware | Document OnStepX controller wiring | None | 3 | 2 | Not Started | Hardware guide |
 | 631 | Deployment Preparation | hardware | Document Teensy 4.1 pin assignments | 630 | 2 | 1 | Not Started | Wiring diagram |
 | 632 | Deployment Preparation | hardware | Document encoder wiring | 631 | 2 | 1 | Not Started | AMT103-V |

@@ -1,0 +1,72 @@
+# NIGHTWATCH Observatory Control Service
+#
+# Systemd unit file for the main NIGHTWATCH observatory controller.
+# Manages telescope, weather, safety monitoring, and voice pipeline.
+#
+# Installation:
+#   sudo cp nightwatch.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable nightwatch.service
+#   sudo systemctl start nightwatch.service
+#
+# Logs:
+#   journalctl -u nightwatch -f
+
+[Unit]
+Description=NIGHTWATCH Autonomous Observatory Controller
+Documentation=https://github.com/THOClabs/NIGHTWATCH
+After=network.target sound.target
+Wants=nightwatch-wyoming.service
+
+[Service]
+Type=notify
+User=nightwatch
+Group=nightwatch
+WorkingDirectory=/opt/nightwatch
+
+# Environment
+Environment=NIGHTWATCH_HOME=/opt/nightwatch
+Environment=NIGHTWATCH_CONFIG=/etc/nightwatch/config.yaml
+Environment=NIGHTWATCH_LOG_LEVEL=INFO
+Environment=PYTHONUNBUFFERED=1
+
+# Virtual environment activation and startup
+ExecStart=/opt/nightwatch/venv/bin/python -m nightwatch.main --config /etc/nightwatch/config.yaml
+
+# Graceful shutdown (park telescope, close roof)
+ExecStop=/opt/nightwatch/venv/bin/python -m nightwatch.main --shutdown
+TimeoutStopSec=120
+
+# Restart policy - restart on failure with backoff
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=0
+
+# Limit restart attempts (5 attempts within 5 minutes)
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Watchdog - service must notify every 30 seconds
+WatchdogSec=30
+NotifyAccess=main
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/log/nightwatch /var/lib/nightwatch /data
+
+# Resource limits
+MemoryMax=4G
+CPUQuota=80%
+
+# Capabilities for hardware access
+AmbientCapabilities=CAP_SYS_RAWIO
+CapabilityBoundingSet=CAP_SYS_RAWIO
+
+# Allow access to serial ports and GPIO
+SupplementaryGroups=dialout gpio audio
+
+[Install]
+WantedBy=multi-user.target
