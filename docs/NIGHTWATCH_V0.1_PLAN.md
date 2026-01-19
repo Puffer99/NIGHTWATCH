@@ -131,13 +131,13 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 43 | Infrastructure & Configuration | startup | Create nightwatch/main.py entry point | 21,29 | 3 | 2 | Complete | Application entry |
 | 44 | Infrastructure & Configuration | startup | Implement argument parser (--config, --log-level, --dry-run) | 43 | 2 | 1 | Complete | CLI options |
 | 45 | Infrastructure & Configuration | startup | Add signal handlers (SIGINT, SIGTERM) for graceful shutdown | 44 | 3 | 2 | Complete | Clean shutdown |
-| 46 | Infrastructure & Configuration | startup | Implement service health check framework | 45 | 3 | 2 | Not Started | Startup validation |
-| 47 | Infrastructure & Configuration | startup | Add mount connection health check | 46 | 2 | 1 | Not Started | Verify mount reachable |
-| 48 | Infrastructure & Configuration | startup | Add weather service health check | 46 | 2 | 1 | Not Started | Verify weather data |
-| 49 | Infrastructure & Configuration | startup | Add voice pipeline health check | 46 | 2 | 1 | Not Started | Verify STT/TTS ready |
-| 50 | Infrastructure & Configuration | startup | Implement startup sequence with dependency ordering | 47,48,49 | 3 | 2 | Not Started | Ordered initialization |
+| 46 | Infrastructure & Configuration | startup | Implement service health check framework | 45 | 3 | 2 | Complete | Startup validation |
+| 47 | Infrastructure & Configuration | startup | Add mount connection health check | 46 | 2 | 1 | Complete | Verify mount reachable |
+| 48 | Infrastructure & Configuration | startup | Add weather service health check | 46 | 2 | 1 | Complete | Verify weather data |
+| 49 | Infrastructure & Configuration | startup | Add voice pipeline health check | 46 | 2 | 1 | Complete | Verify STT/TTS ready |
+| 50 | Infrastructure & Configuration | startup | Implement startup sequence with dependency ordering | 47,48,49 | 3 | 2 | Complete | Ordered initialization |
 | 51 | Infrastructure & Configuration | startup | Add startup banner with version and config summary | 50 | 1 | 1 | Complete | User feedback |
-| 52 | Infrastructure & Configuration | startup | Implement graceful degradation (continue without optional services) | 50 | 3 | 2 | Not Started | Robustness |
+| 52 | Infrastructure & Configuration | startup | Implement graceful degradation (continue without optional services) | 50 | 3 | 2 | Complete | Robustness |
 | 53 | Infrastructure & Configuration | startup | Create bin/nightwatch shell script launcher | 52 | 2 | 1 | Not Started | Unix launcher |
 | 54 | Infrastructure & Configuration | startup | Create bin/nightwatch.bat Windows launcher | 52 | 2 | 1 | Not Started | Windows support |
 | 55 | Infrastructure & Configuration | startup | Write integration test for startup sequence | 54 | 3 | 2 | Not Started | Startup validation |
