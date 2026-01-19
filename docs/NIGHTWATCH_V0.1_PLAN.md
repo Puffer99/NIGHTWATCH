@@ -255,13 +255,13 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 167 | Core Service Completion | enclosure | Add hardware rain sensor input | 166 | 3 | 2 | Not Started | Failsafe interlock |
 | 168 | Core Service Completion | enclosure | Implement rain sensor interrupt handling | 167 | 3 | 2 | Not Started | Immediate response |
 | 169 | Core Service Completion | enclosure | Add motor current monitoring (optional) | 168 | 4 | 3 | Not Started | Over-current protection |
-| 170 | Core Service Completion | enclosure | Implement motor timeout protection (60s max) | 169 | 2 | 1 | Not Started | Prevent burn-out |
-| 171 | Core Service Completion | enclosure | Add emergency stop input | 170 | 2 | 1 | Not Started | Manual override |
+| 170 | Core Service Completion | enclosure | Implement motor timeout protection (60s max) | 169 | 2 | 1 | Complete | _motor_timeout in roof_controller.py |
+| 171 | Core Service Completion | enclosure | Add emergency stop input | 170 | 2 | 1 | Complete | emergency_stop() in roof_controller.py |
 | 172 | Core Service Completion | enclosure | Implement position estimation (percentage) | 171 | 3 | 2 | Not Started | Partial open support |
 | 173 | Core Service Completion | enclosure | Add mount park verification before open | 172 | 3 | 2 | Not Started | Safety interlock |
 | 174 | Core Service Completion | enclosure | Implement 30-minute rain holdoff timer | 173 | 2 | 2 | Not Started | Per POS Day 4 |
 | 175 | Core Service Completion | enclosure | Add power loss brake engagement | 174 | 3 | 2 | Not Started | Failsafe |
-| 176 | Core Service Completion | enclosure | Implement status callbacks (opening, open, closing, closed) | 175 | 2 | 1 | Not Started | State notifications |
+| 176 | Core Service Completion | enclosure | Implement status callbacks (opening, open, closing, closed) | 175 | 2 | 1 | Complete | register_status_callback() in roof_controller.py |
 | 177 | Core Service Completion | enclosure | Create mock GPIO for testing | 176 | 2 | 2 | Complete | tests/mocks/mock_gpio.py |
 | 178 | Core Service Completion | enclosure | Write unit tests for roof controller | 177 | 2 | 2 | Complete | tests/unit/test_roof_controller.py (45 tests) |
 | 179 | Core Service Completion | enclosure | Write integration test with safety monitor | 178 | 3 | 2 | Not Started | End-to-end test |
@@ -271,7 +271,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 183 | Core Service Completion | focus | Implement Bahtinov mask analysis | 182 | 5 | 4 | Not Started | Diffraction pattern |
 | 184 | Core Service Completion | focus | Add contrast-based focusing | 183 | 3 | 2 | Not Started | Alternative method |
 | 185 | Core Service Completion | focus | Implement temperature compensation calibration | 184 | 4 | 3 | Not Started | Auto-adjust for temp |
-| 186 | Core Service Completion | focus | Add temperature coefficient storage | 185 | 2 | 1 | Not Started | Persist calibration |
+| 186 | Core Service Completion | focus | Add temperature coefficient storage | 185 | 2 | 1 | Complete | save/load_temp_coefficient() in focuser_service.py |
 | 187 | Core Service Completion | focus | Implement backlash compensation | 186 | 3 | 2 | Not Started | Consistent positioning |
 | 188 | Core Service Completion | focus | Add focus position history tracking | 187 | 2 | 2 | Not Started | Session logging |
 | 189 | Core Service Completion | focus | Implement focus run database | 188 | 3 | 2 | Not Started | Analysis data |
@@ -416,11 +416,11 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Not Started | Auto-detect |
 | 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Not Started | Protocol test |
 | 330 | Tool Handler Implementation | mount_tools | Implement goto_object handler | 257,78 | 3 | 2 | Not Started | Core command |
-| 331 | Tool Handler Implementation | mount_tools | Add catalog resolution in goto_object | 330 | 2 | 1 | Not Started | Name to coords |
-| 332 | Tool Handler Implementation | mount_tools | Add ephemeris resolution for planets in goto_object | 331 | 2 | 1 | Not Started | Planet lookup |
-| 333 | Tool Handler Implementation | mount_tools | Add safety check before slew | 332 | 2 | 1 | Not Started | Pre-flight |
-| 334 | Tool Handler Implementation | mount_tools | Add altitude limit check | 333 | 2 | 1 | Not Started | Below horizon |
-| 335 | Tool Handler Implementation | mount_tools | Implement goto_coordinates handler | 334 | 2 | 1 | Not Started | Direct RA/Dec |
+| 331 | Tool Handler Implementation | mount_tools | Add catalog resolution in goto_object | 330 | 2 | 1 | Complete | catalog_service.lookup() in telescope_tools.py |
+| 332 | Tool Handler Implementation | mount_tools | Add ephemeris resolution for planets in goto_object | 331 | 2 | 1 | Complete | ephemeris_service.get_body_position() in telescope_tools.py |
+| 333 | Tool Handler Implementation | mount_tools | Add safety check before slew | 332 | 2 | 1 | Complete | safety_monitor.evaluate() in goto_object/goto_coordinates |
+| 334 | Tool Handler Implementation | mount_tools | Add altitude limit check | 333 | 2 | 1 | Complete | 10° minimum altitude check in goto handlers |
+| 335 | Tool Handler Implementation | mount_tools | Implement goto_coordinates handler | 334 | 2 | 1 | Complete | goto_coordinates() with safety and altitude checks |
 | 336 | Tool Handler Implementation | mount_tools | Add coordinate validation (0-24h, -90 to +90) | 335 | 2 | 1 | Not Started | Input check |
 | 337 | Tool Handler Implementation | mount_tools | Implement park_telescope handler | 336 | 2 | 1 | Not Started | Park command |
 | 338 | Tool Handler Implementation | mount_tools | Add confirmation requirement for park | 337 | 2 | 1 | Not Started | Safety |

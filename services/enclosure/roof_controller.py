@@ -148,6 +148,20 @@ class RoofController:
             SafetyCondition.LIMITS_OK: True,
         }
 
+        # Emergency stop tracking (Step 171)
+        self._emergency_stop_active = False
+        self._emergency_stop_callbacks: List[Callable] = []
+
+        # Status callbacks for state transitions (Step 176)
+        self._status_callbacks: Dict[str, List[Callable]] = {
+            "opening": [],
+            "open": [],
+            "closing": [],
+            "closed": [],
+            "error": [],
+            "emergency_stop": [],
+        }
+
     @property
     def connected(self) -> bool:
         """Check if controller is connected."""
@@ -184,6 +198,10 @@ class RoofController:
 
     def _can_open(self) -> bool:
         """Check if roof can be opened."""
+        # Emergency stop must not be active
+        if self._emergency_stop_active:
+            return False
+
         # All safety conditions must be met
         return all([
             self._safety[SafetyCondition.WEATHER_SAFE],
@@ -278,6 +296,7 @@ class RoofController:
 
         logger.info("Opening roof...")
         self._state = RoofState.OPENING
+        await self._emit_status_event("opening")  # Step 176
 
         try:
             await self._run_motor(direction="open")
@@ -288,6 +307,7 @@ class RoofController:
                 self._position = 100
                 logger.info("Roof open")
                 await self._notify_callbacks("opened")
+                await self._emit_status_event("open")  # Step 176
                 return True
             else:
                 self._state = RoofState.ERROR
@@ -328,6 +348,7 @@ class RoofController:
 
         logger.info("Closing roof...")
         self._state = RoofState.CLOSING
+        await self._emit_status_event("closing")  # Step 176
 
         try:
             await self._run_motor(direction="close")
@@ -338,6 +359,7 @@ class RoofController:
                 self._position = 0
                 logger.info("Roof closed")
                 await self._notify_callbacks("closed")
+                await self._emit_status_event("closed")  # Step 176
                 return True
             else:
                 self._state = RoofState.ERROR
@@ -355,6 +377,75 @@ class RoofController:
         self._state = RoofState.UNKNOWN
         await self._read_limit_switches()
         logger.warning("Roof motion stopped")
+
+    # =========================================================================
+    # EMERGENCY STOP (Step 171)
+    # =========================================================================
+
+    async def emergency_stop(self) -> bool:
+        """
+        Emergency stop - immediately halt all roof motion (Step 171).
+
+        This is the manual override that stops the motor regardless of
+        software state. Should be wired to a physical emergency stop button.
+
+        Returns:
+            True if emergency stop was executed
+        """
+        logger.warning("EMERGENCY STOP ACTIVATED")
+        self._emergency_stop_active = True
+
+        # Immediately stop motor
+        await self._stop_motor()
+
+        # Update state
+        self._state = RoofState.UNKNOWN
+        await self._read_limit_switches()
+
+        # Notify callbacks
+        await self._emit_status_event("emergency_stop")
+
+        # Call emergency stop callbacks
+        for callback in self._emergency_stop_callbacks:
+            try:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback()
+                else:
+                    callback()
+            except Exception as e:
+                logger.error(f"Emergency stop callback error: {e}")
+
+        return True
+
+    def clear_emergency_stop(self) -> bool:
+        """
+        Clear emergency stop condition (Step 171).
+
+        Must be called before roof can be operated again after
+        an emergency stop.
+
+        Returns:
+            True if cleared successfully
+        """
+        if self._emergency_stop_active:
+            logger.info("Emergency stop cleared")
+            self._emergency_stop_active = False
+            return True
+        return False
+
+    @property
+    def is_emergency_stopped(self) -> bool:
+        """Check if emergency stop is active (Step 171)."""
+        return self._emergency_stop_active
+
+    def register_emergency_stop_callback(self, callback: Callable):
+        """
+        Register callback for emergency stop events (Step 171).
+
+        Args:
+            callback: Function to call when emergency stop activates
+        """
+        self._emergency_stop_callbacks.append(callback)
 
     # =========================================================================
     # MOTOR CONTROL
@@ -545,6 +636,77 @@ class RoofController:
                     callback(event, self.status)
             except Exception as e:
                 logger.error(f"Callback error: {e}")
+
+    # =========================================================================
+    # STATUS CALLBACKS (Step 176)
+    # =========================================================================
+
+    def register_status_callback(self, state: str, callback: Callable):
+        """
+        Register callback for specific roof state transitions (Step 176).
+
+        Args:
+            state: State to listen for ("opening", "open", "closing", "closed", "error", "emergency_stop")
+            callback: Function to call when state is reached
+
+        Example:
+            roof.register_status_callback("open", lambda status: print("Roof opened!"))
+            roof.register_status_callback("closed", on_roof_closed)
+        """
+        if state not in self._status_callbacks:
+            raise ValueError(f"Invalid state: {state}. Valid states: {list(self._status_callbacks.keys())}")
+        self._status_callbacks[state].append(callback)
+        logger.debug(f"Registered status callback for '{state}'")
+
+    def unregister_status_callback(self, state: str, callback: Callable) -> bool:
+        """
+        Unregister a status callback (Step 176).
+
+        Args:
+            state: State the callback was registered for
+            callback: The callback to remove
+
+        Returns:
+            True if callback was found and removed
+        """
+        if state in self._status_callbacks:
+            try:
+                self._status_callbacks[state].remove(callback)
+                return True
+            except ValueError:
+                return False
+        return False
+
+    async def _emit_status_event(self, state: str):
+        """
+        Emit status event to registered callbacks (Step 176).
+
+        Args:
+            state: The state that was reached
+        """
+        if state not in self._status_callbacks:
+            return
+
+        status = self.status
+        logger.debug(f"Emitting status event: {state}")
+
+        for callback in self._status_callbacks[state]:
+            try:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(status)
+                else:
+                    callback(status)
+            except Exception as e:
+                logger.error(f"Status callback error for '{state}': {e}")
+
+    def get_registered_callbacks(self) -> Dict[str, int]:
+        """
+        Get count of registered callbacks per state (Step 176).
+
+        Returns:
+            Dict mapping state to callback count
+        """
+        return {state: len(callbacks) for state, callbacks in self._status_callbacks.items()}
 
 
 # =============================================================================

@@ -647,6 +647,116 @@ class FocuserService:
 
         return coefficient
 
+    # =========================================================================
+    # TEMPERATURE COEFFICIENT STORAGE (Step 186)
+    # =========================================================================
+
+    def save_temp_coefficient(self, filepath: str = None) -> bool:
+        """
+        Save temperature coefficient to persistent storage (Step 186).
+
+        Args:
+            filepath: Path to save file. Defaults to ~/.nightwatch/focus_calibration.json
+
+        Returns:
+            True if saved successfully
+        """
+        import json
+        from pathlib import Path
+
+        if filepath is None:
+            config_dir = Path.home() / ".nightwatch"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            filepath = config_dir / "focus_calibration.json"
+        else:
+            filepath = Path(filepath)
+
+        calibration_data = {
+            "temp_coefficient": self.config.temp_coefficient,
+            "calibration_date": datetime.now().isoformat(),
+            "focuser_position_at_calibration": self._position,
+            "temperature_at_calibration": self._temperature,
+            "max_position": self.config.max_position,
+            "step_size_um": self.config.step_size_um,
+        }
+
+        try:
+            with open(filepath, "w") as f:
+                json.dump(calibration_data, f, indent=2)
+            logger.info(f"Temperature coefficient saved to {filepath}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save temperature coefficient: {e}")
+            return False
+
+    def load_temp_coefficient(self, filepath: str = None) -> bool:
+        """
+        Load temperature coefficient from persistent storage (Step 186).
+
+        Args:
+            filepath: Path to load from. Defaults to ~/.nightwatch/focus_calibration.json
+
+        Returns:
+            True if loaded successfully
+        """
+        import json
+        from pathlib import Path
+
+        if filepath is None:
+            filepath = Path.home() / ".nightwatch" / "focus_calibration.json"
+        else:
+            filepath = Path(filepath)
+
+        if not filepath.exists():
+            logger.warning(f"No calibration file found at {filepath}")
+            return False
+
+        try:
+            with open(filepath, "r") as f:
+                data = json.load(f)
+
+            self.config.temp_coefficient = data.get("temp_coefficient", self.config.temp_coefficient)
+            calibration_date = data.get("calibration_date", "unknown")
+
+            logger.info(f"Loaded temperature coefficient: {self.config.temp_coefficient:.2f} steps/°C "
+                       f"(calibrated {calibration_date})")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to load temperature coefficient: {e}")
+            return False
+
+    def get_temp_coefficient_info(self) -> dict:
+        """
+        Get information about the current temperature coefficient (Step 186).
+
+        Returns:
+            Dict with coefficient value and metadata
+        """
+        import json
+        from pathlib import Path
+
+        filepath = Path.home() / ".nightwatch" / "focus_calibration.json"
+
+        info = {
+            "current_coefficient": self.config.temp_coefficient,
+            "from_calibration_file": False,
+            "calibration_date": None,
+        }
+
+        if filepath.exists():
+            try:
+                with open(filepath, "r") as f:
+                    data = json.load(f)
+                info["from_calibration_file"] = True
+                info["calibration_date"] = data.get("calibration_date")
+                info["focuser_position_at_calibration"] = data.get("focuser_position_at_calibration")
+                info["temperature_at_calibration"] = data.get("temperature_at_calibration")
+            except Exception:
+                pass
+
+        return info
+
     async def _find_best_focus(self, camera) -> int:
         """Run auto-focus and return best position."""
         run = await self.auto_focus(camera)

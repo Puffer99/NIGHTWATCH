@@ -1115,10 +1115,21 @@ def create_default_handlers(
         if not catalog_service or not mount_client:
             return "Service not available"
 
+        # Step 333: Safety check before slew
+        if safety_monitor:
+            status = safety_monitor.evaluate()
+            if not status.is_safe:
+                reasons = "; ".join(status.reasons) if status.reasons else "unknown"
+                return f"Cannot slew - unsafe conditions: {reasons}"
+
         # Look up coordinates
         obj = catalog_service.lookup(object_name)
+        ra_deg = None
+        dec_deg = None
+        target_name = object_name
+
         if not obj:
-            # Try ephemeris for planets
+            # Step 332: Try ephemeris for planets
             if ephemeris_service:
                 try:
                     from services.ephemeris import CelestialBody
@@ -1126,6 +1137,19 @@ def create_default_handlers(
                     pos = ephemeris_service.get_body_position(body)
                     ra = pos.ra_hms
                     dec = pos.dec_dms
+                    # Convert to degrees for altitude check
+                    ra_deg = pos.ra_degrees if hasattr(pos, 'ra_degrees') else None
+                    dec_deg = pos.dec_degrees if hasattr(pos, 'dec_degrees') else None
+
+                    # Step 334: Altitude limit check for planets
+                    if ephemeris_service and ra_deg is not None and dec_deg is not None:
+                        try:
+                            alt = ephemeris_service.get_altitude_for_coords(ra_deg, dec_deg)
+                            if alt is not None and alt < 10.0:
+                                return f"Cannot slew to {object_name} - below minimum altitude ({alt:.1f}° < 10°)"
+                        except Exception:
+                            pass  # Continue if altitude check fails
+
                     success = mount_client.goto_ra_dec(ra, dec)
                     if success:
                         return f"Slewing to {object_name}"
@@ -1134,15 +1158,79 @@ def create_default_handlers(
                     pass
             return f"Object '{object_name}' not found in catalog"
 
+        # Step 331: Catalog resolution
         ra = obj.ra_hms
         dec = obj.dec_dms
+        target_name = obj.name or obj.catalog_id
+
+        # Convert catalog coords to degrees for altitude check
+        if hasattr(obj, 'ra_degrees'):
+            ra_deg = obj.ra_degrees
+        if hasattr(obj, 'dec_degrees'):
+            dec_deg = obj.dec_degrees
+
+        # Step 334: Altitude limit check for catalog objects
+        if ephemeris_service and ra_deg is not None and dec_deg is not None:
+            try:
+                alt = ephemeris_service.get_altitude_for_coords(ra_deg, dec_deg)
+                if alt is not None and alt < 10.0:
+                    return f"Cannot slew to {target_name} - below minimum altitude ({alt:.1f}° < 10°)"
+                elif alt is not None and alt < 20.0:
+                    # Warning for low altitude objects
+                    pass  # Continue but could add warning
+            except Exception:
+                pass  # Continue if altitude check fails
+
         success = mount_client.goto_ra_dec(ra, dec)
         if success:
-            name = obj.name or obj.catalog_id
-            return f"Slewing to {name} at RA {ra}, DEC {dec}"
+            return f"Slewing to {target_name} at RA {ra}, DEC {dec}"
         return f"Failed to slew to {object_name}"
 
     handlers["goto_object"] = goto_object
+
+    async def goto_coordinates(ra: str, dec: str) -> str:
+        """Slew to specific RA/DEC coordinates (Step 335)."""
+        if not mount_client:
+            return "Mount not available"
+
+        # Step 333: Safety check before slew
+        if safety_monitor:
+            status = safety_monitor.evaluate()
+            if not status.is_safe:
+                reasons = "; ".join(status.reasons) if status.reasons else "unknown"
+                return f"Cannot slew - unsafe conditions: {reasons}"
+
+        # Step 334: Altitude limit check
+        if ephemeris_service:
+            try:
+                # Parse RA string (HH:MM:SS or HH:MM.M)
+                ra_parts = ra.replace("h", ":").replace("m", ":").replace("s", "").split(":")
+                ra_hours = float(ra_parts[0])
+                ra_minutes = float(ra_parts[1]) if len(ra_parts) > 1 else 0
+                ra_seconds = float(ra_parts[2]) if len(ra_parts) > 2 else 0
+                ra_deg = (ra_hours + ra_minutes / 60 + ra_seconds / 3600) * 15.0
+
+                # Parse DEC string (sDD:MM:SS)
+                dec_clean = dec.replace("°", ":").replace("'", ":").replace('"', "")
+                dec_parts = dec_clean.split(":")
+                dec_sign = -1 if dec_clean.startswith("-") else 1
+                dec_degrees = abs(float(dec_parts[0]))
+                dec_minutes = float(dec_parts[1]) if len(dec_parts) > 1 else 0
+                dec_seconds = float(dec_parts[2]) if len(dec_parts) > 2 else 0
+                dec_deg = dec_sign * (dec_degrees + dec_minutes / 60 + dec_seconds / 3600)
+
+                alt = ephemeris_service.get_altitude_for_coords(ra_deg, dec_deg)
+                if alt is not None and alt < 10.0:
+                    return f"Cannot slew - coordinates below minimum altitude ({alt:.1f}° < 10°)"
+            except Exception:
+                pass  # Continue if altitude check fails
+
+        success = mount_client.goto_ra_dec(ra, dec)
+        if success:
+            return f"Slewing to RA {ra}, DEC {dec}"
+        return f"Failed to slew to RA {ra}, DEC {dec}"
+
+    handlers["goto_coordinates"] = goto_coordinates
 
     async def park_telescope() -> str:
         if not mount_client:
