@@ -1580,27 +1580,123 @@ def create_default_handlers(
 
     # Weather handlers
     async def get_weather() -> str:
+        """Get current weather conditions (Steps 370-371)."""
         if not weather_client:
             return "Weather station not available"
         data = await weather_client.fetch_data()
         if not data:
             return "Could not fetch weather data"
-        return (
-            f"Temperature: {data.temperature_f:.1f}°F, "
-            f"Humidity: {data.humidity_percent:.0f}%, "
-            f"Wind: {data.wind_speed_mph:.1f} mph from {data.wind_direction_str}, "
-            f"Condition: {data.condition.value}"
-        )
+
+        parts = []
+
+        # Step 371: Format temperature in both F and C
+        temp_c = (data.temperature_f - 32) * 5 / 9
+        parts.append(f"Temperature: {data.temperature_f:.1f}°F ({temp_c:.1f}°C)")
+
+        parts.append(f"Humidity: {data.humidity_percent:.0f}%")
+
+        # Wind with direction
+        parts.append(f"Wind: {data.wind_speed_mph:.1f} mph from {data.wind_direction_str}")
+
+        # Add dew point if available
+        if hasattr(data, 'dew_point_f') and data.dew_point_f is not None:
+            dew_c = (data.dew_point_f - 32) * 5 / 9
+            parts.append(f"Dew point: {data.dew_point_f:.1f}°F ({dew_c:.1f}°C)")
+
+        # Add pressure if available
+        if hasattr(data, 'pressure_hpa') and data.pressure_hpa is not None:
+            parts.append(f"Pressure: {data.pressure_hpa:.1f} hPa")
+
+        parts.append(f"Condition: {data.condition.value}")
+
+        return ". ".join(parts)
 
     handlers["get_weather"] = get_weather
 
+    async def get_wind_speed() -> str:
+        """Get wind speed and gust information (Steps 372-373)."""
+        if not weather_client:
+            return "Weather station not available"
+        data = await weather_client.fetch_data()
+        if not data:
+            return "Could not fetch weather data"
+
+        parts = []
+        parts.append(f"Wind speed: {data.wind_speed_mph:.1f} mph from {data.wind_direction_str}")
+
+        # Step 373: Add gust warning
+        if hasattr(data, 'wind_gust_mph') and data.wind_gust_mph is not None:
+            parts.append(f"Gusts: {data.wind_gust_mph:.1f} mph")
+            if data.wind_gust_mph > 25:
+                parts.append("WARNING: Gusts exceed safe limit for observation")
+            elif data.wind_gust_mph > 20:
+                parts.append("Caution: Gusty conditions may affect tracking")
+
+        # Safety assessment
+        if data.wind_speed_mph > 30:
+            parts.append("UNSAFE: Wind speed exceeds emergency threshold")
+        elif data.wind_speed_mph > 25:
+            parts.append("WARNING: Approaching wind safety limit")
+        elif data.wind_speed_mph > 15:
+            parts.append("Moderate wind - may affect long exposures")
+        else:
+            parts.append("Wind conditions are good for observation")
+
+        return ". ".join(parts)
+
+    handlers["get_wind_speed"] = get_wind_speed
+
     async def is_safe_to_observe() -> str:
+        """Check if conditions are safe for observation (Steps 379-380)."""
         if not safety_monitor:
             return "Safety monitor not available"
+
         status = safety_monitor.evaluate()
+
         if status.is_safe:
-            return "Yes, conditions are safe for observation."
-        return f"No, unsafe conditions: {'; '.join(status.reasons)}"
+            parts = ["Yes, conditions are safe for observation"]
+
+            # Add current readings for context
+            if safety_monitor._weather_data:
+                wd = safety_monitor._weather_data
+                parts.append(f"Wind: {wd.wind_speed_mph:.1f} mph")
+                parts.append(f"Humidity: {wd.humidity_percent:.0f}%")
+
+            return ". ".join(parts)
+        else:
+            # Step 380: Add detailed reasons if unsafe
+            parts = ["No, conditions are currently unsafe"]
+
+            # Categorize and explain each reason
+            for reason in status.reasons:
+                reason_lower = reason.lower()
+                if "wind" in reason_lower:
+                    parts.append(f"Wind issue: {reason}")
+                    if safety_monitor._weather_data:
+                        parts.append(f"Current wind: {safety_monitor._weather_data.wind_speed_mph:.1f} mph")
+                elif "humidity" in reason_lower or "dew" in reason_lower:
+                    parts.append(f"Moisture issue: {reason}")
+                    if safety_monitor._weather_data:
+                        parts.append(f"Current humidity: {safety_monitor._weather_data.humidity_percent:.0f}%")
+                elif "rain" in reason_lower:
+                    parts.append(f"Precipitation: {reason}")
+                elif "cloud" in reason_lower:
+                    parts.append(f"Sky condition: {reason}")
+                elif "sun" in reason_lower or "daylight" in reason_lower:
+                    parts.append(f"Daylight: {reason}")
+                elif "stale" in reason_lower or "timeout" in reason_lower:
+                    parts.append(f"Sensor issue: {reason}")
+                else:
+                    parts.append(reason)
+
+            # Add recommended action based on priority
+            if hasattr(status, 'priority') and status.priority:
+                if status.priority.value == "emergency":
+                    parts.append("ACTION REQUIRED: Immediate park and close recommended")
+                elif status.priority.value == "park":
+                    parts.append("Recommendation: Park telescope until conditions improve")
+
+            return ". ".join(parts)
 
     handlers["is_safe_to_observe"] = is_safe_to_observe
 
@@ -1634,62 +1730,63 @@ def create_default_handlers(
 
     handlers["get_observation_log"] = get_observation_log
 
-    async def get_sensor_health() -> dict:
-        """Get health status of all sensors."""
+    async def get_sensor_health() -> str:
+        """Get health status of all sensors (Steps 381-382)."""
         if not safety_monitor:
-            return {"error": "Safety monitor not available"}
+            return "Safety monitor not available"
 
         from datetime import datetime
 
-        health = {
-            "weather_sensor": {
-                "name": "Ecowitt WS90",
-                "status": "unknown",
-                "last_update": None,
-                "age_seconds": None
-            },
-            "cloud_sensor": {
-                "name": "CloudWatcher",
-                "status": "unknown",
-                "last_update": None,
-                "age_seconds": None
-            },
-            "ephemeris": {
-                "name": "Skyfield",
-                "status": "unknown",
-                "last_update": None,
-                "age_seconds": None
-            }
-        }
+        parts = []
+        all_ok = True
 
         # Check weather sensor
         if safety_monitor._weather_data:
             age = (datetime.now() - safety_monitor._weather_data.timestamp).total_seconds()
-            health["weather_sensor"]["last_update"] = safety_monitor._weather_data.timestamp.isoformat()
-            health["weather_sensor"]["age_seconds"] = round(age, 1)
-            health["weather_sensor"]["status"] = "ok" if age < 120 else "stale"
+            # Step 382: Add last reading timestamp
+            time_str = safety_monitor._weather_data.timestamp.strftime("%H:%M:%S")
+            if age < 120:
+                parts.append(f"Weather sensor: OK (last update {time_str}, {age:.0f}s ago)")
+            else:
+                parts.append(f"Weather sensor: STALE (last update {time_str}, {age:.0f}s ago - exceeds 120s limit)")
+                all_ok = False
         else:
-            health["weather_sensor"]["status"] = "no_data"
+            parts.append("Weather sensor: NO DATA - sensor may be offline")
+            all_ok = False
 
         # Check cloud sensor
-        if safety_monitor._cloud_data:
+        if hasattr(safety_monitor, '_cloud_data') and safety_monitor._cloud_data:
             age = (datetime.now() - safety_monitor._cloud_data.timestamp).total_seconds()
-            health["cloud_sensor"]["last_update"] = safety_monitor._cloud_data.timestamp.isoformat()
-            health["cloud_sensor"]["age_seconds"] = round(age, 1)
-            health["cloud_sensor"]["status"] = "ok" if age < 180 else "stale"
+            time_str = safety_monitor._cloud_data.timestamp.strftime("%H:%M:%S")
+            if age < 180:
+                parts.append(f"Cloud sensor: OK (last update {time_str}, {age:.0f}s ago)")
+            else:
+                parts.append(f"Cloud sensor: STALE (last update {time_str}, {age:.0f}s ago - exceeds 180s limit)")
+                all_ok = False
         else:
-            health["cloud_sensor"]["status"] = "no_data"
+            parts.append("Cloud sensor: NO DATA - sensor may be offline")
+            all_ok = False
 
         # Check ephemeris
-        if safety_monitor._sun_altitude_time:
+        if hasattr(safety_monitor, '_sun_altitude_time') and safety_monitor._sun_altitude_time:
             age = (datetime.now() - safety_monitor._sun_altitude_time).total_seconds()
-            health["ephemeris"]["last_update"] = safety_monitor._sun_altitude_time.isoformat()
-            health["ephemeris"]["age_seconds"] = round(age, 1)
-            health["ephemeris"]["status"] = "ok" if age < 600 else "stale"
+            time_str = safety_monitor._sun_altitude_time.strftime("%H:%M:%S")
+            if age < 600:
+                parts.append(f"Ephemeris: OK (last calculation {time_str}, {age:.0f}s ago)")
+            else:
+                parts.append(f"Ephemeris: STALE (last calculation {time_str}, {age:.0f}s ago)")
+                all_ok = False
         else:
-            health["ephemeris"]["status"] = "no_data"
+            parts.append("Ephemeris: NOT INITIALIZED")
+            all_ok = False
 
-        return health
+        # Summary
+        if all_ok:
+            parts.insert(0, "All sensors healthy")
+        else:
+            parts.insert(0, "WARNING: One or more sensors have issues")
+
+        return ". ".join(parts)
 
     handlers["get_sensor_health"] = get_sensor_health
 

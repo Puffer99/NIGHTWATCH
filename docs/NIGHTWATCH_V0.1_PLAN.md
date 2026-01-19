@@ -455,19 +455,19 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 367 | Tool Handler Implementation | ephemeris_tools | Implement whats_up_tonight handler | 366 | 3 | 2 | Not Started | Observing list |
 | 368 | Tool Handler Implementation | ephemeris_tools | Add object prioritization by visibility window | 367 | 3 | 2 | Not Started | Best timing |
 | 369 | Tool Handler Implementation | ephemeris_tools | Write unit tests for ephemeris tool handlers | 368 | 2 | 2 | Not Started | Test coverage |
-| 370 | Tool Handler Implementation | weather_tools | Implement get_weather handler | 257 | 2 | 1 | Not Started | Current weather |
-| 371 | Tool Handler Implementation | weather_tools | Add formatted temperature (F and C) | 370 | 2 | 1 | Not Started | User preference |
-| 372 | Tool Handler Implementation | weather_tools | Implement get_wind_speed handler | 371 | 2 | 1 | Not Started | Wind data |
-| 373 | Tool Handler Implementation | weather_tools | Add gust warning in response | 372 | 2 | 1 | Not Started | Safety info |
+| 370 | Tool Handler Implementation | weather_tools | Implement get_weather handler | 257 | 2 | 1 | Complete | Enhanced get_weather() with full conditions |
+| 371 | Tool Handler Implementation | weather_tools | Add formatted temperature (F and C) | 370 | 2 | 1 | Complete | Both F and C in get_weather response |
+| 372 | Tool Handler Implementation | weather_tools | Implement get_wind_speed handler | 371 | 2 | 1 | Complete | get_wind_speed() with direction |
+| 373 | Tool Handler Implementation | weather_tools | Add gust warning in response | 372 | 2 | 1 | Complete | Gust warnings in get_wind_speed |
 | 374 | Tool Handler Implementation | weather_tools | Implement get_cloud_status handler | 373 | 2 | 1 | Not Started | Cloud cover |
 | 375 | Tool Handler Implementation | weather_tools | Add sky quality (SQM) in response | 374 | 2 | 1 | Not Started | Darkness level |
 | 376 | Tool Handler Implementation | weather_tools | Implement get_seeing_prediction handler | 375 | 3 | 2 | Not Started | Image quality |
 | 377 | Tool Handler Implementation | weather_tools | Add FWHM estimate | 376 | 3 | 2 | Not Started | Arcsec estimate |
 | 378 | Tool Handler Implementation | weather_tools | Write unit tests for weather tool handlers | 377 | 2 | 2 | Not Started | Test coverage |
-| 379 | Tool Handler Implementation | safety_tools | Implement is_safe_to_observe handler | 257 | 2 | 1 | Not Started | Safety check |
-| 380 | Tool Handler Implementation | safety_tools | Add detailed reason if unsafe | 379 | 2 | 1 | Not Started | Explanation |
-| 381 | Tool Handler Implementation | safety_tools | Implement get_sensor_health handler | 380 | 2 | 1 | Not Started | Sensor status |
-| 382 | Tool Handler Implementation | safety_tools | Add last reading timestamps | 381 | 2 | 1 | Not Started | Data freshness |
+| 379 | Tool Handler Implementation | safety_tools | Implement is_safe_to_observe handler | 257 | 2 | 1 | Complete | Enhanced is_safe_to_observe() with context |
+| 380 | Tool Handler Implementation | safety_tools | Add detailed reason if unsafe | 379 | 2 | 1 | Complete | Categorized reasons with current readings |
+| 381 | Tool Handler Implementation | safety_tools | Implement get_sensor_health handler | 380 | 2 | 1 | Complete | get_sensor_health() returns string status |
+| 382 | Tool Handler Implementation | safety_tools | Add last reading timestamps | 381 | 2 | 1 | Complete | Timestamps and age in sensor health |
 | 383 | Tool Handler Implementation | safety_tools | Implement get_hysteresis_status handler | 382 | 2 | 1 | Not Started | Threshold states |
 | 384 | Tool Handler Implementation | safety_tools | Add time until threshold reset | 383 | 2 | 1 | Not Started | Wait time |
 | 385 | Tool Handler Implementation | safety_tools | Write unit tests for safety tool handlers | 384 | 2 | 2 | Not Started | Test coverage |
