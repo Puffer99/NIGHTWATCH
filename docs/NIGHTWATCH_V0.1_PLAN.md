@@ -167,7 +167,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 79 | Core Service Completion | catalog | Add caching for frequently accessed objects | 78 | 2 | 2 | Complete | Performance |
 | 80 | Core Service Completion | catalog | Write unit tests for catalog search | 79 | 2 | 2 | Complete | Test coverage |
 | 81 | Core Service Completion | catalog | Write unit tests for coordinate resolution | 80 | 2 | 1 | Complete | Test coverage |
-| 82 | Core Service Completion | camera | Review asi_camera.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 82 | Core Service Completion | camera | Review asi_camera.py current implementation | None | 2 | 1 | Complete | Full ZWO ASI integration, presets, video capture |
 | 83 | Core Service Completion | camera | Add ZWO ASI SDK wrapper import handling | 82 | 3 | 2 | Not Started | Optional dependency |
 | 84 | Core Service Completion | camera | Implement camera detection and enumeration | 83 | 3 | 2 | Not Started | List connected cameras |
 | 85 | Core Service Completion | camera | Implement camera connection with settings | 84 | 3 | 2 | Not Started | Connect by ID |
@@ -187,7 +187,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 99 | Core Service Completion | camera | Create mock camera for testing | 98 | 3 | 2 | Not Started | Simulation mode |
 | 100 | Core Service Completion | camera | Write unit tests for camera control | 99 | 2 | 2 | Not Started | Test coverage |
 | 101 | Core Service Completion | camera | Write integration test with simulator | 100 | 3 | 2 | Not Started | End-to-end test |
-| 102 | Core Service Completion | astrometry | Review plate_solver.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 102 | Core Service Completion | astrometry | Review plate_solver.py current implementation | None | 2 | 1 | Complete | Full astrometry.net/ASTAP, WCS parsing, mount sync |
 | 103 | Core Service Completion | astrometry | Implement astrometry.net local solver backend | 102 | 4 | 4 | Not Started | Primary solver |
 | 104 | Core Service Completion | astrometry | Add index file configuration for astrometry.net | 103 | 3 | 2 | Not Started | Local index files |
 | 105 | Core Service Completion | astrometry | Implement solve-field command wrapper | 104 | 3 | 2 | Not Started | Shell integration |
@@ -244,7 +244,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 156 | Core Service Completion | power | Create mock UPS for testing | 155 | 2 | 2 | Not Started | Simulation mode |
 | 157 | Core Service Completion | power | Write unit tests for NUT client | 156 | 2 | 2 | Not Started | Test coverage |
 | 158 | Core Service Completion | power | Write integration test for thresholds | 157 | 2 | 2 | Not Started | End-to-end test |
-| 159 | Core Service Completion | enclosure | Review roof_controller.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 159 | Core Service Completion | enclosure | Review roof_controller.py current implementation | None | 2 | 1 | Complete | Full ROR control, safety interlocks, rain holdoff |
 | 160 | Core Service Completion | enclosure | Implement GPIO interface abstraction | 159 | 3 | 2 | Not Started | Hardware access |
 | 161 | Core Service Completion | enclosure | Add RPi.GPIO support for Raspberry Pi | 160 | 3 | 2 | Not Started | Pi compatibility |
 | 162 | Core Service Completion | enclosure | Add gpiozero support as alternative | 161 | 2 | 1 | Not Started | Simpler API |
@@ -265,7 +265,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 177 | Core Service Completion | enclosure | Create mock GPIO for testing | 176 | 2 | 2 | Not Started | Simulation mode |
 | 178 | Core Service Completion | enclosure | Write unit tests for roof controller | 177 | 2 | 2 | Not Started | Test coverage |
 | 179 | Core Service Completion | enclosure | Write integration test with safety monitor | 178 | 3 | 2 | Not Started | End-to-end test |
-| 180 | Core Service Completion | focus | Review focuser_service.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 180 | Core Service Completion | focus | Review focuser_service.py current implementation | None | 2 | 1 | Complete | Full autofocus, V-curve/HFD, temp compensation |
 | 181 | Core Service Completion | focus | Complete V-curve autofocus algorithm | 180 | 4 | 3 | Not Started | Parabolic fit |
 | 182 | Core Service Completion | focus | Add HFD (Half-Flux Diameter) calculation | 181 | 4 | 3 | Not Started | Star measurement |
 | 183 | Core Service Completion | focus | Implement Bahtinov mask analysis | 182 | 5 | 4 | Not Started | Diffraction pattern |
