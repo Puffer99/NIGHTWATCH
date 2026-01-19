@@ -40,6 +40,11 @@ __all__ = [
     "PipelineState",
     "PipelineResult",
     "VoicePipelineConfig",
+    "STTInterface",
+    "TTSInterface",
+    "AudioPlayer",
+    "create_voice_pipeline",
+    "normalize_transcript",
 ]
 
 
@@ -114,6 +119,321 @@ class VoicePipelineConfig:
     # Feedback
     play_acknowledgment: bool = True
     acknowledgment_sound: Optional[str] = None
+
+
+# =============================================================================
+# Transcription Normalization (Step 300)
+# =============================================================================
+
+
+# Common astronomy word mappings for speech recognition
+ASTRONOMY_NORMALIZATIONS = {
+    # Messier objects
+    "m 31": "M31",
+    "m31": "M31",
+    "messier 31": "M31",
+    "m 42": "M42",
+    "m42": "M42",
+    "messier 42": "M42",
+    "m 1": "M1",
+    "m1": "M1",
+    "messier 1": "M1",
+    # NGC objects
+    "ngc 7000": "NGC 7000",
+    "n g c 7000": "NGC 7000",
+    # Stars
+    "polaris": "Polaris",
+    "vega": "Vega",
+    "sirius": "Sirius",
+    "betelgeuse": "Betelgeuse",
+    "beetle juice": "Betelgeuse",
+    # Constellations
+    "orion": "Orion",
+    "andromeda": "Andromeda",
+    "cassiopeia": "Cassiopeia",
+    # Planets
+    "jupiter": "Jupiter",
+    "saturn": "Saturn",
+    "mars": "Mars",
+    "venus": "Venus",
+    "mercury": "Mercury",
+    "uranus": "Uranus",
+    "neptune": "Neptune",
+    # Commands
+    "slew to": "slew to",
+    "go to": "goto",
+    "point to": "point to",
+    "park": "park",
+    "unpark": "unpark",
+    "stop": "stop",
+}
+
+
+# =============================================================================
+# Audio Feedback Sounds (Step 309)
+# =============================================================================
+
+
+class AudioFeedback:
+    """
+    Generate audio feedback sounds for pipeline state changes.
+
+    Provides simple beeps and tones to indicate:
+    - Listening started (low beep)
+    - Command received (higher beep)
+    - Processing complete (two-tone)
+    - Error (descending tone)
+    """
+
+    # Audio parameters
+    SAMPLE_RATE = 22050
+    DURATION_MS = 150
+
+    @staticmethod
+    def _generate_tone(frequency: float, duration_ms: int, volume: float = 0.5) -> bytes:
+        """Generate a pure sine wave tone as WAV bytes."""
+        import struct
+        import math
+
+        sample_rate = AudioFeedback.SAMPLE_RATE
+        num_samples = int(sample_rate * duration_ms / 1000)
+
+        # Generate sine wave samples
+        samples = []
+        for i in range(num_samples):
+            t = i / sample_rate
+            sample = int(32767 * volume * math.sin(2 * math.pi * frequency * t))
+            samples.append(sample)
+
+        # Apply fade in/out to avoid clicks
+        fade_samples = min(100, num_samples // 4)
+        for i in range(fade_samples):
+            factor = i / fade_samples
+            samples[i] = int(samples[i] * factor)
+            samples[-(i + 1)] = int(samples[-(i + 1)] * factor)
+
+        # Pack as WAV
+        header = struct.pack(
+            '<4sI4s4sIHHIIHH4sI',
+            b'RIFF',
+            36 + num_samples * 2,
+            b'WAVE',
+            b'fmt ',
+            16,
+            1,  # PCM
+            1,  # Mono
+            sample_rate,
+            sample_rate * 2,
+            2,
+            16,
+            b'data',
+            num_samples * 2,
+        )
+        audio_data = struct.pack(f'<{num_samples}h', *samples)
+        return header + audio_data
+
+    @classmethod
+    def listening_started(cls) -> bytes:
+        """Generate listening started beep (low pitch)."""
+        return cls._generate_tone(440, 100, 0.3)  # A4
+
+    @classmethod
+    def command_received(cls) -> bytes:
+        """Generate command received beep (higher pitch)."""
+        return cls._generate_tone(880, 100, 0.3)  # A5
+
+    @classmethod
+    def processing_complete(cls) -> bytes:
+        """Generate processing complete sound (two-tone ascending)."""
+        tone1 = cls._generate_tone(523, 80, 0.3)  # C5
+        tone2 = cls._generate_tone(659, 80, 0.3)  # E5
+        # Combine tones (simple concatenation)
+        return tone1 + tone2[44:]  # Skip header of second tone
+
+    @classmethod
+    def error_sound(cls) -> bytes:
+        """Generate error sound (descending tone)."""
+        tone1 = cls._generate_tone(440, 100, 0.4)  # A4
+        tone2 = cls._generate_tone(330, 150, 0.4)  # E4
+        return tone1 + tone2[44:]
+
+    @classmethod
+    def get_feedback_for_state(cls, state: "PipelineState") -> Optional[bytes]:
+        """Get feedback sound for a state transition."""
+        state_sounds = {
+            PipelineState.LISTENING: cls.listening_started,
+            PipelineState.TRANSCRIBING: cls.command_received,
+            PipelineState.IDLE: cls.processing_complete,
+            PipelineState.ERROR: cls.error_sound,
+        }
+        generator = state_sounds.get(state)
+        return generator() if generator else None
+
+
+# =============================================================================
+# Audio Playback (Step 305)
+# =============================================================================
+
+
+class AudioPlayer:
+    """
+    Audio playback interface for voice pipeline output.
+
+    Supports playing synthesized speech and feedback sounds.
+    Uses sounddevice for cross-platform audio output.
+    """
+
+    def __init__(self, device: Optional[str] = None):
+        """
+        Initialize audio player.
+
+        Args:
+            device: Audio output device name (None for default)
+        """
+        self.device = device
+        self._sd = None
+        self._loaded = False
+
+    async def _ensure_loaded(self):
+        """Lazily load sounddevice."""
+        if self._loaded:
+            return
+
+        try:
+            import sounddevice as sd
+            self._sd = sd
+            self._loaded = True
+            logger.info("Audio player initialized")
+        except ImportError:
+            logger.warning("sounddevice not installed, using mock audio player")
+            self._sd = None
+            self._loaded = True
+
+    async def play(self, audio_data: bytes, blocking: bool = True) -> bool:
+        """
+        Play audio data (Step 305).
+
+        Args:
+            audio_data: WAV format audio bytes
+            blocking: Wait for playback to complete
+
+        Returns:
+            True if playback succeeded
+        """
+        await self._ensure_loaded()
+
+        if self._sd is None:
+            # Mock playback - just log
+            logger.info(f"Mock audio playback: {len(audio_data)} bytes")
+            return True
+
+        try:
+            import numpy as np
+            import io
+            import wave
+
+            # Parse WAV data
+            wav_io = io.BytesIO(audio_data)
+            with wave.open(wav_io, 'rb') as wav_file:
+                sample_rate = wav_file.getframerate()
+                n_channels = wav_file.getnchannels()
+                n_frames = wav_file.getnframes()
+                audio_frames = wav_file.readframes(n_frames)
+
+            # Convert to numpy array
+            audio_array = np.frombuffer(audio_frames, dtype=np.int16)
+            audio_array = audio_array.astype(np.float32) / 32768.0
+
+            if n_channels > 1:
+                audio_array = audio_array.reshape(-1, n_channels)
+
+            # Play audio
+            if blocking:
+                self._sd.play(audio_array, sample_rate, device=self.device)
+                self._sd.wait()
+            else:
+                self._sd.play(audio_array, sample_rate, device=self.device)
+
+            logger.debug(f"Audio playback complete: {n_frames} frames")
+            return True
+
+        except Exception as e:
+            logger.error(f"Audio playback failed: {e}")
+            return False
+
+    async def play_feedback(self, state: "PipelineState") -> bool:
+        """
+        Play audio feedback for state change (Step 309).
+
+        Args:
+            state: New pipeline state
+
+        Returns:
+            True if feedback played
+        """
+        sound = AudioFeedback.get_feedback_for_state(state)
+        if sound:
+            return await self.play(sound, blocking=False)
+        return False
+
+    def stop(self):
+        """Stop any currently playing audio."""
+        if self._sd:
+            try:
+                self._sd.stop()
+            except Exception:
+                pass
+
+
+def normalize_transcript(text: str) -> str:
+    """
+    Normalize transcribed text for better command processing (Step 300).
+
+    Applies:
+    - Case normalization
+    - Whitespace normalization
+    - Astronomy term standardization
+    - Common speech-to-text error correction
+
+    Args:
+        text: Raw transcription from STT
+
+    Returns:
+        Normalized text ready for LLM processing
+    """
+    if not text:
+        return ""
+
+    # Strip and normalize whitespace
+    result = " ".join(text.split())
+
+    # Apply astronomy normalizations
+    lower_result = result.lower()
+    for pattern, replacement in ASTRONOMY_NORMALIZATIONS.items():
+        if pattern in lower_result:
+            # Find the actual position and replace preserving case structure
+            idx = lower_result.find(pattern)
+            result = result[:idx] + replacement + result[idx + len(pattern):]
+            lower_result = result.lower()
+
+    # Remove filler words common in speech
+    filler_words = [
+        "um", "uh", "like", "you know", "basically", "actually",
+        "so", "well", "okay so", "alright so"
+    ]
+    words = result.split()
+    filtered_words = []
+    for word in words:
+        if word.lower() not in filler_words:
+            filtered_words.append(word)
+    result = " ".join(filtered_words)
+
+    # Ensure proper sentence ending
+    if result and not result[-1] in ".?!":
+        # Don't add period for commands
+        pass
+
+    return result.strip()
 
 
 # =============================================================================
@@ -346,10 +666,17 @@ class VoicePipeline:
         # Components (lazy loaded)
         self._stt: Optional[STTInterface] = None
         self._tts: Optional[TTSInterface] = None
+        self._audio_player: Optional[AudioPlayer] = None
 
-        # Metrics
+        # Metrics (Step 308 - enhanced latency tracking)
         self._commands_processed = 0
         self._total_latency_ms = 0.0
+        self._min_latency_ms = float('inf')
+        self._max_latency_ms = 0.0
+        self._latency_history: List[Dict[str, float]] = []
+
+        # Audio feedback enabled
+        self._enable_feedback = config.play_acknowledgment if config else True
 
         logger.info("Voice pipeline initialized")
 
@@ -381,6 +708,64 @@ class VoicePipeline:
                 use_cuda=self.config.tts_use_cuda,
             )
         return self._tts
+
+    def _get_audio_player(self) -> AudioPlayer:
+        """Get or create audio player (Step 305)."""
+        if self._audio_player is None:
+            self._audio_player = AudioPlayer()
+        return self._audio_player
+
+    async def _set_state(self, new_state: PipelineState):
+        """
+        Set pipeline state with optional audio feedback (Step 309).
+
+        Args:
+            new_state: New pipeline state
+        """
+        old_state = self._state
+        self._state = new_state
+
+        # Notify callbacks
+        for callback in self._callbacks:
+            try:
+                callback(new_state)
+            except Exception as e:
+                logger.warning(f"State callback error: {e}")
+
+        # Play audio feedback if enabled
+        if self._enable_feedback and old_state != new_state:
+            try:
+                player = self._get_audio_player()
+                await player.play_feedback(new_state)
+            except Exception as e:
+                logger.debug(f"Audio feedback error: {e}")
+
+    def _record_latency(self, result: PipelineResult):
+        """
+        Record latency metrics (Step 308).
+
+        Args:
+            result: Pipeline result with timing info
+        """
+        total = result.total_latency_ms
+
+        # Update min/max
+        if total < self._min_latency_ms:
+            self._min_latency_ms = total
+        if total > self._max_latency_ms:
+            self._max_latency_ms = total
+
+        # Record history (keep last 100)
+        self._latency_history.append({
+            "stt_ms": result.stt_latency_ms,
+            "llm_ms": result.llm_latency_ms,
+            "tool_ms": result.tool_latency_ms,
+            "tts_ms": result.tts_latency_ms,
+            "total_ms": total,
+            "timestamp": result.timestamp.isoformat(),
+        })
+        if len(self._latency_history) > 100:
+            self._latency_history.pop(0)
 
     async def start(self):
         """Start the voice pipeline."""
@@ -418,17 +803,20 @@ class VoicePipeline:
 
         try:
             # Step 1: Transcribe audio (Step 299)
-            self._state = PipelineState.TRANSCRIBING
+            await self._set_state(PipelineState.TRANSCRIBING)
             stt_start = time.time()
 
             stt = self._get_stt()
-            transcript = await stt.transcribe(audio_data)
+            raw_transcript = await stt.transcribe(audio_data)
 
+            # Step 300: Normalize transcript
+            transcript = normalize_transcript(raw_transcript)
             result.transcript = transcript
             result.stt_latency_ms = (time.time() - stt_start) * 1000
 
             if not transcript:
                 result.spoken_response = "I didn't catch that. Could you repeat?"
+                await self._set_state(PipelineState.IDLE)
                 return result
 
             logger.info(f"Transcribed: {transcript}")
@@ -445,7 +833,7 @@ class VoicePipeline:
             result.tool_latency_ms = text_result.tool_latency_ms
 
             # Step 5: Synthesize response audio (Step 304)
-            self._state = PipelineState.SPEAKING
+            await self._set_state(PipelineState.SPEAKING)
             tts_start = time.time()
 
             tts = self._get_tts()
@@ -457,9 +845,10 @@ class VoicePipeline:
             result.total_latency_ms = (time.time() - start_time) * 1000
             result.success = True
 
-            # Update metrics
+            # Update metrics (Step 308)
             self._commands_processed += 1
             self._total_latency_ms += result.total_latency_ms
+            self._record_latency(result)
 
             logger.info(f"Pipeline complete in {result.total_latency_ms:.0f}ms")
 
@@ -468,10 +857,10 @@ class VoicePipeline:
             result.success = False
             result.error = str(e)
             result.spoken_response = "Sorry, an error occurred processing your command."
-            self._state = PipelineState.ERROR
+            await self._set_state(PipelineState.ERROR)
 
         finally:
-            self._state = PipelineState.IDLE
+            await self._set_state(PipelineState.IDLE)
 
         return result
 
@@ -490,7 +879,7 @@ class VoicePipeline:
 
         try:
             # Step 2: Get LLM response with tools
-            self._state = PipelineState.PROCESSING
+            await self._set_state(PipelineState.PROCESSING)
             llm_start = time.time()
 
             # Get available tools from telescope_tools if available
@@ -513,7 +902,7 @@ class VoicePipeline:
 
             # Step 3: Execute tools (Step 302)
             if result.tool_calls:
-                self._state = PipelineState.EXECUTING
+                await self._set_state(PipelineState.EXECUTING)
                 tool_start = time.time()
 
                 for tool_call in result.tool_calls:
@@ -648,17 +1037,49 @@ class VoicePipeline:
         self._callbacks.append(callback)
 
     def get_metrics(self) -> Dict[str, Any]:
-        """Get pipeline metrics."""
+        """Get pipeline metrics (Step 308 - enhanced latency tracking)."""
         avg_latency = 0.0
         if self._commands_processed > 0:
             avg_latency = self._total_latency_ms / self._commands_processed
+
+        # Calculate component averages from history
+        avg_stt = avg_llm = avg_tool = avg_tts = 0.0
+        if self._latency_history:
+            n = len(self._latency_history)
+            avg_stt = sum(h["stt_ms"] for h in self._latency_history) / n
+            avg_llm = sum(h["llm_ms"] for h in self._latency_history) / n
+            avg_tool = sum(h["tool_ms"] for h in self._latency_history) / n
+            avg_tts = sum(h["tts_ms"] for h in self._latency_history) / n
 
         return {
             "commands_processed": self._commands_processed,
             "total_latency_ms": self._total_latency_ms,
             "avg_latency_ms": avg_latency,
+            "min_latency_ms": self._min_latency_ms if self._commands_processed > 0 else 0.0,
+            "max_latency_ms": self._max_latency_ms,
+            "avg_stt_latency_ms": avg_stt,
+            "avg_llm_latency_ms": avg_llm,
+            "avg_tool_latency_ms": avg_tool,
+            "avg_tts_latency_ms": avg_tts,
             "state": self._state.value,
         }
+
+    def get_latency_history(self) -> List[Dict[str, float]]:
+        """Get latency history for analysis (Step 308)."""
+        return list(self._latency_history)
+
+    async def play_response(self, audio_data: bytes) -> bool:
+        """
+        Play audio response through speaker (Step 305).
+
+        Args:
+            audio_data: WAV format audio bytes
+
+        Returns:
+            True if playback succeeded
+        """
+        player = self._get_audio_player()
+        return await player.play(audio_data, blocking=True)
 
 
 # =============================================================================

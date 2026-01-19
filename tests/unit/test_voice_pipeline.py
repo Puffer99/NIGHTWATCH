@@ -17,7 +17,10 @@ from nightwatch.voice_pipeline import (
     VoicePipelineConfig,
     STTInterface,
     TTSInterface,
+    AudioPlayer,
+    AudioFeedback,
     create_voice_pipeline,
+    normalize_transcript,
 )
 from nightwatch.llm_client import LLMClient, LLMResponse, ToolCall, LLMBackend
 
@@ -438,3 +441,220 @@ class TestCreateVoicePipeline:
 
         assert pipeline.config.stt_model == "large"
         assert pipeline.config.tts_use_cuda is False
+
+
+class TestNormalizeTranscript:
+    """Tests for transcription normalization (Step 300)."""
+
+    def test_empty_string(self):
+        """Test empty string handling."""
+        assert normalize_transcript("") == ""
+        assert normalize_transcript("   ") == ""
+
+    def test_whitespace_normalization(self):
+        """Test whitespace is normalized."""
+        assert normalize_transcript("  hello   world  ") == "hello world"
+        assert normalize_transcript("go\t to\nM31") == "goto M31"
+
+    def test_messier_object_normalization(self):
+        """Test Messier object names are normalized."""
+        assert "M31" in normalize_transcript("point to m 31")
+        assert "M42" in normalize_transcript("go to messier 42")
+        assert "M1" in normalize_transcript("show me m1")
+
+    def test_planet_normalization(self):
+        """Test planet names are capitalized."""
+        assert "Jupiter" in normalize_transcript("point to jupiter")
+        assert "Saturn" in normalize_transcript("show saturn")
+        assert "Mars" in normalize_transcript("where is mars")
+
+    def test_star_normalization(self):
+        """Test star names are capitalized."""
+        assert "Polaris" in normalize_transcript("find polaris")
+        assert "Vega" in normalize_transcript("go to vega")
+        assert "Betelgeuse" in normalize_transcript("beetle juice please")
+
+    def test_filler_word_removal(self):
+        """Test common filler words are removed."""
+        result = normalize_transcript("um point to uh M31 like please")
+        assert "um" not in result.lower()
+        assert "uh" not in result.lower()
+        assert "like" not in result.lower()
+        assert "M31" in result
+
+    def test_command_normalization(self):
+        """Test command phrases are normalized."""
+        assert "goto" in normalize_transcript("go to Andromeda")
+
+
+class TestAudioFeedback:
+    """Tests for audio feedback generation (Step 309)."""
+
+    def test_listening_started(self):
+        """Test listening started sound generation."""
+        audio = AudioFeedback.listening_started()
+
+        assert audio is not None
+        assert len(audio) > 44  # WAV header
+        assert audio[:4] == b'RIFF'
+
+    def test_command_received(self):
+        """Test command received sound generation."""
+        audio = AudioFeedback.command_received()
+
+        assert audio is not None
+        assert len(audio) > 44
+        assert audio[:4] == b'RIFF'
+
+    def test_processing_complete(self):
+        """Test processing complete sound (two-tone)."""
+        audio = AudioFeedback.processing_complete()
+
+        assert audio is not None
+        assert len(audio) > 44
+        # Should be longer than single tone
+        assert len(audio) > len(AudioFeedback.listening_started())
+
+    def test_error_sound(self):
+        """Test error sound generation."""
+        audio = AudioFeedback.error_sound()
+
+        assert audio is not None
+        assert len(audio) > 44
+        assert audio[:4] == b'RIFF'
+
+    def test_get_feedback_for_state(self):
+        """Test getting feedback for different states."""
+        # States that should have feedback
+        assert AudioFeedback.get_feedback_for_state(PipelineState.LISTENING) is not None
+        assert AudioFeedback.get_feedback_for_state(PipelineState.TRANSCRIBING) is not None
+        assert AudioFeedback.get_feedback_for_state(PipelineState.ERROR) is not None
+        assert AudioFeedback.get_feedback_for_state(PipelineState.IDLE) is not None
+
+        # States without dedicated feedback
+        assert AudioFeedback.get_feedback_for_state(PipelineState.PROCESSING) is None
+        assert AudioFeedback.get_feedback_for_state(PipelineState.EXECUTING) is None
+
+
+class TestAudioPlayer:
+    """Tests for audio player (Step 305)."""
+
+    def test_init(self):
+        """Test audio player initialization."""
+        player = AudioPlayer()
+        assert player.device is None
+        assert player._loaded is False
+
+    def test_init_with_device(self):
+        """Test audio player with specific device."""
+        player = AudioPlayer(device="default")
+        assert player.device == "default"
+
+    @pytest.mark.asyncio
+    async def test_play_mock(self):
+        """Test mock audio playback."""
+        player = AudioPlayer()
+        # Generate some test audio
+        audio = AudioFeedback.listening_started()
+
+        result = await player.play(audio)
+        # Should succeed in mock mode
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_play_feedback(self):
+        """Test playing feedback for state."""
+        player = AudioPlayer()
+
+        result = await player.play_feedback(PipelineState.LISTENING)
+        assert result is True
+
+        # State without feedback should return False
+        result = await player.play_feedback(PipelineState.PROCESSING)
+        assert result is False
+
+
+class TestEnhancedMetrics:
+    """Tests for enhanced latency tracking (Step 308)."""
+
+    @pytest.fixture
+    def pipeline(self):
+        """Create pipeline for testing."""
+        orch = Mock()
+        client = LLMClient(backend=LLMBackend.MOCK)
+        return VoicePipeline(orch, client)
+
+    def test_initial_metrics(self, pipeline):
+        """Test initial metric values."""
+        metrics = pipeline.get_metrics()
+
+        assert metrics["commands_processed"] == 0
+        assert metrics["avg_latency_ms"] == 0.0
+        assert metrics["min_latency_ms"] == 0.0
+        assert metrics["max_latency_ms"] == 0.0
+        assert metrics["avg_stt_latency_ms"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_metrics_after_processing(self, pipeline):
+        """Test metrics are updated after processing."""
+        await pipeline.process_audio(b"test audio")
+
+        metrics = pipeline.get_metrics()
+        assert metrics["commands_processed"] == 1
+        assert metrics["avg_latency_ms"] > 0
+        assert metrics["min_latency_ms"] > 0
+        assert metrics["max_latency_ms"] > 0
+
+    def test_latency_history(self, pipeline):
+        """Test latency history tracking."""
+        history = pipeline.get_latency_history()
+        assert history == []
+
+    @pytest.mark.asyncio
+    async def test_latency_history_populated(self, pipeline):
+        """Test latency history is populated after processing."""
+        await pipeline.process_audio(b"test audio")
+
+        history = pipeline.get_latency_history()
+        assert len(history) == 1
+        assert "stt_ms" in history[0]
+        assert "llm_ms" in history[0]
+        assert "total_ms" in history[0]
+        assert "timestamp" in history[0]
+
+
+class TestStateCallbacks:
+    """Tests for state change callbacks."""
+
+    @pytest.fixture
+    def pipeline(self):
+        """Create pipeline for testing."""
+        orch = Mock()
+        client = LLMClient(backend=LLMBackend.MOCK)
+        config = VoicePipelineConfig(play_acknowledgment=False)
+        return VoicePipeline(orch, client, config=config)
+
+    @pytest.mark.asyncio
+    async def test_callback_invoked(self, pipeline):
+        """Test callback is invoked on state change."""
+        states = []
+        callback = Mock(side_effect=lambda s: states.append(s))
+        pipeline.register_callback(callback)
+
+        await pipeline.process_audio(b"test")
+
+        # Should have been called for state changes
+        assert callback.call_count > 0
+        assert PipelineState.TRANSCRIBING in states
+
+    @pytest.mark.asyncio
+    async def test_callback_error_handled(self, pipeline):
+        """Test callback errors don't crash pipeline."""
+        def bad_callback(state):
+            raise ValueError("Callback error")
+
+        pipeline.register_callback(bad_callback)
+
+        # Should not raise
+        result = await pipeline.process_audio(b"test")
+        assert result is not None

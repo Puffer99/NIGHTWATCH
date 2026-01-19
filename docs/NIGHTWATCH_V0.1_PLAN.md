@@ -385,27 +385,27 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 297 | Voice Pipeline Integration | voice_pipeline | Implement continuous listening mode | 296 | 3 | 2 | Not Started | Hands-free |
 | 298 | Voice Pipeline Integration | voice_pipeline | Add wake word detection (pymicro-vad as trigger) | 297 | 4 | 3 | Not Started | Voice activation |
 | 299 | Voice Pipeline Integration | voice_pipeline | Implement STT transcription call | 298 | 2 | 1 | Complete | Speech to text |
-| 300 | Voice Pipeline Integration | voice_pipeline | Add transcription post-processing (normalization) | 299 | 2 | 1 | Not Started | Clean input |
+| 300 | Voice Pipeline Integration | voice_pipeline | Add transcription post-processing (normalization) | 299 | 2 | 1 | Complete | normalize_transcript(), ASTRONOMY_NORMALIZATIONS |
 | 301 | Voice Pipeline Integration | voice_pipeline | Implement LLM tool selection call | 300 | 3 | 2 | Not Started | Intent to tool |
 | 302 | Voice Pipeline Integration | voice_pipeline | Add tool execution via orchestrator | 301 | 2 | 1 | Complete | Execute command |
 | 303 | Voice Pipeline Integration | voice_pipeline | Implement response formatting call | 302 | 2 | 1 | Complete | Human text |
 | 304 | Voice Pipeline Integration | voice_pipeline | Add TTS synthesis call | 303 | 2 | 1 | Complete | Text to speech |
-| 305 | Voice Pipeline Integration | voice_pipeline | Implement audio playback | 304 | 2 | 1 | Not Started | Speaker output |
+| 305 | Voice Pipeline Integration | voice_pipeline | Implement audio playback | 304 | 2 | 1 | Complete | AudioPlayer class, play_response() |
 | 306 | Voice Pipeline Integration | voice_pipeline | Add pipeline state machine | 305 | 3 | 2 | Not Started | State management |
 | 307 | Voice Pipeline Integration | voice_pipeline | Implement concurrent request handling | 306 | 3 | 2 | Not Started | Multiple users |
-| 308 | Voice Pipeline Integration | voice_pipeline | Add pipeline latency tracking | 307 | 2 | 1 | Not Started | Performance |
-| 309 | Voice Pipeline Integration | voice_pipeline | Implement audio feedback (beeps for state changes) | 308 | 2 | 1 | Not Started | User feedback |
+| 308 | Voice Pipeline Integration | voice_pipeline | Add pipeline latency tracking | 307 | 2 | 1 | Complete | _record_latency(), get_latency_history(), enhanced get_metrics() |
+| 309 | Voice Pipeline Integration | voice_pipeline | Implement audio feedback (beeps for state changes) | 308 | 2 | 1 | Complete | AudioFeedback class, _set_state() with feedback |
 | 310 | Voice Pipeline Integration | voice_pipeline | Add visual indicator support (LED control) | 309 | 3 | 2 | Not Started | Status display |
-| 311 | Voice Pipeline Integration | voice_pipeline | Write unit tests for voice pipeline | 310 | 3 | 2 | Not Started | Test coverage |
+| 311 | Voice Pipeline Integration | voice_pipeline | Write unit tests for voice pipeline | 310 | 3 | 2 | Complete | 55 tests in test_voice_pipeline.py |
 | 312 | Voice Pipeline Integration | voice_pipeline | Write integration test end-to-end | 311 | 3 | 3 | Not Started | Full flow test |
-| 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Not Started | STT connection |
+| 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Complete | STTInterface wraps faster-whisper |
 | 314 | Voice Pipeline Integration | stt_integration | Configure DGX Spark optimized settings | 313 | 2 | 1 | Not Started | int8_float16 |
 | 315 | Voice Pipeline Integration | stt_integration | Add audio preprocessing (noise reduction) | 314 | 3 | 2 | Not Started | Clean audio |
 | 316 | Voice Pipeline Integration | stt_integration | Implement audio buffering for continuous mode | 315 | 3 | 2 | Not Started | Smooth capture |
 | 317 | Voice Pipeline Integration | stt_integration | Add transcription confidence filtering | 316 | 2 | 1 | Not Started | Quality gate |
 | 318 | Voice Pipeline Integration | stt_integration | Implement astronomy vocabulary boost | 317 | 3 | 2 | Not Started | Domain accuracy |
 | 319 | Voice Pipeline Integration | stt_integration | Add multi-language support preparation | 318 | 2 | 1 | Not Started | Future expansion |
-| 320 | Voice Pipeline Integration | tts_integration | Integrate PiperTTS with voice pipeline | 293 | 2 | 1 | Not Started | TTS connection |
+| 320 | Voice Pipeline Integration | tts_integration | Integrate PiperTTS with voice pipeline | 293 | 2 | 1 | Complete | TTSInterface wraps piper-tts |
 | 321 | Voice Pipeline Integration | tts_integration | Configure DGX Spark CUDA acceleration | 320 | 2 | 1 | Not Started | GPU synthesis |
 | 322 | Voice Pipeline Integration | tts_integration | Add response phrase caching | 321 | 3 | 2 | Not Started | Common responses |
 | 323 | Voice Pipeline Integration | tts_integration | Implement dynamic speech rate based on urgency | 322 | 2 | 1 | Not Started | Alert faster |
