@@ -430,8 +430,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 342 | Tool Handler Implementation | mount_tools | Add immediate execution for stop (bypass queue) | 341 | 2 | 1 | Complete | Direct call in stop_telescope handler |
 | 343 | Tool Handler Implementation | mount_tools | Implement start_tracking handler | 342 | 2 | 1 | Complete | start_tracking() with park check |
 | 344 | Tool Handler Implementation | mount_tools | Implement stop_tracking handler | 343 | 2 | 1 | Complete | stop_tracking() handler |
-| 345 | Tool Handler Implementation | mount_tools | Implement get_mount_status handler | 344 | 2 | 1 | Not Started | Status query |
-| 346 | Tool Handler Implementation | mount_tools | Add formatted position in status response | 345 | 2 | 1 | Not Started | Human-readable |
+| 345 | Tool Handler Implementation | mount_tools | Implement get_mount_status handler | 344 | 2 | 1 | Complete | get_mount_status() with position and state |
+| 346 | Tool Handler Implementation | mount_tools | Add formatted position in status response | 345 | 2 | 1 | Complete | RA/Dec formatting with altitude |
 | 347 | Tool Handler Implementation | mount_tools | Implement sync_position handler | 346 | 2 | 1 | Not Started | Pointing sync |
 | 348 | Tool Handler Implementation | mount_tools | Add confirmation requirement for sync | 347 | 2 | 1 | Not Started | Safety |
 | 349 | Tool Handler Implementation | mount_tools | Implement home_telescope handler | 348 | 2 | 1 | Not Started | Find home |
@@ -444,14 +444,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 356 | Tool Handler Implementation | catalog_tools | Implement find_objects handler | 355 | 2 | 1 | Not Started | Object list |
 | 357 | Tool Handler Implementation | catalog_tools | Add filtering by type, magnitude, constellation | 356 | 2 | 1 | Not Started | Query filters |
 | 358 | Tool Handler Implementation | catalog_tools | Write unit tests for catalog tool handlers | 357 | 2 | 2 | Not Started | Test coverage |
-| 359 | Tool Handler Implementation | ephemeris_tools | Implement get_planet_position handler | 257 | 2 | 1 | Not Started | Planet coords |
-| 360 | Tool Handler Implementation | ephemeris_tools | Add rise/set times in response | 359 | 2 | 1 | Not Started | Visibility info |
+| 359 | Tool Handler Implementation | ephemeris_tools | Implement get_planet_position handler | 257 | 2 | 1 | Complete | get_planet_position() with full coords |
+| 360 | Tool Handler Implementation | ephemeris_tools | Add rise/set times in response | 359 | 2 | 1 | Complete | Rise/set/transit times in planet position |
 | 361 | Tool Handler Implementation | ephemeris_tools | Implement get_visible_planets handler | 360 | 2 | 1 | Not Started | Currently up |
 | 362 | Tool Handler Implementation | ephemeris_tools | Add altitude filter for visibility | 361 | 2 | 1 | Not Started | Above horizon |
-| 363 | Tool Handler Implementation | ephemeris_tools | Implement get_moon_info handler | 362 | 2 | 1 | Not Started | Moon phase/position |
-| 364 | Tool Handler Implementation | ephemeris_tools | Add illumination percentage | 363 | 2 | 1 | Not Started | Phase info |
-| 365 | Tool Handler Implementation | ephemeris_tools | Implement is_it_dark handler | 364 | 2 | 1 | Not Started | Twilight check |
-| 366 | Tool Handler Implementation | ephemeris_tools | Add twilight phase details | 365 | 2 | 1 | Not Started | Civil/nautical/astro |
+| 363 | Tool Handler Implementation | ephemeris_tools | Implement get_moon_info handler | 362 | 2 | 1 | Complete | get_moon_info() with position and phase |
+| 364 | Tool Handler Implementation | ephemeris_tools | Add illumination percentage | 363 | 2 | 1 | Complete | Phase name and illumination in moon info |
+| 365 | Tool Handler Implementation | ephemeris_tools | Implement is_it_dark handler | 364 | 2 | 1 | Complete | Enhanced is_it_dark() with time until |
+| 366 | Tool Handler Implementation | ephemeris_tools | Add twilight phase details | 365 | 2 | 1 | Complete | Civil/nautical/astro descriptions |
 | 367 | Tool Handler Implementation | ephemeris_tools | Implement whats_up_tonight handler | 366 | 3 | 2 | Not Started | Observing list |
 | 368 | Tool Handler Implementation | ephemeris_tools | Add object prioritization by visibility window | 367 | 3 | 2 | Not Started | Best timing |
 | 369 | Tool Handler Implementation | ephemeris_tools | Write unit tests for ephemeris tool handlers | 368 | 2 | 2 | Not Started | Test coverage |

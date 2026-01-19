@@ -1345,19 +1345,50 @@ def create_default_handlers(
 
     handlers["stop_tracking"] = stop_tracking
 
-    async def get_mount_status() -> dict:
+    async def get_mount_status() -> str:
+        """Get current telescope position and status (Steps 345-346)."""
         if not mount_client:
-            return {"error": "Mount not available"}
+            return "Mount not available"
+
         status = mount_client.get_status()
-        if status:
-            return {
-                "ra": f"{status.ra_hours}h {status.ra_minutes}m {status.ra_seconds}s",
-                "dec": f"{status.dec_degrees}° {status.dec_minutes}' {status.dec_seconds}\"",
-                "tracking": status.is_tracking,
-                "parked": status.is_parked,
-                "pier_side": status.pier_side.value
-            }
-        return {"error": "Could not get status"}
+        if not status:
+            return "Could not get mount status"
+
+        # Step 346: Format position in human-readable form
+        ra_str = f"{status.ra_hours}h {status.ra_minutes}m {status.ra_seconds:.1f}s"
+        dec_sign = "+" if status.dec_degrees >= 0 else ""
+        dec_str = f"{dec_sign}{status.dec_degrees}° {abs(status.dec_minutes)}' {abs(status.dec_seconds):.1f}\""
+
+        # Build status message
+        parts = [f"Position: RA {ra_str}, Dec {dec_str}"]
+
+        if status.is_parked:
+            parts.append("Status: Parked")
+        elif status.is_tracking:
+            parts.append("Status: Tracking")
+        else:
+            parts.append("Status: Idle (not tracking)")
+
+        parts.append(f"Pier side: {status.pier_side.value}")
+
+        # Add slewing status if available
+        if hasattr(status, 'is_slewing') and status.is_slewing:
+            parts.append("Currently slewing")
+
+        # Add altitude if ephemeris available
+        if ephemeris_service:
+            try:
+                ra_deg = (status.ra_hours + status.ra_minutes / 60 + status.ra_seconds / 3600) * 15.0
+                dec_deg = status.dec_degrees + status.dec_minutes / 60 + status.dec_seconds / 3600
+                if status.dec_degrees < 0:
+                    dec_deg = status.dec_degrees - status.dec_minutes / 60 - status.dec_seconds / 3600
+                alt = ephemeris_service.get_altitude_for_coords(ra_deg, dec_deg)
+                if alt is not None:
+                    parts.append(f"Altitude: {alt:.1f}°")
+            except Exception:
+                pass
+
+        return ". ".join(parts)
 
     handlers["get_mount_status"] = get_mount_status
 
@@ -1370,6 +1401,52 @@ def create_default_handlers(
     handlers["lookup_object"] = lookup_object
 
     # Ephemeris handlers
+    async def get_planet_position(planet: str) -> str:
+        """Get current position of a planet (Steps 359-360)."""
+        if not ephemeris_service:
+            return "Ephemeris not available"
+
+        try:
+            from services.ephemeris import CelestialBody
+            body = CelestialBody(planet.lower())
+            pos = ephemeris_service.get_body_position(body)
+
+            # Format position
+            ra_str = pos.ra_hms if hasattr(pos, 'ra_hms') else f"{pos.ra_hours:.2f}h"
+            dec_str = pos.dec_dms if hasattr(pos, 'dec_dms') else f"{pos.dec_degrees:.1f}°"
+
+            parts = [f"{planet.capitalize()} is at RA {ra_str}, Dec {dec_str}"]
+            parts.append(f"Altitude: {pos.altitude_degrees:.1f}°, Azimuth: {pos.azimuth_degrees:.1f}°")
+
+            # Step 360: Add rise/set times if available
+            if hasattr(ephemeris_service, 'get_rise_set_times'):
+                try:
+                    times = ephemeris_service.get_rise_set_times(body)
+                    if times:
+                        if times.get('rise'):
+                            parts.append(f"Rises at {times['rise'].strftime('%H:%M')}")
+                        if times.get('set'):
+                            parts.append(f"Sets at {times['set'].strftime('%H:%M')}")
+                        if times.get('transit'):
+                            parts.append(f"Transits at {times['transit'].strftime('%H:%M')}")
+                except Exception:
+                    pass
+
+            # Add visibility status
+            if pos.altitude_degrees < 0:
+                parts.append("Currently below the horizon")
+            elif pos.altitude_degrees < 10:
+                parts.append("Low on the horizon - poor for observation")
+            elif pos.altitude_degrees > 60:
+                parts.append("Excellent for observation")
+
+            return ". ".join(parts)
+
+        except (ValueError, KeyError):
+            return f"Unknown planet: {planet}. Try: Mercury, Venus, Mars, Jupiter, Saturn, Uranus, or Neptune."
+
+    handlers["get_planet_position"] = get_planet_position
+
     async def get_visible_planets() -> str:
         if not ephemeris_service:
             return "Ephemeris not available"
@@ -1383,14 +1460,121 @@ def create_default_handlers(
 
     handlers["get_visible_planets"] = get_visible_planets
 
-    async def is_it_dark() -> str:
+    async def get_moon_info() -> str:
+        """Get moon position and phase (Steps 363-364)."""
         if not ephemeris_service:
             return "Ephemeris not available"
-        if ephemeris_service.is_astronomical_night():
-            return "Yes, it is astronomical night. Sun is more than 18 degrees below horizon."
-        phase = ephemeris_service.get_twilight_phase()
+
+        try:
+            from services.ephemeris import CelestialBody
+            pos = ephemeris_service.get_body_position(CelestialBody.MOON)
+
+            parts = []
+
+            # Position
+            parts.append(f"Moon is at altitude {pos.altitude_degrees:.1f}°, azimuth {pos.azimuth_degrees:.1f}°")
+
+            # Step 364: Add illumination percentage
+            if hasattr(ephemeris_service, 'get_moon_phase'):
+                phase_info = ephemeris_service.get_moon_phase()
+                if phase_info:
+                    illumination = phase_info.get('illumination', 0) * 100
+                    phase_name = phase_info.get('phase_name', 'unknown')
+                    parts.append(f"Phase: {phase_name}, {illumination:.0f}% illuminated")
+            elif hasattr(ephemeris_service, 'get_moon_illumination'):
+                illumination = ephemeris_service.get_moon_illumination() * 100
+                parts.append(f"Illumination: {illumination:.0f}%")
+
+            # Rise/set times
+            if hasattr(ephemeris_service, 'get_rise_set_times'):
+                try:
+                    times = ephemeris_service.get_rise_set_times(CelestialBody.MOON)
+                    if times:
+                        if times.get('rise'):
+                            parts.append(f"Moonrise: {times['rise'].strftime('%H:%M')}")
+                        if times.get('set'):
+                            parts.append(f"Moonset: {times['set'].strftime('%H:%M')}")
+                except Exception:
+                    pass
+
+            # Visibility assessment
+            if pos.altitude_degrees < 0:
+                parts.append("Moon is below the horizon")
+            elif pos.altitude_degrees > 30:
+                parts.append("Moon is up - may affect deep sky observation")
+
+            return ". ".join(parts)
+
+        except Exception as e:
+            return f"Could not get moon information: {e}"
+
+    handlers["get_moon_info"] = get_moon_info
+
+    async def is_it_dark() -> str:
+        """Check if it's astronomical night (Steps 365-366)."""
+        if not ephemeris_service:
+            return "Ephemeris not available"
+
         sun_alt = ephemeris_service.get_sun_altitude()
-        return f"No, it is currently {phase.value}. Sun altitude is {sun_alt:.1f} degrees."
+        phase = ephemeris_service.get_twilight_phase()
+
+        # Step 366: Add twilight phase details
+        if ephemeris_service.is_astronomical_night():
+            parts = ["Yes, it is astronomical night"]
+            parts.append(f"Sun is {abs(sun_alt):.1f}° below the horizon")
+
+            # Add time until dawn
+            if hasattr(ephemeris_service, 'get_twilight_times'):
+                try:
+                    times = ephemeris_service.get_twilight_times()
+                    if times and times.get('astronomical_dawn'):
+                        from datetime import datetime
+                        now = datetime.now(times['astronomical_dawn'].tzinfo) if times['astronomical_dawn'].tzinfo else datetime.now()
+                        remaining = times['astronomical_dawn'] - now
+                        hours = int(remaining.total_seconds() // 3600)
+                        minutes = int((remaining.total_seconds() % 3600) // 60)
+                        if hours > 0:
+                            parts.append(f"Astronomical twilight begins in {hours}h {minutes}m")
+                        elif minutes > 0:
+                            parts.append(f"Astronomical twilight begins in {minutes} minutes")
+                except Exception:
+                    pass
+
+            return ". ".join(parts)
+        else:
+            # Describe current twilight phase
+            phase_descriptions = {
+                "day": "Daytime - sun is above the horizon",
+                "civil_twilight": "Civil twilight - sun is 0-6° below horizon. Sky is still bright.",
+                "nautical_twilight": "Nautical twilight - sun is 6-12° below horizon. Stars becoming visible.",
+                "astronomical_twilight": "Astronomical twilight - sun is 12-18° below horizon. Most stars visible but sky not fully dark."
+            }
+            phase_str = phase.value if hasattr(phase, 'value') else str(phase)
+            description = phase_descriptions.get(phase_str, f"Current phase: {phase_str}")
+
+            parts = [f"No, it is not yet astronomical night"]
+            parts.append(description)
+            parts.append(f"Sun altitude: {sun_alt:.1f}°")
+
+            # Add time until astronomical darkness
+            if hasattr(ephemeris_service, 'get_twilight_times'):
+                try:
+                    times = ephemeris_service.get_twilight_times()
+                    if times and times.get('astronomical_dusk'):
+                        from datetime import datetime
+                        now = datetime.now(times['astronomical_dusk'].tzinfo) if times['astronomical_dusk'].tzinfo else datetime.now()
+                        remaining = times['astronomical_dusk'] - now
+                        if remaining.total_seconds() > 0:
+                            hours = int(remaining.total_seconds() // 3600)
+                            minutes = int((remaining.total_seconds() % 3600) // 60)
+                            if hours > 0:
+                                parts.append(f"Astronomical darkness in {hours}h {minutes}m")
+                            elif minutes > 0:
+                                parts.append(f"Astronomical darkness in {minutes} minutes")
+                except Exception:
+                    pass
+
+            return ". ".join(parts)
 
     handlers["is_it_dark"] = is_it_dark
 
