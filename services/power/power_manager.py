@@ -13,12 +13,312 @@ POS Panel v3.0 - Day 25 Recommendations (Critical Power Systems):
 
 import asyncio
 import logging
+import socket
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, List, Callable, Dict, Any
 
 logger = logging.getLogger("NIGHTWATCH.Power")
+
+
+# =============================================================================
+# NUT CLIENT (Network UPS Tools Protocol)
+# =============================================================================
+
+class NUTClient:
+    """
+    Client for NUT (Network UPS Tools) protocol.
+
+    NUT uses a simple text-based protocol over TCP:
+    - Commands are sent as plain text terminated by newline
+    - Responses are plain text, terminated by newline
+    - Multi-line responses end with "END"
+    - Errors are prefixed with "ERR"
+
+    Common commands:
+    - LIST UPS: List available UPS devices
+    - LIST VAR <ups>: List all variables for a UPS
+    - GET VAR <ups> <var>: Get a single variable
+    - INSTCMD <ups> <cmd>: Execute instant command
+    """
+
+    def __init__(self, host: str = "localhost", port: int = 3493, timeout: float = 10.0):
+        """
+        Initialize NUT client.
+
+        Args:
+            host: NUT server hostname or IP
+            port: NUT server port (default 3493)
+            timeout: Socket timeout in seconds
+        """
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self._socket: Optional[socket.socket] = None
+
+    def connect(self) -> bool:
+        """
+        Connect to NUT server.
+
+        Returns:
+            True if connection successful
+        """
+        try:
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self._socket.settimeout(self.timeout)
+            self._socket.connect((self.host, self.port))
+            logger.info(f"Connected to NUT server at {self.host}:{self.port}")
+            return True
+        except socket.error as e:
+            logger.error(f"Failed to connect to NUT server: {e}")
+            self._socket = None
+            return False
+
+    def disconnect(self):
+        """Disconnect from NUT server."""
+        if self._socket:
+            try:
+                self._send("LOGOUT")
+            except Exception:
+                pass
+            try:
+                self._socket.close()
+            except Exception:
+                pass
+            self._socket = None
+            logger.info("Disconnected from NUT server")
+
+    def _send(self, command: str) -> str:
+        """
+        Send command and receive response.
+
+        Args:
+            command: NUT command to send
+
+        Returns:
+            Response string (may be multi-line)
+
+        Raises:
+            RuntimeError: If not connected or communication fails
+        """
+        if not self._socket:
+            raise RuntimeError("Not connected to NUT server")
+
+        try:
+            # Send command with newline
+            self._socket.sendall(f"{command}\n".encode())
+
+            # Receive response
+            response_lines = []
+            buffer = b""
+
+            while True:
+                data = self._socket.recv(4096)
+                if not data:
+                    break
+                buffer += data
+
+                # Process complete lines
+                while b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    line_str = line.decode().strip()
+
+                    if line_str.startswith("ERR"):
+                        raise RuntimeError(f"NUT error: {line_str}")
+
+                    if line_str == "END":
+                        return "\n".join(response_lines)
+
+                    response_lines.append(line_str)
+
+                    # For single-line responses, check if we're done
+                    if not response_lines[0].startswith("BEGIN"):
+                        return response_lines[0]
+
+            return "\n".join(response_lines)
+
+        except socket.timeout:
+            raise RuntimeError("NUT server timeout")
+        except socket.error as e:
+            raise RuntimeError(f"NUT communication error: {e}")
+
+    def list_ups(self) -> Dict[str, str]:
+        """
+        List available UPS devices.
+
+        Returns:
+            Dictionary of UPS name -> description
+        """
+        try:
+            response = self._send("LIST UPS")
+            ups_list = {}
+            for line in response.split("\n"):
+                if line.startswith("UPS "):
+                    # Format: UPS <upsname> "<description>"
+                    parts = line.split('"')
+                    if len(parts) >= 2:
+                        name = line.split()[1]
+                        desc = parts[1]
+                        ups_list[name] = desc
+            return ups_list
+        except Exception as e:
+            logger.error(f"Failed to list UPS: {e}")
+            return {}
+
+    def get_var(self, ups_name: str, var_name: str) -> Optional[str]:
+        """
+        Get a single UPS variable.
+
+        Args:
+            ups_name: UPS device name
+            var_name: Variable name (e.g., "battery.charge")
+
+        Returns:
+            Variable value as string, or None if not found
+        """
+        try:
+            response = self._send(f"GET VAR {ups_name} {var_name}")
+            # Format: VAR <ups> <var> "<value>"
+            if response.startswith("VAR "):
+                parts = response.split('"')
+                if len(parts) >= 2:
+                    return parts[1]
+            return None
+        except Exception as e:
+            logger.debug(f"Failed to get {var_name}: {e}")
+            return None
+
+    def list_vars(self, ups_name: str) -> Dict[str, str]:
+        """
+        List all variables for a UPS.
+
+        Args:
+            ups_name: UPS device name
+
+        Returns:
+            Dictionary of variable name -> value
+        """
+        try:
+            response = self._send(f"LIST VAR {ups_name}")
+            variables = {}
+            for line in response.split("\n"):
+                if line.startswith("VAR "):
+                    # Format: VAR <ups> <var> "<value>"
+                    parts = line.split('"')
+                    if len(parts) >= 2:
+                        var_parts = line.split()
+                        if len(var_parts) >= 3:
+                            var_name = var_parts[2]
+                            var_value = parts[1]
+                            variables[var_name] = var_value
+            return variables
+        except Exception as e:
+            logger.error(f"Failed to list vars: {e}")
+            return {}
+
+    def get_ups_status(self, ups_name: str) -> Dict[str, Any]:
+        """
+        Get comprehensive UPS status.
+
+        Args:
+            ups_name: UPS device name
+
+        Returns:
+            Dictionary with parsed UPS status values
+        """
+        vars_dict = self.list_vars(ups_name)
+        if not vars_dict:
+            return {}
+
+        def get_float(key: str, default: float = 0.0) -> float:
+            try:
+                return float(vars_dict.get(key, default))
+            except (ValueError, TypeError):
+                return default
+
+        def get_int(key: str, default: int = 0) -> int:
+            try:
+                return int(float(vars_dict.get(key, default)))
+            except (ValueError, TypeError):
+                return default
+
+        # Parse UPS status flags
+        status_str = vars_dict.get("ups.status", "")
+        on_mains = "OL" in status_str  # Online
+        on_battery = "OB" in status_str  # On Battery
+        low_battery = "LB" in status_str  # Low Battery
+        charging = "CHRG" in status_str  # Charging
+
+        return {
+            # Battery
+            "battery_charge": get_int("battery.charge", 100),
+            "battery_voltage": get_float("battery.voltage"),
+            "battery_runtime": get_int("battery.runtime"),  # seconds
+            "battery_temperature": get_float("battery.temperature"),
+
+            # Input power
+            "input_voltage": get_float("input.voltage"),
+            "input_frequency": get_float("input.frequency"),
+
+            # Output power
+            "output_voltage": get_float("output.voltage"),
+            "ups_load": get_int("ups.load"),
+            "output_power": get_float("ups.realpower"),
+
+            # Status flags
+            "on_mains": on_mains,
+            "on_battery": on_battery,
+            "low_battery": low_battery,
+            "charging": charging,
+            "status": status_str,
+
+            # Device info
+            "ups_model": vars_dict.get("ups.model", ""),
+            "ups_serial": vars_dict.get("ups.serial", ""),
+        }
+
+    def execute_command(self, ups_name: str, command: str) -> bool:
+        """
+        Execute an instant command on the UPS.
+
+        Args:
+            ups_name: UPS device name
+            command: Command name (e.g., "test.battery.start")
+
+        Returns:
+            True if command accepted
+        """
+        try:
+            response = self._send(f"INSTCMD {ups_name} {command}")
+            return response == "OK"
+        except Exception as e:
+            logger.error(f"Failed to execute command {command}: {e}")
+            return False
+
+    def list_commands(self, ups_name: str) -> List[str]:
+        """
+        List available commands for a UPS.
+
+        Args:
+            ups_name: UPS device name
+
+        Returns:
+            List of available command names
+        """
+        try:
+            response = self._send(f"LIST CMD {ups_name}")
+            commands = []
+            for line in response.split("\n"):
+                if line.startswith("CMD "):
+                    # Format: CMD <ups> <cmd>
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        commands.append(parts[2])
+            return commands
+        except Exception as e:
+            logger.error(f"Failed to list commands: {e}")
+            return []
 
 
 class PowerState(Enum):
@@ -157,6 +457,11 @@ class PowerManager:
         self._callbacks: List[Callable] = []
         self._event_log: List[PowerEvent] = []
 
+        # NUT client
+        self._nut_client: Optional[NUTClient] = None
+        self._nut_connected = False
+        self._use_simulation = False  # Set True for testing without NUT
+
         # State tracking
         self._was_on_mains = True
         self._power_lost_time: Optional[datetime] = None
@@ -180,9 +485,21 @@ class PowerManager:
 
     async def start(self):
         """Start power monitoring."""
+        # Try to connect to NUT server
+        if not self._use_simulation:
+            self._nut_client = NUTClient(
+                host=self.config.nut_host,
+                port=self.config.nut_port,
+                timeout=5.0
+            )
+            self._nut_connected = self._nut_client.connect()
+            if not self._nut_connected:
+                logger.warning("NUT server not available, using simulation mode")
+                self._use_simulation = True
+
         self._running = True
         self._monitor_task = asyncio.create_task(self._monitor_loop())
-        logger.info("Power manager started")
+        logger.info(f"Power manager started (simulation={self._use_simulation})")
 
     async def stop(self):
         """Stop power monitoring."""
@@ -193,6 +510,13 @@ class PowerManager:
                 await self._monitor_task
             except asyncio.CancelledError:
                 pass
+
+        # Disconnect NUT client
+        if self._nut_client:
+            self._nut_client.disconnect()
+            self._nut_client = None
+            self._nut_connected = False
+
         logger.info("Power manager stopped")
 
     # =========================================================================
@@ -232,30 +556,67 @@ class PowerManager:
         """
         Query NUT server for UPS status.
 
-        In real implementation, would:
-        1. Connect to NUT server
-        2. Send "LIST VAR ups" command
-        3. Parse response variables
+        Uses NUT client to communicate with NUT server and parse
+        UPS variables into structured status.
         """
-        # Simulate NUT query
-        # In production, use PyNUT or subprocess call to upsc
+        if self._use_simulation or not self._nut_connected:
+            # Simulation mode for testing
+            return UPSStatus(
+                timestamp=datetime.now(),
+                state=PowerState.ONLINE if self._was_on_mains else PowerState.ON_BATTERY,
+                battery_percent=100 if self._was_on_mains else 75,
+                battery_voltage=54.2,
+                battery_runtime_sec=1800,
+                input_voltage=120.0 if self._was_on_mains else 0.0,
+                input_frequency=60.0 if self._was_on_mains else 0.0,
+                load_percent=25,
+                output_watts=150.0,
+                on_mains=self._was_on_mains,
+                battery_low=False,
+                ups_alarm=False,
+            )
 
-        status = UPSStatus(
-            timestamp=datetime.now(),
-            state=PowerState.ONLINE if self._was_on_mains else PowerState.ON_BATTERY,
-            battery_percent=100 if self._was_on_mains else 75,
-            battery_voltage=54.2,
-            battery_runtime_sec=1800,  # 30 minutes
-            input_voltage=120.0 if self._was_on_mains else 0.0,
-            input_frequency=60.0 if self._was_on_mains else 0.0,
-            load_percent=25,
-            output_watts=150.0,
-            on_mains=self._was_on_mains,
-            battery_low=False,
-            ups_alarm=False,
-        )
+        # Query real NUT server
+        try:
+            nut_status = self._nut_client.get_ups_status(self.config.ups_name)
+            if not nut_status:
+                logger.warning("Empty response from NUT server")
+                return self._status  # Return last known status
 
-        return status
+            # Determine power state
+            if nut_status.get("low_battery"):
+                state = PowerState.LOW_BATTERY
+            elif nut_status.get("on_battery"):
+                state = PowerState.ON_BATTERY
+            elif nut_status.get("charging"):
+                state = PowerState.CHARGING
+            elif nut_status.get("on_mains"):
+                state = PowerState.ONLINE
+            else:
+                state = PowerState.UNKNOWN
+
+            return UPSStatus(
+                timestamp=datetime.now(),
+                state=state,
+                battery_percent=nut_status.get("battery_charge", 100),
+                battery_voltage=nut_status.get("battery_voltage", 0.0),
+                battery_runtime_sec=nut_status.get("battery_runtime", 0),
+                input_voltage=nut_status.get("input_voltage", 0.0),
+                input_frequency=nut_status.get("input_frequency", 0.0),
+                load_percent=nut_status.get("ups_load", 0),
+                output_watts=nut_status.get("output_power", 0.0),
+                on_mains=nut_status.get("on_mains", True),
+                battery_low=nut_status.get("low_battery", False),
+                ups_alarm=False,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to query NUT: {e}")
+            # Try to reconnect
+            if self._nut_client:
+                self._nut_client.disconnect()
+                self._nut_connected = self._nut_client.connect()
+            return self._status  # Return last known status
 
     async def _process_status(self):
         """Process UPS status and take action if needed."""

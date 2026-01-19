@@ -227,12 +227,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 139 | Core Service Completion | alerts | Write unit tests for alert channels | 138 | 2 | 2 | Complete | 29 tests in test_alerts.py |
 | 140 | Core Service Completion | alerts | Write integration test for escalation | 139 | 2 | 2 | Complete | 7 tests in test_alert_escalation.py |
 | 141 | Core Service Completion | power | Review power_manager.py current implementation | None | 2 | 1 | Complete | Good structure, NUT placeholder, thresholds configured |
-| 142 | Core Service Completion | power | Implement NUT (Network UPS Tools) client | 141 | 4 | 3 | Not Started | UPS monitoring |
-| 143 | Core Service Completion | power | Add NUT protocol message parsing | 142 | 3 | 2 | Not Started | UPS data extraction |
-| 144 | Core Service Completion | power | Implement battery percentage monitoring | 143 | 2 | 1 | Not Started | Power level |
-| 145 | Core Service Completion | power | Implement runtime estimation | 144 | 2 | 2 | Not Started | Time remaining |
-| 146 | Core Service Completion | power | Implement input/output voltage monitoring | 145 | 2 | 1 | Not Started | Power quality |
-| 147 | Core Service Completion | power | Implement load percentage monitoring | 146 | 2 | 1 | Not Started | Capacity usage |
+| 142 | Core Service Completion | power | Implement NUT (Network UPS Tools) client | 141 | 4 | 3 | Complete | NUTClient class with TCP protocol |
+| 143 | Core Service Completion | power | Add NUT protocol message parsing | 142 | 3 | 2 | Complete | LIST VAR, GET VAR, status flags |
+| 144 | Core Service Completion | power | Implement battery percentage monitoring | 143 | 2 | 1 | Complete | battery.charge variable |
+| 145 | Core Service Completion | power | Implement runtime estimation | 144 | 2 | 2 | Complete | battery.runtime variable |
+| 146 | Core Service Completion | power | Implement input/output voltage monitoring | 145 | 2 | 1 | Complete | input.voltage, output.voltage |
+| 147 | Core Service Completion | power | Implement load percentage monitoring | 146 | 2 | 1 | Complete | ups.load variable |
 | 148 | Core Service Completion | power | Add battery threshold callbacks | 147 | 3 | 2 | Not Started | Trigger actions |
 | 149 | Core Service Completion | power | Implement park-at-threshold (50%) logic | 148 | 3 | 2 | Not Started | Safe parking |
 | 150 | Core Service Completion | power | Implement shutdown-at-threshold (20%) logic | 149 | 3 | 2 | Not Started | Emergency shutdown |
