@@ -3,7 +3,7 @@
 // Central Nevada Dark Sky Installation
 //
 // Hardware: Teensy 4.1 + TMC5160 drivers + harmonic drives
-// OTA: Intes-Micro MN78 (178mm f/6 Mak-Newt)
+// OTA: Intes Micro MN76 (178 mm f/6 Mak-Newt, also known as MN78)
 // Mount: DIY GEM with CSF-32-100 (RA) and CSF-25-80 (DEC)
 
 #pragma once

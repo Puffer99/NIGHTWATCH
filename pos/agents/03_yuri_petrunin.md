@@ -26,15 +26,15 @@ Yuri Petrunin was born in the Ural region of the Soviet Union and demonstrated e
 6. **Thermal management** - Cooldown, equilibration
 
 ### Review Focus Areas
-- Intes-Micro MN78 optical quality assessment
+- Intes Micro MN76 (also known as MN78) optical quality assessment
 - Maksutov-Newtonian design trade-offs
 - Corrector plate maintenance in desert environment
 - Thermal equilibration strategies for Nevada
 - Collimation stability and procedures
-- Alternative optical systems if MN78 unavailable
+- Alternative optical systems if MN76 unavailable
 
 ### Evaluation Criteria
-- Is the MN78 f/6 design optimal for planetary and automation?
+- Is the MN76 f/6 design optimal for planetary and automation?
 - How does 25% central obstruction affect MTF?
 - What is the expected cooldown time in Nevada conditions?
 - How should the corrector plate be cleaned/maintained?
@@ -42,7 +42,7 @@ Yuri Petrunin was born in the Ural region of the Soviet Union and demonstrated e
 
 ### Optical Specifications Review
 ```
-Intes-Micro MN78:
+Intes Micro MN76 (sometimes designated MN78):
 - Aperture: 178mm (7.0")
 - Focal length: 1068mm
 - Focal ratio: f/6
@@ -62,4 +62,4 @@ Intes-Micro MN78:
 ### Resources
 - [TEC Website](https://www.telescopengineering.com)
 - [Company Seven TEC Overview](http://www.company7.com/tec/index.html)
-- [Intes-Micro Analysis](https://shibumi-astroengineering.com/mn76-optical-analysis-a-eulogy-for-russian-mak-newt-telescopes-4/)
+- [Intes Micro MN76 Optical Analysis](https://shibumi-astroengineering.com/mn76-optical-analysis-a-eulogy-for-russian-mak-newt-telescopes-4/)

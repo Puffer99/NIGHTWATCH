@@ -5,17 +5,27 @@
 
 ---
 
-## 1. Intes-Micro MN76 Telescope Sourcing
+## 1. Intes Micro MN76 Telescope Sourcing
 
 ### Status: ACTIVE SEARCH REQUIRED — RARE VINTAGE OPTIC
 
-#### Model Clarification
+> **Nomenclature Note:** The 7-inch (178 mm) f/6 Maksutov-Newtonian is officially designated **MN76** by Intes Micro. However, some dealers and Cloudy Nights forum threads refer to it as "MN78." Both designations refer to the same optical tube assembly. Search for both terms when sourcing. (Sources: Cloudy Nights discussions, Stellar Optical listings)
 
-The target OTA is the **Intes Micro MN76** (178 mm f/6 Maksutov-Newtonian). This model is frequently listed as "MN78" in classifieds and dealer catalogs due to historical naming inconsistencies—both designations refer to the same 178mm aperture, ~1068mm focal length instrument. When searching, use both model numbers to maximize coverage.
+#### Current Availability
 
-#### Why This Optic Remains Ideal
+The Intes Micro MN76 (7" f/6 Maksutov-Newtonian, sometimes listed as MN78) remains a sought-after planetary telescope. Key findings:
 
-Despite Intes-Micro ceasing production (the company wound down operations in the mid-2010s following the founder's passing), the MN76/MN78 remains one of the finest planetary instruments ever produced for amateur astronomers:
+**Primary Sources:**
+- **ENS Optical UK** (https://ensoptical.co.uk) - Lists MN76/MN78 7" with Crayford focuser
+- **APM Telescopes Germany** (https://www.apm-telescopes.net) - Official Intes Micro distributor
+  - APM offers premium versions with Matthias Wirth tubes and Starlight Feather Touch focusers
+  - Also sells raw Intes Micro optics in custom configurations
+- **Astromart Classifieds** (https://astromart.com) - Active used market listings (search both MN76 and MN78)
+
+**Production Status:**
+- As of March 2025, Intes Micro still produces MN56 (127mm, 760mm FL) and MN76 (178mm, ~1068mm FL)
+- MN76/MN78 availability requires direct inquiry to distributors
+- Factory located in Russia; export logistics may be complicated
 
 - **Exceptional optical quality:** Hand-figured Russian optics routinely tested at 1/8 wave or better. The Mak-Newt design eliminates coma while maintaining a fast f/6 focal ratio ideal for lucky imaging.
 - **Closed tube design:** Critical for harsh environments like Nevada's high desert. The sealed tube eliminates thermal currents from the primary mirror and protects optics from dust, insects, and moisture.
@@ -37,67 +47,16 @@ The MN76/MN78 appears on the used market infrequently—expect to monitor listin
 - "178mm Maksutov-Newtonian"
 - "7 inch Maksutov Newtonian"
 
-**Primary Search Venues:**
-
-| Venue | URL | Notes |
-|-------|-----|-------|
-| **Astromart Classifieds** | https://astromart.com | Best US source; set email alerts |
-| **Cloudy Nights Classifieds** | https://cloudynights.com/classifieds | Active community, good prices |
-| **eBay (worldwide)** | https://ebay.com | Use saved searches with alerts |
-| **European Markets** | Various | Higher availability in EU/UK |
-| **APM Telescopes Germany** | https://www.apm-telescopes.net | May have old stock or leads |
-| **Teleskop-Service Germany** | https://teleskop-service.de | European dealer network |
-| **Russian astronomy forums** | Various | Requires translation; rare finds |
-
-**European Considerations:**
-European markets (Germany, UK, Eastern Europe) often have better MN76/MN78 availability due to proximity to the original Russian production. Factor in shipping (~$150-300) and potential import duties (2.5% for optical instruments) when budgeting.
-
-#### Pricing Estimates
-
-| Condition | Price Range (USD) | Notes |
-|-----------|-------------------|-------|
-| Used (excellent) | $1,500 - $2,200 | Most likely acquisition path |
-| Used (good, needs cleaning) | $1,000 - $1,500 | May need corrector coating service |
-| NOS/mint (rare) | $2,500 - $3,500 | Occasionally surfaces from estates |
-| APM/Wirth premium (historical) | $3,500 - $5,000 | Custom German tube builds, extremely rare |
-
-#### Alternative OTAs (If MN76 Unavailable)
-
-If extended searching fails to locate an MN76/MN78, consider these alternatives in order of preference:
-
-1. **Intes-Micro MN86** (8" f/6, ~203mm)
-   - Larger aperture, same optical design philosophy
-   - Heavier (~12 kg), may require mount capacity upgrade
-   - Even rarer than MN76; higher prices when found
-   - Estimated: $2,500 - $3,500 used
-
-2. **Intes-Micro MN66** (6" f/6, ~152mm)
-   - Same excellent optics in smaller package
-   - More frequently available
-   - Lighter (~6 kg), easier to balance
-   - Historical price: $1,295 new; $800-$1,200 used
-   - Good fallback if payload capacity is a concern
-
-3. **APM/LZOS 180mm f/8 Mak-Newt**
-   - Modern production using premium Russian LZOS optics
-   - Slower focal ratio (f/8 vs f/6)
-   - Higher cost (~$4,000-5,000 new)
-   - Contact APM Telescopes for availability
-
-4. **Explore Scientific MN-152** (6" Mak-Newt)
-   - Currently in production, readily available
-   - Mass-produced (less consistent QC than Intes)
-   - Budget option: ~$700-900 new
-   - Acceptable if vintage optics cannot be sourced
+1. **Intes Micro MN66** (6" f/6) - $1,295 historical price, lighter, easier to source
+2. **APM 8" f/6 Mak-Newt** - Larger aperture, uses Intes optics, premium tube
+3. **Explore Scientific MN-152** (6" Mak-Newt) - More readily available commercial option
 
 #### Action Items
 
-- [ ] Set up saved searches and email alerts on Astromart, Cloudy Nights, and eBay for all search terms
-- [ ] Email APM Telescopes (info@apm-telescopes.net) inquiring about any remaining MN76/MN78 stock or customer leads
-- [ ] Join Cloudy Nights and Stargazers Lounge forums; post "WTB" (want to buy) threads
-- [ ] Monitor European astronomy classifieds (Astrotreff.de, UK Astronomy Buy & Sell)
-- [ ] Set up Google Alerts for "Intes Micro MN76" and "Intes Micro MN78"
-- [ ] Contact vintage telescope dealers who specialize in Russian optics
+- [ ] Email APM Telescopes (info@apm-telescopes.net) for MN76 pricing and lead time (note: may be listed as MN78)
+- [ ] Check Astromart and Cloudy Nights classifieds weekly (search both MN76 and MN78)
+- [ ] Contact ENS Optical UK for availability
+- [ ] Investigate direct Russia purchase if needed
 
 ---
 
@@ -335,8 +294,10 @@ For comparison with DIY approach:
 ## Sources
 
 ### MN76/MN78 Research
+- [ENS Optical UK - Intes MN76/MN78](https://ensoptical.co.uk)
 - [APM Telescopes - Maksutov Newton](https://www.apm-telescopes.net/en/maksutov-newton)
-- [Cloudy Nights - Intes-Micro Discussions](https://www.cloudynights.com/topic/168496-intes-micro-maksutov-newton/)
+- [Cloudy Nights - Intes Micro Discussions](https://www.cloudynights.com/topic/168496-intes-micro-maksutov-newton/)
+- [Stellar Optical - Intes Telescopes](https://stellaroptical.com) (historical reference for naming)
 - [Astromart Classifieds](https://www.astromart.com)
 - [Teleskop-Service Germany](https://www.teleskop-service.de)
 - [Stargazers Lounge - Intes Micro](https://stargazerslounge.com)

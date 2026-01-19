@@ -16,7 +16,7 @@ We'd particularly love to hear from you if you have experience with:
 - **Harmonic Drive Mounts** — Design, machining, or assembly experience
 - **Astrophotography Automation** — ASCOM/INDI integration, automated imaging sequences
 - **Edge AI / Local Inference** — Whisper, Piper, or similar models on embedded hardware
-- **Russian Optics** — Experience with Intes-Micro or similar Maksutov-Newtonian designs
+- **Russian Optics** — Experience with Intes Micro or similar Maksutov-Newtonian designs
 - **Remote Observatory Operations** — Lessons learned, safety systems, enclosure automation
 - **Weather Monitoring** — Ecowitt, AAG CloudWatcher, or similar integration
 

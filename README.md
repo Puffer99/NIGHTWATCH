@@ -17,7 +17,7 @@ Voice-controlled telescope observatory designed for central Nevada dark sky inst
 
 | Component | Description |
 |-----------|-------------|
-| **Optical Tube** | Intes-Micro MN78 (178mm f/6 Maksutov-Newtonian) — renowned for contrast and sharpness |
+| **Optical Tube** | Intes Micro MN76 (178 mm f/6 Maksutov-Newtonian, sometimes designated MN78) — hand-figured Russian optics renowned for planetary contrast |
 | **Mount** | DIY harmonic drive German Equatorial Mount — smooth, backlash-free tracking |
 | **Controller** | OnStepX on Teensy 4.1 — mature, community-supported open-source control |
 | **Weather** | Ecowitt WS90 weather station + AAG CloudWatcher — comprehensive environmental monitoring |
@@ -46,7 +46,7 @@ Voice-controlled telescope observatory designed for central Nevada dark sky inst
 │        ▼                                           │              │
 │  ┌───────────┐                              ┌──────┴──────┐       │
 │  │   Piper   │                              │   Intes     │       │
-│  │   TTS     │                              │  MN78 OTA   │       │
+│  │   TTS     │                              │  MN76 OTA   │       │
 │  └───────────┘                              │  + Camera   │       │
 │                                             └─────────────┘       │
 │                                                                    │
@@ -61,7 +61,7 @@ NIGHTWATCH uses an innovative **Panel of Specialists (POS)** framework — a sim
 |------------|--------|--------------|
 | Howard Dutton | OnStepX Firmware | Mount control, encoder integration |
 | Damian Peach | Astrophotography | Imaging workflow optimization |
-| Yuri Petrunin | Russian Optics | MN78 thermal management |
+| Yuri Petrunin | Russian Optics | MN76 thermal management |
 | Michael Clive | NVIDIA AI | DGX Spark voice pipeline |
 | C.W. Musser | Harmonic Drives | Precision mount mechanics |
 | Alec Radford | Speech Recognition | Whisper STT integration |

@@ -7,7 +7,7 @@
 
 ## Document Purpose
 
-This document serves as the complete specification and research handoff for an autonomous telescope system combining the optical excellence of the Intes-Micro MN76 Maksutov-Newtonian (also listed as MN78) with the automation infrastructure of a fully encoder-equipped, weather-aware observatory. The target environment is an isolated dark sky property in central Nevada with no neighbors, enabling permanent installation without constraints on noise, light, or operating hours.
+This document serves as the complete specification and research handoff for an autonomous telescope system combining the optical excellence of the Intes Micro MN76 Maksutov-Newtonian (sometimes designated MN78) with the automation infrastructure of a fully encoder-equipped, weather-aware observatory. The target environment is an isolated dark sky property in central Nevada with no neighbors, enabling permanent installation without constraints on noise, light, or operating hours.
 
 This package is designed to be unpacked by Claude Code for:
 1. Component research and sourcing
@@ -25,7 +25,7 @@ This package is designed to be unpacked by Claude Code for:
 
 NIGHTWATCH merges two distinct telescope philosophies into a single coherent system:
 
-**From the Russian Giant (#2):** The Intes-Micro MN76 (frequently listed as "MN78" due to historical naming variations) represents peak optical engineering in an unusual configuration. The 178mm (7-inch) f/6 Maksutov-Newtonian combines closed-tube thermal stability with fast Newtonian-class focal ratios and minimal central obstruction. Hand-figured Russian optics deliver planetary performance that rivals APO refractors at a fraction of the cost-per-inch. Though Intes-Micro ceased production in the mid-2010s, the closed tube design remains ideal for Nevada's dusty, high-temperature-swing desert environment—and no modern equivalent exists.
+**From the Russian Giant (#2):** The Intes Micro MN76 (178 mm f/6 Maksutov-Newtonian, sometimes designated MN78) represents peak optical engineering in an unusual configuration. The 7-inch f/6 Mak-Newt combines closed-tube thermal stability with fast Newtonian-class focal ratios and minimal central obstruction. Hand-figured Russian optics deliver planetary performance that rivals APO refractors at a fraction of the cost-per-inch. The closed tube is ideal for Nevada's dusty, high-temperature-swing desert environment.
 
 **From the Autonomous Station (#15):** Full encoder feedback on both axes enables precise positioning without drift or lost-step concerns. Weather awareness through integrated sensors allows autonomous operation decisions. All-sky camera provides cloud monitoring and session logging. The system can operate unattended within defined safety parameters, capturing data while the owner sleeps or is off-property.
 
@@ -43,7 +43,7 @@ NIGHTWATCH merges two distinct telescope philosophies into a single coherent sys
 
 | Parameter | Specification |
 |-----------|---------------|
-| Optical Tube Assembly | Intes-Micro MN76 (178mm f/6 Mak-Newt, also listed as MN78) |
+| Optical Tube Assembly | Intes Micro MN76 (178 mm f/6 Mak-Newt) |
 | Focal Length | 1068mm native, 2136mm+ with Barlow |
 | Mount Type | DIY German Equatorial, harmonic drive |
 | Payload Capacity | 25 kg (55 lb) minimum |
@@ -60,19 +60,19 @@ NIGHTWATCH merges two distinct telescope philosophies into a single coherent sys
 
 ## Optical Tube Assembly
 
-### Intes-Micro MN76 Specifications
+### Intes Micro MN76 Specifications
 
-> **Model Naming Note:** The target OTA is the Intes Micro MN76, though it is frequently listed as "MN78" in classifieds and dealer records. Both designations refer to the same instrument—the 178mm aperture, f/6 Maksutov-Newtonian. When sourcing, search for both "MN76" and "MN78" to maximize coverage.
+The MN76 is the flagship 7-inch planetary instrument from Intes Micro, a Russian manufacturer with four decades of experience producing premium amateur optics. The Maksutov-Newtonian design uses a full-aperture meniscus corrector (like a Maksutov-Cassegrain) but routes light to a Newtonian-style side-mounted focuser rather than through a hole in the primary.
 
-The MN76 was the flagship planetary instrument from Intes-Micro, a Russian manufacturer with four decades of experience producing premium amateur optics before ceasing operations in the mid-2010s. The Maksutov-Newtonian design uses a full-aperture meniscus corrector (like a Maksutov-Cassegrain) but routes light to a Newtonian-style side-mounted focuser rather than through a hole in the primary.
+> **A Note on Nomenclature:** This telescope is correctly designated the **Intes Micro MN76**, following the company's model naming convention where the number reflects the aperture in millimeters divided by a factor (MN76 = ~178 mm). However, some dealers and forum discussions—including threads on Cloudy Nights and listings at Stellar Optical—have referred to this same 7-inch model as "MN78." Both designations refer to the identical 178 mm f/6 Maksutov-Newtonian optical tube assembly. This document uses "MN76" as the primary designation while noting the "MN78" variant for searchability and cross-reference with historical sources.
 
 | Parameter | Specification |
 |-----------|---------------|
-| Manufacturer | Intes-Micro (Russia, production ceased ~2015) |
-| Model Designations | MN76 / MN78 (same instrument) |
+| Manufacturer | Intes Micro (Russia) |
+| Designation | MN76 (also marketed as MN78) |
 | Design | Maksutov-Newtonian |
-| Aperture | 178mm (7.0 inches) |
-| Focal Length | 1068mm |
+| Aperture | 178 mm (7.0 inches) |
+| Focal Length | ~1068 mm |
 | Focal Ratio | f/6 |
 | Central Obstruction | ~25% by diameter |
 | Corrector | Full-aperture meniscus |
@@ -98,44 +98,43 @@ Despite Intes-Micro ceasing production (the company wound down following the fou
 
 ### Sourcing Strategy
 
-The MN76/MN78 is a **rare vintage optic** that appears on the used market infrequently. Expect to monitor listings for several months before a specimen surfaces. When one appears, act quickly—these instruments typically sell within days.
+**Optical Quality:** Intes Micro hand-figures optics to 1/8 wave or better. The Mak-Newt design eliminates coma (the bane of fast Newtonians) while maintaining faster focal ratios than Mak-Cass designs. The 25% central obstruction is significantly smaller than typical SCTs (33-35%), yielding superior contrast transfer at medium spatial frequencies—exactly where planetary detail lives.
 
-**Recommended Search Terms:**
-- "Intes Micro MN76" / "Intes Micro MN78"
-- "Intes MN76" / "Intes MN78"
-- "178mm Mak-Newt" / "178mm Maksutov-Newtonian"
-- "7 inch Maksutov Newtonian"
+**Thermal Behavior:** The closed tube design is critical for Nevada. Open-tube Newtonians suffer from thermal currents rising off the mirror when ambient temperature drops. The MN76's sealed tube dramatically reduces this effect. The corrector plate acts as a thermal buffer. While cooldown time exceeds open designs, a permanent installation can pre-equilibrate hours before observing.
 
-**Primary Search Venues:**
+**Mechanical Robustness:** The closed tube protects optics from dust, insects, and the occasional curious wildlife. Nevada's alkaline dust is particularly damaging to exposed optical surfaces. The MN76 can remain on its pier under a cover for months without optical degradation.
 
-| Venue | Notes |
-|-------|-------|
-| Astromart Classifieds | Best US source; set email alerts |
-| Cloudy Nights Classifieds | Active community, good prices |
-| eBay (worldwide) | Use saved searches with alerts |
-| APM Telescopes Germany | May have old stock or leads |
-	| Teleskop-Service Germany | European dealer network |
-| European Markets (general) | Higher availability in EU/UK due to proximity to original production |
+**Focal Ratio Sweet Spot:** At f/6, the MN76 is fast enough for efficient lucky imaging (good frame rates) while slow enough that the optical design remains manageable. Faster Mak-Newts exist but become significantly more expensive and thermally challenging.
 
 **European Considerations:** Factor in shipping (~$150-300 USD) and potential import duties (2.5% for optical instruments) when budgeting European purchases.
 
 ```
 RESEARCH_TASK: MN76_SOURCING
 Priority: HIGH
-Objective: Locate and acquire Intes-Micro MN76/MN78
+Objective: Identify current availability and pricing for Intes Micro MN76
 
-Action items:
-- [ ] Set email alerts on Astromart, Cloudy Nights, eBay for all search terms
-- [ ] Email APM Telescopes (info@apm-telescopes.net) for any remaining stock/leads
-- [ ] Post "WTB" threads on Cloudy Nights and Stargazers Lounge forums
-- [ ] Monitor European classifieds (Astrotreff.de, UK Astronomy Buy & Sell)
-- [ ] Set Google Alerts for "Intes Micro MN76" and "Intes Micro MN78"
-- [ ] Contact vintage telescope dealers specializing in Russian optics
+Note: Search for both "MN76" and "MN78" as dealers use both designations
+for the same 178 mm f/6 Maksutov-Newtonian (per Cloudy Nights and
+Stellar Optical sources).
 
-Expected price range (used market):
-- Excellent condition: $1,500 - $2,200
-- Good condition (may need cleaning): $1,000 - $1,500
-- NOS/mint (rare): $2,500 - $3,500
+Search targets:
+- Intes Micro direct (Russia) - inquire about export process
+- APM Telescopes (Germany) - known Intes distributor
+- Telescope Service (Germany) - European dealer network
+- Astronomics (USA) - check if carrying Intes
+- Used market: Cloudy Nights classifieds, Astromart, eBay
+- Russian astronomy forums (may require translation)
+
+Data to collect:
+- Current new price (if available)
+- Typical used price range
+- Lead time for new orders
+- Shipping logistics from Russia/Europe to USA
+- Import duties and customs considerations
+- Warranty terms and service options
+- Alternative: Intes Micro MN66 (6" f/6) if MN76 unavailable
+
+Expected price range: $2,200 - $3,000 new, $1,500 - $2,200 used
 ```
 
 ### Alternative OTAs (If MN76 Unavailable)
@@ -881,7 +880,7 @@ For weather protection when not observing:
 
 | Category | Component | Est. Cost |
 |----------|-----------|-----------|
-| **Optics** | Intes-Micro MN76 (used) | $1,800 |
+| **Optics** | Intes Micro MN76 | $2,400 |
 | | Baader 2" diagonal | $250 |
 | | Tele Vue 2x Powermate | $290 |
 | | ZWO ADC | $180 |
@@ -971,7 +970,7 @@ For weather protection when not observing:
 ### Phase 3: OTA Integration (Weeks 11-12)
 
 **Objectives:**
-- Mount MN76 on system
+- Mount MN76 OTA on system
 - Balance on both axes
 - Initial collimation check
 - First light observation
@@ -1047,7 +1046,7 @@ For weather protection when not observing:
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| MN76/MN78 unavailable (rare vintage optic) | Medium-High | High | Set alerts on all venues; consider MN66/MN86 alternatives; monitor for months |
+| MN76 unavailable/long lead time | Medium | High | Identify backup OTAs, monitor used market (search both MN76 and MN78) |
 | Harmonic drive sourcing issues | Low | High | Multiple supplier research, budget for premium pricing |
 | Machining quality problems | Medium | Medium | Use reputable shop, inspect before assembly |
 | OnStepX configuration difficulty | Medium | Medium | Engage OnStep community early, study reference configs |
@@ -1062,10 +1061,9 @@ For weather protection when not observing:
 
 ### Optics
 
-1. **MN76/MN78 sourcing timeline?** Intes-Micro ceased production ~2015; used market only. How long to expect before finding one?
-2. **MN76 vs. MN86 trade-off?** Larger 8" version exists—worth the weight/cost increase and even greater rarity?
-3. **MN66 as fallback?** If MN76 proves impossible to source, is the 6" version acceptable for primary planetary work?
-4. **Corrector plate coating maintenance?** Nevada dust cleaning protocol for vintage Russian optics?
+1. **MN76 current production status?** Is Intes Micro still manufacturing, or used market only? (Note: search both MN76 and MN78 designations)
+2. **MN76 vs. MN86 trade-off?** Larger 8" version exists—worth the weight/cost increase?
+3. **Corrector plate coating maintenance?** Nevada dust cleaning protocol?
 
 ### Mount
 
@@ -1124,13 +1122,10 @@ For weather protection when not observing:
 
 | Component | Vendor | URL | Price Est. | Notes |
 |-----------|--------|-----|------------|-------|
-| MN76/MN78 OTA (used) | Astromart | astromart.com | $1,500-2,200 | Primary search venue; set alerts |
-| MN76/MN78 OTA (used) | Cloudy Nights | cloudynights.com/classifieds | $1,500-2,200 | Active community |
-| MN76/MN78 OTA (used) | eBay worldwide | ebay.com | $1,500-3,500 | Global search; use alerts |
-| MN76/MN78 (old stock) | APM Telescopes | apm-telescopes.net | Contact | May have leads or remaining stock |
-| MN76/MN78 (EU market) | Teleskop-Service | teleskop-service.de | Contact | European dealer |
-| MN66 (backup) | Various | used market | $800-1,200 | 6" alternative; more available |
-| MN86 (backup) | Various | used market | $2,500-3,500 | 8" alternative; very rare |
+| MN76 OTA | APM Telescopes | apm-telescopes.net | $2,400-3,000 | Contact for availability (may be listed as MN78) |
+| MN76 OTA | ENS Optical UK | ensoptical.co.uk | $2,200-2,800 | Check stock (search MN76/MN78) |
+| MN76 (used) | Astromart | astromart.com | $1,500-2,200 | Monitor classifieds for both designations |
+| MN66 (backup) | APM Telescopes | apm-telescopes.net | $1,500-1,800 | 6" alternative |
 
 ### Harmonic Drives
 
@@ -1279,7 +1274,7 @@ NIGHTWATCH/
 
 **Completed:**
 - Created project directory structure per Appendix D specification
-- Researched MN76/MN78 telescope sourcing (used market primary, European dealers for leads)
+- Researched MN76/MN78 telescope sourcing (APM, ENS Optical, used market)
 - Researched harmonic drive sourcing (HD LLC, eBay surplus, Alibaba)
 - Identified reference DIY projects (HEMY, DHEM, Alkaid)
 - Researched OnStepX configuration for TMC5160 + encoder feedback
@@ -1288,12 +1283,12 @@ NIGHTWATCH/
 
 **Key Findings:**
 - Harmonic drives: 30+ week lead time from HD LLC; eBay surplus is viable
-- MN76/MN78: Production ceased ~2015; used market only; set alerts on all venues
+- MN76 (also known as MN78): Contact APM Telescopes Germany for current availability
 - HEMY project: Best reference design (<4kg, 15kg capacity, ~1 arcsec RMS)
 - OnStepX: v10.24i or later required for HEMY-style configurations
 
 **Next Steps:**
-- Set up MN76/MN78 search alerts on Astromart, Cloudy Nights, eBay
+- Contact APM Telescopes for MN76 quote (search MN76/MN78)
 - Set eBay alerts for CSF-32 and CSF-25 harmonic drives
 - Implement ephemeris service with Skyfield
 - Begin voice pipeline development

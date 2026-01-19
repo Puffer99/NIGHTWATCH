@@ -45,7 +45,7 @@
 > 5. Missing: Collimation procedure documentation"
 
 **Yuri Petrunin reviews:** OTA specifications
-> "Intes-Micro quality is excellent. Practical notes:
+> "Intes Micro MN76 quality is excellent. Practical notes:
 > 1. Thermal equilibration: Allow 2-3 hours minimum in Nevada
 > 2. Corrector cleaning: Distilled water + isopropyl, no pressure
 > 3. Backup option: MN66 is lighter but 6" limits resolution on Mars
