@@ -22,3 +22,9 @@ VERSION_INFO = (0, 1, 0, "dev")
 
 # Core exceptions (import base class for convenience)
 from nightwatch.exceptions import NightwatchError
+
+# Core constants (import commonly used constants for convenience)
+from nightwatch.constants import (
+    NIGHTWATCH_VERSION,
+    NIGHTWATCH_NAME,
+)
