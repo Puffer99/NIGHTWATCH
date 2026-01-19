@@ -8,9 +8,10 @@ control system with support for:
 - Console output with optional color formatting
 - Per-service log level configuration
 - Request correlation IDs for tracing
+- Convenience helpers (log_exception, log_timing)
 
 Usage:
-    from nightwatch.logging_config import setup_logging, get_logger
+    from nightwatch.logging_config import setup_logging, get_logger, log_exception, log_timing
 
     # Initialize logging at application startup
     setup_logging(log_level="INFO", log_file="nightwatch.log")
@@ -18,12 +19,25 @@ Usage:
     # Get a logger for your module
     logger = get_logger(__name__)
     logger.info("Mount connected", extra={"device": "OnStepX"})
+
+    # Log exceptions with full traceback
+    try:
+        risky_operation()
+    except Exception as e:
+        log_exception(logger, "Failed to connect to mount", e)
+
+    # Time a block of code
+    with log_timing(logger, "plate_solve"):
+        solve_field(image_path)
 """
 
 import logging
 import sys
+import time
+import traceback
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Generator, Optional
 
 # Module-level constants
 DEFAULT_LOG_LEVEL = "INFO"
@@ -135,3 +149,99 @@ def set_service_level(service_name: str, level: str) -> None:
     logger_name = f"nightwatch.services.{service_name}"
     logger = logging.getLogger(logger_name)
     logger.setLevel(LOG_LEVELS.get(level.upper(), logging.INFO))
+
+
+# =============================================================================
+# Convenience Helpers
+# =============================================================================
+
+
+def log_exception(
+    logger: logging.Logger,
+    message: str,
+    exc: BaseException,
+    level: int = logging.ERROR,
+    include_traceback: bool = True,
+) -> None:
+    """Log an exception with optional full traceback.
+
+    Provides a consistent way to log exceptions across the application,
+    including structured information about the exception type and message.
+
+    Args:
+        logger: Logger instance to use
+        message: Context message describing what operation failed
+        exc: The exception that was raised
+        level: Log level to use (default: ERROR)
+        include_traceback: If True, include full traceback in log
+
+    Example:
+        try:
+            mount.connect()
+        except ConnectionError as e:
+            log_exception(logger, "Failed to connect to mount", e)
+    """
+    exc_type = type(exc).__name__
+    exc_message = str(exc)
+
+    extra = {
+        "exception_type": exc_type,
+        "exception_message": exc_message,
+    }
+
+    if include_traceback:
+        tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        extra["traceback"] = tb
+        logger.log(level, f"{message}: [{exc_type}] {exc_message}\n{tb}", extra=extra)
+    else:
+        logger.log(level, f"{message}: [{exc_type}] {exc_message}", extra=extra)
+
+
+@contextmanager
+def log_timing(
+    logger: logging.Logger,
+    operation: str,
+    level: int = logging.DEBUG,
+    warn_threshold_sec: Optional[float] = None,
+) -> Generator[None, None, None]:
+    """Context manager to log the duration of an operation.
+
+    Useful for performance monitoring and identifying slow operations.
+    Optionally emits a warning if the operation exceeds a threshold.
+
+    Args:
+        logger: Logger instance to use
+        operation: Name of the operation being timed
+        level: Log level for the timing message (default: DEBUG)
+        warn_threshold_sec: If set, emit WARNING if duration exceeds this
+
+    Yields:
+        None
+
+    Example:
+        with log_timing(logger, "plate_solve", warn_threshold_sec=30.0):
+            result = solver.solve(image_path)
+
+        # Logs: "plate_solve completed in 12.345s"
+        # Or if > 30s: "plate_solve completed in 45.678s (exceeded 30.0s threshold)"
+    """
+    start_time = time.perf_counter()
+    logger.log(level, f"{operation} started")
+
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start_time
+        extra = {
+            "operation": operation,
+            "elapsed_seconds": round(elapsed, 3),
+        }
+
+        if warn_threshold_sec is not None and elapsed > warn_threshold_sec:
+            logger.warning(
+                f"{operation} completed in {elapsed:.3f}s "
+                f"(exceeded {warn_threshold_sec}s threshold)",
+                extra=extra,
+            )
+        else:
+            logger.log(level, f"{operation} completed in {elapsed:.3f}s", extra=extra)
