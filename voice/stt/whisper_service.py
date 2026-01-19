@@ -29,6 +29,13 @@ try:
 except ImportError:
     SOUNDDEVICE_AVAILABLE = False
 
+# Try to import neural VAD (pymicro-vad)
+try:
+    from pymicro_vad import MicroVAD
+    NEURAL_VAD_AVAILABLE = True
+except ImportError:
+    NEURAL_VAD_AVAILABLE = False
+
 # Try to import Whisper
 try:
     from faster_whisper import WhisperModel
@@ -140,6 +147,128 @@ class VoiceActivityDetector:
         self._speech_samples = 0
         self._silence_samples = 0
 
+    @property
+    def backend(self) -> str:
+        """Return the VAD backend being used."""
+        return "energy-threshold"
+
+
+class EnhancedVAD:
+    """
+    Neural VAD using pymicro-vad for robust speech detection.
+
+    This provides more accurate speech detection than energy-threshold VAD,
+    especially in noisy outdoor telescope environments with wind, wildlife,
+    and equipment sounds.
+
+    Falls back to energy-threshold VAD if pymicro-vad is not available.
+    """
+
+    def __init__(self, threshold: float = 0.5, sample_rate: int = 16000):
+        """
+        Initialize enhanced VAD.
+
+        Args:
+            threshold: Speech probability threshold (0.0-1.0)
+            sample_rate: Audio sample rate (must be 16kHz for pymicro-vad)
+        """
+        self.threshold = threshold
+        self.sample_rate = sample_rate
+
+        if NEURAL_VAD_AVAILABLE:
+            self._vad = MicroVAD()
+            self._use_neural = True
+        else:
+            self._vad = None
+            self._use_neural = False
+            # Fallback energy threshold
+            self._energy_threshold = 0.01
+
+        self._is_speaking = False
+        self._speech_frames = 0
+        self._silence_frames = 0
+        self._min_speech_frames = 3   # Require consecutive speech frames
+        self._min_silence_frames = 8  # Require consecutive silence frames
+
+    def is_speech(self, audio_chunk: np.ndarray) -> bool:
+        """
+        Detect if audio chunk contains speech.
+
+        Args:
+            audio_chunk: Audio samples as numpy array (16kHz, float32)
+
+        Returns:
+            True if speech detected, False otherwise
+        """
+        if self._use_neural:
+            return self._neural_detect(audio_chunk)
+        else:
+            return self._energy_detect(audio_chunk)
+
+    def _neural_detect(self, audio_chunk: np.ndarray) -> bool:
+        """Neural VAD detection using pymicro-vad."""
+        # pymicro-vad expects 16kHz, 16-bit PCM bytes
+        audio_int16 = (audio_chunk * 32767).astype(np.int16)
+        probability = self._vad.process(audio_int16.tobytes())
+
+        is_speech_frame = probability > self.threshold
+
+        # Hysteresis: require consecutive frames to change state
+        if is_speech_frame:
+            self._speech_frames += 1
+            self._silence_frames = 0
+            if self._speech_frames >= self._min_speech_frames:
+                self._is_speaking = True
+        else:
+            self._silence_frames += 1
+            self._speech_frames = 0
+            if self._is_speaking and self._silence_frames >= self._min_silence_frames:
+                self._is_speaking = False
+
+        return self._is_speaking
+
+    def _energy_detect(self, audio_chunk: np.ndarray) -> bool:
+        """Fallback energy-based detection."""
+        energy = np.sqrt(np.mean(audio_chunk ** 2))
+
+        if energy > self._energy_threshold:
+            self._speech_frames += 1
+            self._silence_frames = 0
+            if self._speech_frames >= self._min_speech_frames:
+                self._is_speaking = True
+        else:
+            self._silence_frames += 1
+            self._speech_frames = 0
+            if self._is_speaking and self._silence_frames >= self._min_silence_frames:
+                self._is_speaking = False
+
+        return self._is_speaking
+
+    def reset(self):
+        """Reset detector state."""
+        if self._use_neural and self._vad:
+            self._vad.reset()
+        self._is_speaking = False
+        self._speech_frames = 0
+        self._silence_frames = 0
+
+    def process(self, audio_chunk: np.ndarray) -> bool:
+        """
+        Process audio chunk (alias for is_speech for compatibility).
+
+        Args:
+            audio_chunk: Audio samples as numpy array
+
+        Returns:
+            True if speech detected, False otherwise
+        """
+        return self.is_speech(audio_chunk)
+
+    @property
+    def backend(self) -> str:
+        """Return the VAD backend being used."""
+        return "pymicro-vad" if self._use_neural else "energy-threshold"
+
 
 class WhisperSTT:
     """
@@ -153,7 +282,8 @@ class WhisperSTT:
         model_size: WhisperModelSize = WhisperModelSize.SMALL,
         device: str = "cuda",
         compute_type: str = "float16",
-        language: str = "en"
+        language: str = "en",
+        use_enhanced_vad: bool = True
     ):
         """
         Initialize Whisper STT service.
@@ -163,6 +293,7 @@ class WhisperSTT:
             device: "cuda" or "cpu"
             compute_type: "float16", "int8", or "float32"
             language: Language code for transcription
+            use_enhanced_vad: Use neural VAD (pymicro-vad) if available
         """
         self.model_size = model_size
         self.device = device
@@ -171,7 +302,12 @@ class WhisperSTT:
 
         self._model = None
         self._audio_config = AudioConfig()
-        self._vad = VoiceActivityDetector()
+
+        # Use EnhancedVAD (neural) by default, falls back to energy-threshold
+        if use_enhanced_vad:
+            self._vad = EnhancedVAD()
+        else:
+            self._vad = VoiceActivityDetector()
 
         self._is_listening = False
         self._audio_queue: queue.Queue = queue.Queue()
@@ -441,10 +577,12 @@ if __name__ == "__main__":
 
     print(f"Backend: {WHISPER_BACKEND}")
     print(f"Audio available: {SOUNDDEVICE_AVAILABLE}")
+    print(f"Neural VAD available: {NEURAL_VAD_AVAILABLE}")
     print()
 
     # Test with a simple transcription
     stt = WhisperSTT(model_size=WhisperModelSize.TINY, device="cpu")
+    print(f"VAD backend: {stt._vad.backend}")
 
     print("Loading model (this may take a moment)...")
     stt.initialize()
