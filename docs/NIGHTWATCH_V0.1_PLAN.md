@@ -701,14 +701,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 613 | Documentation & POS | pos | Create POS deliberation for tool confirmation | 612 | 3 | 2 | Not Started | Safety design |
 | 614 | Documentation & POS | pos | Create POS deliberation for emergency response | 613 | 3 | 2 | Not Started | Safety design |
 | 615 | Documentation & POS | pos | Update POS_RETREAT_SIMULATION.md with v0.1 decisions | 614 | 2 | 2 | Not Started | Record keeping |
-| 616 | Deployment Preparation | install | Create install.sh installation script | None | 3 | 2 | Not Started | Unix install |
-| 617 | Deployment Preparation | install | Add Python version check | 616 | 2 | 1 | Not Started | Prerequisites |
-| 618 | Deployment Preparation | install | Add system dependency installation | 617 | 2 | 1 | Not Started | apt/brew |
-| 619 | Deployment Preparation | install | Add virtual environment creation | 618 | 2 | 1 | Not Started | Isolation |
-| 620 | Deployment Preparation | install | Add pip dependency installation | 619 | 2 | 1 | Not Started | Python deps |
-| 621 | Deployment Preparation | install | Add configuration template generation | 620 | 2 | 1 | Not Started | Config setup |
+| 616 | Deployment Preparation | install | Create install.sh installation script | None | 3 | 2 | Complete | Full installer with all steps |
+| 617 | Deployment Preparation | install | Add Python version check | 616 | 2 | 1 | Complete | Min 3.10, recommended 3.11 |
+| 618 | Deployment Preparation | install | Add system dependency installation | 617 | 2 | 1 | Complete | Debian/Fedora/macOS support |
+| 619 | Deployment Preparation | install | Add virtual environment creation | 618 | 2 | 1 | Complete | venv with pip upgrade |
+| 620 | Deployment Preparation | install | Add pip dependency installation | 619 | 2 | 1 | Complete | Services + voice + dev deps |
+| 621 | Deployment Preparation | install | Add configuration template generation | 620 | 2 | 1 | Complete | Full YAML template |
 | 622 | Deployment Preparation | install | Create install.bat for Windows | 621 | 3 | 2 | Not Started | Windows install |
-| 623 | Deployment Preparation | install | Create upgrade.sh script | 622 | 2 | 1 | Not Started | Update path |
+| 623 | Deployment Preparation | install | Create upgrade.sh script | 622 | 2 | 1 | Complete | Backup, update, restart services |
 | 624 | Deployment Preparation | install | Write installation documentation | 623 | 2 | 1 | Not Started | Install guide |
 | 625 | Deployment Preparation | systemd | Create nightwatch.service systemd unit | None | 3 | 2 | Complete | Full service with security hardening |
 | 626 | Deployment Preparation | systemd | Add automatic restart on failure | 625 | 2 | 1 | Complete | RestartSec=10, StartLimitBurst=5 |
