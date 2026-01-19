@@ -2,7 +2,7 @@
 NIGHTWATCH Unit Tests - Logging Configuration
 
 Unit tests for nightwatch/logging_config.py.
-Tests setup_logging, get_logger, set_service_level, and helper functions.
+Tests setup_logging, get_logger, set_service_level, correlation ID, and helper functions.
 
 Run:
     pytest tests/unit/test_logging_config.py -v
@@ -13,6 +13,7 @@ import tempfile
 import time
 from pathlib import Path
 from unittest.mock import Mock, patch
+import threading
 
 import pytest
 
@@ -436,3 +437,221 @@ class TestDefaultConstants:
         from nightwatch.logging_config import DEFAULT_LOG_LEVEL
 
         assert DEFAULT_LOG_LEVEL == "INFO"
+
+
+# =============================================================================
+# Test Correlation ID Functions (Step 27)
+# =============================================================================
+
+class TestCorrelationId:
+    """Unit tests for correlation ID functionality."""
+
+    def test_get_correlation_id_returns_none_by_default(self):
+        """Test get_correlation_id returns None when not set."""
+        from nightwatch.logging_config import get_correlation_id, set_correlation_id
+
+        # Ensure clean state
+        set_correlation_id(None)
+        assert get_correlation_id() is None
+
+    def test_set_and_get_correlation_id(self):
+        """Test setting and getting correlation ID."""
+        from nightwatch.logging_config import get_correlation_id, set_correlation_id
+
+        set_correlation_id("test-123")
+        assert get_correlation_id() == "test-123"
+
+        # Clean up
+        set_correlation_id(None)
+
+    def test_generate_correlation_id_format(self):
+        """Test generated correlation IDs have correct format."""
+        from nightwatch.logging_config import generate_correlation_id
+
+        cid = generate_correlation_id()
+        assert cid.startswith("nw-")
+        assert len(cid) == 11  # "nw-" + 8 hex chars
+
+    def test_generate_correlation_id_custom_prefix(self):
+        """Test generate_correlation_id with custom prefix."""
+        from nightwatch.logging_config import generate_correlation_id
+
+        cid = generate_correlation_id(prefix="voice")
+        assert cid.startswith("voice-")
+        assert len(cid) == 14  # "voice-" + 8 hex chars
+
+    def test_generate_correlation_id_uniqueness(self):
+        """Test generated correlation IDs are unique."""
+        from nightwatch.logging_config import generate_correlation_id
+
+        ids = {generate_correlation_id() for _ in range(100)}
+        assert len(ids) == 100  # All unique
+
+
+class TestCorrelationContext:
+    """Unit tests for correlation_context context manager."""
+
+    def test_correlation_context_sets_id(self):
+        """Test correlation_context sets the correlation ID."""
+        from nightwatch.logging_config import correlation_context, get_correlation_id
+
+        with correlation_context("ctx-test-123"):
+            assert get_correlation_id() == "ctx-test-123"
+
+    def test_correlation_context_clears_on_exit(self):
+        """Test correlation_context clears ID on exit."""
+        from nightwatch.logging_config import correlation_context, get_correlation_id, set_correlation_id
+
+        set_correlation_id(None)  # Clean state
+        with correlation_context("ctx-test"):
+            pass
+        assert get_correlation_id() is None
+
+    def test_correlation_context_auto_generates_id(self):
+        """Test correlation_context generates ID when none provided."""
+        from nightwatch.logging_config import correlation_context
+
+        with correlation_context() as cid:
+            assert cid is not None
+            assert cid.startswith("nw-")
+
+    def test_correlation_context_custom_prefix(self):
+        """Test correlation_context with custom prefix for auto-generated ID."""
+        from nightwatch.logging_config import correlation_context
+
+        with correlation_context(prefix="mount") as cid:
+            assert cid.startswith("mount-")
+
+    def test_correlation_context_yields_provided_id(self):
+        """Test correlation_context yields the provided ID."""
+        from nightwatch.logging_config import correlation_context
+
+        with correlation_context("my-id-123") as cid:
+            assert cid == "my-id-123"
+
+    def test_correlation_context_nested(self):
+        """Test nested correlation contexts."""
+        from nightwatch.logging_config import correlation_context, get_correlation_id
+
+        with correlation_context("outer"):
+            assert get_correlation_id() == "outer"
+            with correlation_context("inner"):
+                assert get_correlation_id() == "inner"
+            assert get_correlation_id() == "outer"
+
+    def test_correlation_context_exception_safe(self):
+        """Test correlation_context cleans up even on exception."""
+        from nightwatch.logging_config import correlation_context, get_correlation_id, set_correlation_id
+
+        set_correlation_id(None)
+        with pytest.raises(RuntimeError):
+            with correlation_context("error-test"):
+                raise RuntimeError("Test exception")
+
+        assert get_correlation_id() is None
+
+
+class TestCorrelationIdFilter:
+    """Unit tests for CorrelationIdFilter logging filter."""
+
+    def test_filter_adds_correlation_id_to_record(self):
+        """Test CorrelationIdFilter adds correlation_id attribute."""
+        from nightwatch.logging_config import CorrelationIdFilter, set_correlation_id
+
+        set_correlation_id("filter-test")
+        filter_instance = CorrelationIdFilter()
+
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="test", args=(), exc_info=None
+        )
+
+        result = filter_instance.filter(record)
+        assert result is True
+        assert hasattr(record, 'correlation_id')
+        assert record.correlation_id == "filter-test"
+
+        set_correlation_id(None)
+
+    def test_filter_uses_dash_when_no_correlation_id(self):
+        """Test filter uses '-' when no correlation ID is set."""
+        from nightwatch.logging_config import CorrelationIdFilter, set_correlation_id
+
+        set_correlation_id(None)
+        filter_instance = CorrelationIdFilter()
+
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="test", args=(), exc_info=None
+        )
+
+        filter_instance.filter(record)
+        assert record.correlation_id == "-"
+
+
+class TestSetupLoggingWithCorrelation:
+    """Unit tests for setup_logging with correlation ID support."""
+
+    def test_setup_logging_enables_correlation_by_default(self):
+        """Test setup_logging enables correlation ID by default."""
+        from nightwatch.logging_config import setup_logging
+
+        setup_logging()
+
+        root_logger = logging.getLogger("nightwatch")
+        # Check that CorrelationIdFilter is added
+        filter_types = [type(f).__name__ for f in root_logger.filters]
+        assert "CorrelationIdFilter" in filter_types
+
+    def test_setup_logging_disables_correlation(self):
+        """Test setup_logging can disable correlation ID."""
+        from nightwatch.logging_config import setup_logging
+
+        setup_logging(enable_correlation=False)
+
+        root_logger = logging.getLogger("nightwatch")
+        filter_types = [type(f).__name__ for f in root_logger.filters]
+        assert "CorrelationIdFilter" not in filter_types
+
+    def test_correlation_id_appears_in_log_output(self):
+        """Test correlation ID appears in formatted log output."""
+        from nightwatch.logging_config import setup_logging, get_logger, correlation_context
+
+        setup_logging(log_level="DEBUG", enable_correlation=True)
+        logger = get_logger("correlation_test")
+
+        with patch.object(logger, 'info') as mock_info:
+            with correlation_context("test-cid-456"):
+                logger.info("Test message")
+
+            mock_info.assert_called_once()
+
+
+class TestCorrelationIdThreadSafety:
+    """Unit tests for correlation ID thread safety."""
+
+    def test_correlation_id_isolated_between_threads(self):
+        """Test correlation IDs are isolated between threads."""
+        from nightwatch.logging_config import correlation_context, get_correlation_id
+
+        results = {}
+
+        def thread_func(thread_id, cid):
+            with correlation_context(cid):
+                # Small sleep to increase chance of interleaving
+                time.sleep(0.01)
+                results[thread_id] = get_correlation_id()
+
+        threads = [
+            threading.Thread(target=thread_func, args=(i, f"thread-{i}"))
+            for i in range(5)
+        ]
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Each thread should see its own correlation ID
+        for i in range(5):
+            assert results[i] == f"thread-{i}"

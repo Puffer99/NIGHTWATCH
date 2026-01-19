@@ -12,6 +12,7 @@ control system with support for:
 
 Usage:
     from nightwatch.logging_config import setup_logging, get_logger, log_exception, log_timing
+    from nightwatch.logging_config import correlation_context, get_correlation_id
 
     # Initialize logging at application startup
     setup_logging(log_level="INFO", log_file="nightwatch.log")
@@ -29,19 +30,29 @@ Usage:
     # Time a block of code
     with log_timing(logger, "plate_solve"):
         solve_field(image_path)
+
+    # Use correlation ID for request tracing
+    with correlation_context("voice-cmd-12345"):
+        logger.info("Processing voice command")  # Includes correlation_id in output
+        process_command()
 """
 
 import logging
 import sys
 import time
 import traceback
+import uuid
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 
 # Module-level constants
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+DEFAULT_LOG_FORMAT_WITH_CORRELATION = (
+    "%(asctime)s - %(name)s - %(levelname)s - [%(correlation_id)s] - %(message)s"
+)
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_MAX_BYTES = 10 * 1024 * 1024  # 10MB
 DEFAULT_BACKUP_COUNT = 5
@@ -55,12 +66,128 @@ LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
 }
 
+# =============================================================================
+# Correlation ID Support
+# =============================================================================
+
+# Context variable for thread-safe correlation ID storage
+_correlation_id: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
+
+
+class CorrelationIdFilter(logging.Filter):
+    """Logging filter that adds correlation ID to log records.
+
+    This filter injects the current correlation ID (if set) into every log
+    record, enabling request tracing across distributed operations like
+    voice command processing.
+
+    The correlation ID is stored in a ContextVar for thread/async safety.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add correlation_id attribute to log record.
+
+        Args:
+            record: The log record to process
+
+        Returns:
+            True (always passes the record through)
+        """
+        record.correlation_id = _correlation_id.get() or "-"
+        return True
+
+
+def get_correlation_id() -> Optional[str]:
+    """Get the current correlation ID.
+
+    Returns:
+        The current correlation ID, or None if not set.
+
+    Example:
+        cid = get_correlation_id()
+        if cid:
+            response_headers["X-Correlation-ID"] = cid
+    """
+    return _correlation_id.get()
+
+
+def set_correlation_id(correlation_id: Optional[str]) -> None:
+    """Set the correlation ID for the current context.
+
+    Args:
+        correlation_id: The correlation ID to set, or None to clear.
+
+    Note:
+        Prefer using correlation_context() for automatic cleanup.
+
+    Example:
+        set_correlation_id("request-123")
+        try:
+            process_request()
+        finally:
+            set_correlation_id(None)
+    """
+    _correlation_id.set(correlation_id)
+
+
+def generate_correlation_id(prefix: str = "nw") -> str:
+    """Generate a new unique correlation ID.
+
+    Args:
+        prefix: Optional prefix for the ID (default: "nw" for nightwatch)
+
+    Returns:
+        A unique correlation ID string.
+
+    Example:
+        cid = generate_correlation_id("voice")
+        # Returns something like "voice-a1b2c3d4"
+    """
+    short_uuid = uuid.uuid4().hex[:8]
+    return f"{prefix}-{short_uuid}"
+
+
+@contextmanager
+def correlation_context(
+    correlation_id: Optional[str] = None,
+    prefix: str = "nw",
+) -> Generator[str, None, None]:
+    """Context manager for setting a correlation ID.
+
+    Automatically generates a correlation ID if none provided, and ensures
+    cleanup when the context exits. This is the preferred way to use
+    correlation IDs.
+
+    Args:
+        correlation_id: Optional correlation ID to use. If None, generates one.
+        prefix: Prefix for auto-generated IDs (default: "nw")
+
+    Yields:
+        The correlation ID being used.
+
+    Example:
+        with correlation_context("voice-cmd-123") as cid:
+            logger.info("Processing command")  # Logs with correlation ID
+            result = process_voice_command()
+
+        # Or with auto-generated ID:
+        with correlation_context(prefix="voice") as cid:
+            logger.info(f"Started processing with ID {cid}")
+    """
+    cid = correlation_id or generate_correlation_id(prefix)
+    token = _correlation_id.set(cid)
+    try:
+        yield cid
+    finally:
+        _correlation_id.reset(token)
+
 
 def setup_logging(
     log_level: str = DEFAULT_LOG_LEVEL,
     log_file: Optional[str | Path] = None,
     json_format: bool = False,
     enable_color: bool = True,
+    enable_correlation: bool = True,
 ) -> None:
     """Configure logging for the NIGHTWATCH application.
 
@@ -73,6 +200,7 @@ def setup_logging(
                   with rotation.
         json_format: If True, use structured JSON format for logs.
         enable_color: If True, enable colored console output (when supported).
+        enable_correlation: If True, include correlation ID in log output.
 
     Example:
         setup_logging(log_level="DEBUG", log_file="/var/log/nightwatch.log")
@@ -81,15 +209,23 @@ def setup_logging(
     root_logger = logging.getLogger("nightwatch")
     root_logger.setLevel(LOG_LEVELS.get(log_level.upper(), logging.INFO))
 
-    # Clear any existing handlers
+    # Clear any existing handlers and filters
     root_logger.handlers.clear()
+    root_logger.filters.clear()
+
+    # Add correlation ID filter if enabled
+    if enable_correlation:
+        root_logger.addFilter(CorrelationIdFilter())
+
+    # Select format based on correlation setting
+    log_format = (
+        DEFAULT_LOG_FORMAT_WITH_CORRELATION if enable_correlation else DEFAULT_LOG_FORMAT
+    )
 
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(LOG_LEVELS.get(log_level.upper(), logging.INFO))
-    console_handler.setFormatter(
-        logging.Formatter(DEFAULT_LOG_FORMAT, DEFAULT_DATE_FORMAT)
-    )
+    console_handler.setFormatter(logging.Formatter(log_format, DEFAULT_DATE_FORMAT))
     root_logger.addHandler(console_handler)
 
     # Create file handler if log_file specified
@@ -105,9 +241,7 @@ def setup_logging(
             backupCount=DEFAULT_BACKUP_COUNT,
         )
         file_handler.setLevel(LOG_LEVELS.get(log_level.upper(), logging.INFO))
-        file_handler.setFormatter(
-            logging.Formatter(DEFAULT_LOG_FORMAT, DEFAULT_DATE_FORMAT)
-        )
+        file_handler.setFormatter(logging.Formatter(log_format, DEFAULT_DATE_FORMAT))
         root_logger.addHandler(file_handler)
 
 

@@ -1,0 +1,70 @@
+# NIGHTWATCH Development Dependencies
+# Version pinned for reproducible builds (updated January 2026)
+#
+# Install with: pip install -r requirements-dev.txt
+#
+# Note: This file references production requirements. Install order:
+#   pip install -r services/requirements.txt
+#   pip install -r voice/requirements.txt
+#   pip install -r requirements-dev.txt
+
+# =============================================================================
+# Testing
+# =============================================================================
+
+# Test framework
+pytest~=8.3
+pytest-asyncio~=0.24   # Async test support
+pytest-cov~=5.0        # Coverage reporting (Step 33)
+pytest-timeout~=2.3    # Prevent hanging tests
+pytest-xdist~=3.5      # Parallel test execution
+
+# Mocking and fixtures
+pytest-mock~=3.14
+responses~=0.25        # HTTP request mocking
+aioresponses~=0.7      # Async HTTP mocking
+
+# Coverage
+coverage[toml]~=7.6    # Coverage with pyproject.toml support
+
+# =============================================================================
+# Code Quality
+# =============================================================================
+
+# Linting (fast Python linter)
+ruff~=0.8
+
+# Type checking
+mypy~=1.14
+types-PyYAML~=6.0      # Type stubs for PyYAML
+types-requests~=2.32   # Type stubs for requests
+
+# =============================================================================
+# Development Tools
+# =============================================================================
+
+# Pre-commit hooks
+pre-commit~=4.0
+
+# Docker for integration testing
+docker~=7.1
+
+# Documentation (optional)
+# mkdocs~=1.6
+# mkdocs-material~=9.5
+
+# Debug tools
+ipython~=8.30
+ipdb~=0.13
+
+# =============================================================================
+# Build and Packaging
+# =============================================================================
+
+# Modern build tools
+build~=1.2
+twine~=5.1             # Package publishing (if needed)
+
+# YAML configuration
+PyYAML~=6.0
+pydantic~=2.10         # Configuration validation

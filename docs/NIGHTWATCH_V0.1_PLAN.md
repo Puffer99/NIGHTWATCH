@@ -107,18 +107,18 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 19 | Infrastructure & Configuration | config | Add environment variable override support (NIGHTWATCH_MOUNT_HOST, etc.) | 18 | 2 | 2 | Not Started | Flexibility for containers |
 | 20 | Infrastructure & Configuration | config | Create sample nightwatch.yaml with documented options | 19 | 2 | 2 | Not Started | User template |
 | 21 | Infrastructure & Configuration | config | Write unit tests for config loading and validation | 20 | 2 | 2 | Not Started | Test coverage |
-| 22 | Infrastructure & Configuration | logging | Create nightwatch/logging_config.py module | None | 2 | 1 | Not Started | Centralized logging |
-| 23 | Infrastructure & Configuration | logging | Implement structured JSON logging format | 22 | 2 | 2 | Not Started | Machine-parseable logs |
-| 24 | Infrastructure & Configuration | logging | Add rotating file handler (10MB, 5 backups) | 23 | 2 | 1 | Not Started | Prevent disk fill |
-| 25 | Infrastructure & Configuration | logging | Add console handler with color formatting | 23 | 2 | 1 | Not Started | Developer experience |
-| 26 | Infrastructure & Configuration | logging | Implement per-service log level configuration | 24,25 | 2 | 2 | Not Started | Granular control |
-| 27 | Infrastructure & Configuration | logging | Add log correlation ID for tracing requests | 26 | 3 | 2 | Not Started | Debugging support |
-| 28 | Infrastructure & Configuration | logging | Create logging helpers (log_exception, log_timing) | 27 | 2 | 1 | Not Started | Convenience functions |
-| 29 | Infrastructure & Configuration | logging | Write unit tests for logging configuration | 28 | 2 | 1 | Not Started | Test coverage |
-| 30 | Infrastructure & Configuration | dependencies | Audit services/requirements.txt for version pinning | None | 2 | 2 | Not Started | Reproducible builds |
-| 31 | Infrastructure & Configuration | dependencies | Audit voice/requirements.txt for version pinning | None | 2 | 2 | Not Started | Reproducible builds |
-| 32 | Infrastructure & Configuration | dependencies | Create requirements-dev.txt for development tools | 30,31 | 2 | 1 | Not Started | Dev dependencies |
-| 33 | Infrastructure & Configuration | dependencies | Add pytest-cov to dev requirements | 32 | 1 | 1 | Not Started | Coverage reporting |
+| 22 | Infrastructure & Configuration | logging | Create nightwatch/logging_config.py module | None | 2 | 1 | Complete | Centralized logging |
+| 23 | Infrastructure & Configuration | logging | Implement structured JSON logging format | 22 | 2 | 2 | Complete | Machine-parseable logs |
+| 24 | Infrastructure & Configuration | logging | Add rotating file handler (10MB, 5 backups) | 23 | 2 | 1 | Complete | Prevent disk fill |
+| 25 | Infrastructure & Configuration | logging | Add console handler with color formatting | 23 | 2 | 1 | Complete | Developer experience |
+| 26 | Infrastructure & Configuration | logging | Implement per-service log level configuration | 24,25 | 2 | 2 | Complete | Granular control |
+| 27 | Infrastructure & Configuration | logging | Add log correlation ID for tracing requests | 26 | 3 | 2 | Complete | Debugging support |
+| 28 | Infrastructure & Configuration | logging | Create logging helpers (log_exception, log_timing) | 27 | 2 | 1 | Complete | Convenience functions |
+| 29 | Infrastructure & Configuration | logging | Write unit tests for logging configuration | 28 | 2 | 1 | Complete | Test coverage |
+| 30 | Infrastructure & Configuration | dependencies | Audit services/requirements.txt for version pinning | None | 2 | 2 | Complete | Reproducible builds |
+| 31 | Infrastructure & Configuration | dependencies | Audit voice/requirements.txt for version pinning | None | 2 | 2 | Complete | Reproducible builds |
+| 32 | Infrastructure & Configuration | dependencies | Create requirements-dev.txt for development tools | 30,31 | 2 | 1 | Complete | Dev dependencies |
+| 33 | Infrastructure & Configuration | dependencies | Add pytest-cov to dev requirements | 32 | 1 | 1 | Complete | Coverage reporting |
 | 34 | Infrastructure & Configuration | dependencies | Add ruff to dev requirements | 32 | 1 | 1 | Not Started | Linting |
 | 35 | Infrastructure & Configuration | dependencies | Add mypy to dev requirements | 32 | 1 | 1 | Not Started | Type checking |
 | 36 | Infrastructure & Configuration | dependencies | Add pre-commit to dev requirements | 32 | 1 | 1 | Not Started | Git hooks |
@@ -141,14 +141,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 53 | Infrastructure & Configuration | startup | Create bin/nightwatch shell script launcher | 52 | 2 | 1 | Not Started | Unix launcher |
 | 54 | Infrastructure & Configuration | startup | Create bin/nightwatch.bat Windows launcher | 52 | 2 | 1 | Not Started | Windows support |
 | 55 | Infrastructure & Configuration | startup | Write integration test for startup sequence | 54 | 3 | 2 | Not Started | Startup validation |
-| 56 | Infrastructure & Configuration | project | Create nightwatch/ package directory | None | 1 | 1 | Not Started | Package structure |
-| 57 | Infrastructure & Configuration | project | Create nightwatch/__init__.py with version | 56 | 1 | 1 | Not Started | Package init |
-| 58 | Infrastructure & Configuration | project | Create nightwatch/exceptions.py with custom exceptions | 57 | 2 | 1 | Not Started | Error types |
-| 59 | Infrastructure & Configuration | project | Create nightwatch/constants.py with shared constants | 57 | 2 | 1 | Not Started | Magic numbers |
-| 60 | Infrastructure & Configuration | project | Create nightwatch/types.py with shared type definitions | 57 | 2 | 1 | Not Started | Type aliases |
-| 61 | Infrastructure & Configuration | project | Add py.typed marker file for PEP 561 | 57 | 1 | 1 | Not Started | Type hint support |
-| 62 | Infrastructure & Configuration | project | Update .gitignore for Python project | None | 1 | 1 | Not Started | Clean repo |
-| 63 | Infrastructure & Configuration | project | Create CHANGELOG.md with v0.1 section | None | 2 | 1 | Not Started | Version history |
+| 56 | Infrastructure & Configuration | project | Create nightwatch/ package directory | None | 1 | 1 | Complete | Package structure |
+| 57 | Infrastructure & Configuration | project | Create nightwatch/__init__.py with version | 56 | 1 | 1 | Complete | Package init |
+| 58 | Infrastructure & Configuration | project | Create nightwatch/exceptions.py with custom exceptions | 57 | 2 | 1 | Complete | Error types |
+| 59 | Infrastructure & Configuration | project | Create nightwatch/constants.py with shared constants | 57 | 2 | 1 | Complete | Magic numbers |
+| 60 | Infrastructure & Configuration | project | Create nightwatch/types.py with shared type definitions | 57 | 2 | 1 | Complete | Type aliases |
+| 61 | Infrastructure & Configuration | project | Add py.typed marker file for PEP 561 | 57 | 1 | 1 | Complete | Type hint support |
+| 62 | Infrastructure & Configuration | project | Update .gitignore for Python project | None | 1 | 1 | Complete | Clean repo |
+| 63 | Infrastructure & Configuration | project | Create CHANGELOG.md with v0.1 section | None | 2 | 1 | Complete | Version history |
 | 64 | Core Service Completion | catalog | Review catalog.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
 | 65 | Core Service Completion | catalog | Create catalog database schema (SQLite) | 64 | 3 | 2 | Not Started | Tables for objects |
 | 66 | Core Service Completion | catalog | Add Messier catalog data (M1-M110) to database | 65 | 2 | 2 | Not Started | 110 objects |

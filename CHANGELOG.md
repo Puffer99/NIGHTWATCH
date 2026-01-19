@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - INDI and ASCOM Alpaca client implementations
 - LX200 and OnStepX extended protocol support
 - Unit test suite foundation
+- **Correlation ID support for request tracing** (Step 27)
+  - `correlation_context()` context manager for scoped correlation IDs
+  - `get_correlation_id()` and `set_correlation_id()` functions
+  - `generate_correlation_id()` for unique ID generation
+  - `CorrelationIdFilter` for automatic log record enrichment
+  - Thread-safe implementation using ContextVars
+- **Development tooling improvements**
+  - `requirements-dev.txt` with pinned dev dependencies (Step 32)
+  - pytest-cov for test coverage reporting (Step 33)
+  - ruff for linting, mypy for type checking
+  - pre-commit hooks support
+
+### Changed
+- Updated `.gitignore` with comprehensive Python patterns (Step 62)
+  - Added mypy cache, pytest cache, coverage artifacts
+  - Added ruff cache and hypothesis directories
+- Version pinned `services/requirements.txt` for reproducible builds (Step 30)
+- Version pinned `voice/requirements.txt` for reproducible builds (Step 31)
 
 ## [0.1.0] - TBD
 

@@ -1,24 +1,23 @@
 # NIGHTWATCH Services Dependencies
+# Version pinned for reproducible builds (updated January 2026)
 
 # Ephemeris calculations (JPL DE440)
-skyfield>=1.45
+skyfield~=1.48
 
 # Async HTTP client (weather station API)
-aiohttp>=3.8
+aiohttp~=3.9
 
 # Serial communication (mount control)
-pyserial>=3.5
-
-# Optional: ZWO camera support
-# zwoasi>=0.0.23
+pyserial~=3.5
 
 # Device Communication (see docs/INTEGRATION_PLAN.md Phase 3)
 # INDI client for Linux device control
-pyindi-client>=2.0.0
+pyindi-client~=2.0.8
 
 # ASCOM Alpaca client for network device control
-alpyca>=2.0.0
+alpyca~=3.0.0
 
-# Testing infrastructure (see docs/INTEGRATION_PLAN.md Phase 4)
-pytest-asyncio>=0.21.0
-docker>=6.0.0
+# Optional: ZWO camera support (uncomment if using ZWO ASI cameras)
+# zwoasi~=0.2.1
+
+# Note: Testing dependencies moved to requirements-dev.txt
