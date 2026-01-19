@@ -627,10 +627,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 539 | Hardware-in-Loop Simulation | test_fixtures | Create mock_camera.py fixture | 538 | 3 | 2 | Complete | Camera mock |
 | 540 | Hardware-in-Loop Simulation | test_fixtures | Create mock_guider.py fixture | 539 | 3 | 2 | Complete | Guider mock |
 | 541 | Hardware-in-Loop Simulation | test_fixtures | Create mock_focuser.py fixture | 540 | 3 | 2 | Complete | Focuser mock |
-| 542 | Hardware-in-Loop Simulation | test_fixtures | Create mock_enclosure.py fixture | 541 | 3 | 2 | Not Started | Enclosure mock |
-| 543 | Hardware-in-Loop Simulation | test_fixtures | Create mock_power.py fixture | 542 | 3 | 2 | Not Started | Power mock |
-| 544 | Hardware-in-Loop Simulation | test_fixtures | Create mock_llm.py fixture | 543 | 3 | 2 | Not Started | LLM mock |
-| 545 | Hardware-in-Loop Simulation | test_fixtures | Create mock_stt.py fixture | 544 | 3 | 2 | Not Started | STT mock |
+| 542 | Hardware-in-Loop Simulation | test_fixtures | Create mock_enclosure.py fixture | 541 | 3 | 2 | Complete | Enclosure mock |
+| 543 | Hardware-in-Loop Simulation | test_fixtures | Create mock_power.py fixture | 542 | 3 | 2 | Complete | Power mock |
+| 544 | Hardware-in-Loop Simulation | test_fixtures | Create mock_llm.py fixture | 543 | 3 | 2 | Complete | LLM mock |
+| 545 | Hardware-in-Loop Simulation | test_fixtures | Create mock_stt.py fixture | 544 | 3 | 2 | Complete | STT mock |
 | 546 | Hardware-in-Loop Simulation | test_fixtures | Create mock_tts.py fixture | 545 | 3 | 2 | Not Started | TTS mock |
 | 547 | Hardware-in-Loop Simulation | test_fixtures | Create conftest.py with shared fixtures | 546 | 3 | 2 | Not Started | pytest fixtures |
 | 548 | Hardware-in-Loop Simulation | test_fixtures | Write fixture documentation | 547 | 2 | 1 | Not Started | Usage guide |

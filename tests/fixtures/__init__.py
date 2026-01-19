@@ -11,6 +11,10 @@ Available fixtures:
 - MockCamera: Simulates camera controller (ZWO ASI)
 - MockGuider: Simulates guiding service (PHD2)
 - MockFocuser: Simulates focus controller
+- MockEnclosure: Simulates roll-off roof/dome
+- MockPower: Simulates UPS/PDU power monitoring
+- MockLLM: Simulates local LLM inference
+- MockSTT: Simulates speech-to-text (Whisper)
 
 Usage:
     from tests.fixtures import MockMount, MockWeather
@@ -27,6 +31,10 @@ from tests.fixtures.mock_weather import MockWeather, MockWeatherConditions
 from tests.fixtures.mock_camera import MockCamera, MockCameraState
 from tests.fixtures.mock_guider import MockGuider, MockGuiderState
 from tests.fixtures.mock_focuser import MockFocuser, MockFocuserState
+from tests.fixtures.mock_enclosure import MockEnclosure, MockEnclosureState
+from tests.fixtures.mock_power import MockPower, PowerState
+from tests.fixtures.mock_llm import MockLLM, MockLLMState, LLMResponse, ToolCall
+from tests.fixtures.mock_stt import MockSTT, MockSTTState, TranscriptionResult
 
 __all__ = [
     "MockMount",
@@ -39,4 +47,15 @@ __all__ = [
     "MockGuiderState",
     "MockFocuser",
     "MockFocuserState",
+    "MockEnclosure",
+    "MockEnclosureState",
+    "MockPower",
+    "PowerState",
+    "MockLLM",
+    "MockLLMState",
+    "LLMResponse",
+    "ToolCall",
+    "MockSTT",
+    "MockSTTState",
+    "TranscriptionResult",
 ]
