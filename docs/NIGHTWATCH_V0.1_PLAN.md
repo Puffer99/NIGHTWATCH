@@ -138,9 +138,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 50 | Infrastructure & Configuration | startup | Implement startup sequence with dependency ordering | 47,48,49 | 3 | 2 | Complete | Ordered initialization |
 | 51 | Infrastructure & Configuration | startup | Add startup banner with version and config summary | 50 | 1 | 1 | Complete | User feedback |
 | 52 | Infrastructure & Configuration | startup | Implement graceful degradation (continue without optional services) | 50 | 3 | 2 | Complete | Robustness |
-| 53 | Infrastructure & Configuration | startup | Create bin/nightwatch shell script launcher | 52 | 2 | 1 | Not Started | Unix launcher |
-| 54 | Infrastructure & Configuration | startup | Create bin/nightwatch.bat Windows launcher | 52 | 2 | 1 | Not Started | Windows support |
-| 55 | Infrastructure & Configuration | startup | Write integration test for startup sequence | 54 | 3 | 2 | Not Started | Startup validation |
+| 53 | Infrastructure & Configuration | startup | Create bin/nightwatch shell script launcher | 52 | 2 | 1 | Complete | Unix launcher |
+| 54 | Infrastructure & Configuration | startup | Create bin/nightwatch.bat Windows launcher | 52 | 2 | 1 | Complete | Windows support |
+| 55 | Infrastructure & Configuration | startup | Write integration test for startup sequence | 54 | 3 | 2 | Complete | Startup validation |
 | 56 | Infrastructure & Configuration | project | Create nightwatch/ package directory | None | 1 | 1 | Complete | Package structure |
 | 57 | Infrastructure & Configuration | project | Create nightwatch/__init__.py with version | 56 | 1 | 1 | Complete | Package init |
 | 58 | Infrastructure & Configuration | project | Create nightwatch/exceptions.py with custom exceptions | 57 | 2 | 1 | Complete | Error types |
@@ -149,9 +149,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 61 | Infrastructure & Configuration | project | Add py.typed marker file for PEP 561 | 57 | 1 | 1 | Complete | Type hint support |
 | 62 | Infrastructure & Configuration | project | Update .gitignore for Python project | None | 1 | 1 | Complete | Clean repo |
 | 63 | Infrastructure & Configuration | project | Create CHANGELOG.md with v0.1 section | None | 2 | 1 | Complete | Version history |
-| 64 | Core Service Completion | catalog | Review catalog.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
-| 65 | Core Service Completion | catalog | Create catalog database schema (SQLite) | 64 | 3 | 2 | Not Started | Tables for objects |
-| 66 | Core Service Completion | catalog | Add Messier catalog data (M1-M110) to database | 65 | 2 | 2 | Not Started | 110 objects |
+| 64 | Core Service Completion | catalog | Review catalog.py current implementation | None | 2 | 1 | Complete | Understand gaps |
+| 65 | Core Service Completion | catalog | Create catalog database schema (SQLite) | 64 | 3 | 2 | Complete | Tables for objects |
+| 66 | Core Service Completion | catalog | Add Messier catalog data (M1-M110) to database | 65 | 2 | 2 | Complete | 110 objects |
 | 67 | Core Service Completion | catalog | Add NGC catalog data (top 1000 objects) | 66 | 2 | 3 | Not Started | Popular NGC objects |
 | 68 | Core Service Completion | catalog | Add IC catalog data (top 500 objects) | 67 | 2 | 2 | Not Started | Popular IC objects |
 | 69 | Core Service Completion | catalog | Add named stars (100 brightest) | 68 | 2 | 2 | Not Started | Vega, Polaris, etc. |

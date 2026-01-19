@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# =============================================================================
+# NIGHTWATCH Launcher Script (Unix/Linux/macOS)
+# =============================================================================
+# Launches the NIGHTWATCH autonomous observatory system.
+#
+# Usage:
+#   ./bin/nightwatch                    # Run with defaults
+#   ./bin/nightwatch --config /path/to/config.yaml
+#   ./bin/nightwatch --dry-run          # Validate config only
+#   ./bin/nightwatch --help             # Show help
+#
+# Environment:
+#   NIGHTWATCH_CONFIG    - Path to configuration file
+#   NIGHTWATCH_LOG_LEVEL - Logging level (DEBUG, INFO, WARNING, ERROR)
+#   VIRTUAL_ENV          - Python virtual environment path
+# =============================================================================
+
+set -e
+
+# Determine script directory (resolve symlinks)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Print colored message
+print_msg() {
+    local color=$1
+    local msg=$2
+    echo -e "${color}${msg}${NC}"
+}
+
+# Check Python version
+check_python() {
+    local python_cmd=""
+
+    # Try python3 first, then python
+    if command -v python3 &> /dev/null; then
+        python_cmd="python3"
+    elif command -v python &> /dev/null; then
+        python_cmd="python"
+    else
+        print_msg "$RED" "Error: Python not found. Please install Python 3.11+"
+        exit 1
+    fi
+
+    # Check version
+    local version=$($python_cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    local major=$(echo $version | cut -d. -f1)
+    local minor=$(echo $version | cut -d. -f2)
+
+    if [ "$major" -lt 3 ] || ([ "$major" -eq 3 ] && [ "$minor" -lt 11 ]); then
+        print_msg "$RED" "Error: Python 3.11+ required (found $version)"
+        exit 1
+    fi
+
+    echo "$python_cmd"
+}
+
+# Activate virtual environment if present
+activate_venv() {
+    # Check for explicit VIRTUAL_ENV
+    if [ -n "$VIRTUAL_ENV" ]; then
+        return 0
+    fi
+
+    # Look for common venv locations
+    local venv_paths=(
+        "$PROJECT_ROOT/.venv"
+        "$PROJECT_ROOT/venv"
+        "$PROJECT_ROOT/.virtualenv"
+    )
+
+    for venv_path in "${venv_paths[@]}"; do
+        if [ -f "$venv_path/bin/activate" ]; then
+            source "$venv_path/bin/activate"
+            print_msg "$GREEN" "Activated virtual environment: $venv_path"
+            return 0
+        fi
+    done
+
+    print_msg "$YELLOW" "Warning: No virtual environment found. Using system Python."
+    return 0
+}
+
+# Main entry point
+main() {
+    # Change to project root
+    cd "$PROJECT_ROOT"
+
+    # Activate virtual environment
+    activate_venv
+
+    # Get Python command
+    PYTHON=$(check_python)
+
+    # Build command arguments
+    local args=("$@")
+
+    # Add config from environment if not specified in args
+    if [ -n "$NIGHTWATCH_CONFIG" ] && [[ ! " ${args[*]} " =~ " --config " ]] && [[ ! " ${args[*]} " =~ " -c " ]]; then
+        args+=("--config" "$NIGHTWATCH_CONFIG")
+    fi
+
+    # Add log level from environment if not specified in args
+    if [ -n "$NIGHTWATCH_LOG_LEVEL" ] && [[ ! " ${args[*]} " =~ " --log-level " ]] && [[ ! " ${args[*]} " =~ " -l " ]]; then
+        args+=("--log-level" "$NIGHTWATCH_LOG_LEVEL")
+    fi
+
+    # Run NIGHTWATCH
+    exec "$PYTHON" -m nightwatch.main "${args[@]}"
+}
+
+# Run main with all arguments
+main "$@"

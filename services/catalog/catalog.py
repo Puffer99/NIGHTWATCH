@@ -307,114 +307,38 @@ class CatalogDatabase:
 # =============================================================================
 
 def load_messier_catalog(db: CatalogDatabase):
-    """Load Messier catalog objects."""
-    # Sample Messier objects (would load full catalog from file)
-    messier = [
-        # M1 - Crab Nebula
-        CatalogObject(
-            catalog_id="M1",
-            name="Crab Nebula",
-            object_type=ObjectType.SUPERNOVA_REMNANT,
-            ra_hours=5.575,
-            dec_degrees=22.017,
-            magnitude=8.4,
-            size_arcmin=6.0,
-            constellation="Taurus",
-            description="Supernova remnant from 1054 AD",
-            aliases=["NGC 1952", "CRAB"]
-        ),
-        # M13 - Hercules Globular Cluster
-        CatalogObject(
-            catalog_id="M13",
-            name="Hercules Cluster",
-            object_type=ObjectType.GLOBULAR_CLUSTER,
-            ra_hours=16.695,
-            dec_degrees=36.460,
-            magnitude=5.8,
-            size_arcmin=20.0,
-            constellation="Hercules",
-            description="Great Globular Cluster in Hercules",
-            aliases=["NGC 6205", "HERCULES CLUSTER"]
-        ),
-        # M31 - Andromeda Galaxy
-        CatalogObject(
-            catalog_id="M31",
-            name="Andromeda Galaxy",
-            object_type=ObjectType.GALAXY,
-            ra_hours=0.712,
-            dec_degrees=41.269,
-            magnitude=3.4,
-            size_arcmin=190.0,
-            constellation="Andromeda",
-            description="Nearest major galaxy to Milky Way",
-            aliases=["NGC 224", "ANDROMEDA"]
-        ),
-        # M42 - Orion Nebula
-        CatalogObject(
-            catalog_id="M42",
-            name="Orion Nebula",
-            object_type=ObjectType.NEBULA,
-            ra_hours=5.588,
-            dec_degrees=-5.391,
-            magnitude=4.0,
-            size_arcmin=85.0,
-            constellation="Orion",
-            description="Bright emission nebula in Orion",
-            aliases=["NGC 1976", "ORION NEBULA", "GREAT ORION NEBULA"]
-        ),
-        # M45 - Pleiades
-        CatalogObject(
-            catalog_id="M45",
-            name="Pleiades",
-            object_type=ObjectType.OPEN_CLUSTER,
-            ra_hours=3.787,
-            dec_degrees=24.117,
-            magnitude=1.6,
-            size_arcmin=110.0,
-            constellation="Taurus",
-            description="Seven Sisters open cluster",
-            aliases=["SEVEN SISTERS", "SUBARU"]
-        ),
-        # M51 - Whirlpool Galaxy
-        CatalogObject(
-            catalog_id="M51",
-            name="Whirlpool Galaxy",
-            object_type=ObjectType.GALAXY,
-            ra_hours=13.497,
-            dec_degrees=47.195,
-            magnitude=8.4,
-            size_arcmin=11.0,
-            constellation="Canes Venatici",
-            description="Face-on spiral galaxy with companion",
-            aliases=["NGC 5194", "WHIRLPOOL"]
-        ),
-        # M57 - Ring Nebula
-        CatalogObject(
-            catalog_id="M57",
-            name="Ring Nebula",
-            object_type=ObjectType.PLANETARY_NEBULA,
-            ra_hours=18.893,
-            dec_degrees=33.029,
-            magnitude=8.8,
-            size_arcmin=1.4,
-            constellation="Lyra",
-            description="Famous planetary nebula",
-            aliases=["NGC 6720", "RING NEBULA"]
-        ),
-        # M81 - Bode's Galaxy
-        CatalogObject(
-            catalog_id="M81",
-            name="Bode's Galaxy",
-            object_type=ObjectType.GALAXY,
-            ra_hours=9.926,
-            dec_degrees=69.065,
-            magnitude=6.9,
-            size_arcmin=26.0,
-            constellation="Ursa Major",
-            description="Bright spiral galaxy in Ursa Major",
-            aliases=["NGC 3031", "BODE'S GALAXY"]
-        ),
-    ]
+    """Load complete Messier catalog (M1-M110)."""
+    try:
+        from services.catalog.messier_data import get_messier_catalog
+        messier = get_messier_catalog()
+    except ImportError:
+        # Fallback to minimal sample if data file not available
+        messier = [
+            CatalogObject(
+                catalog_id="M31",
+                name="Andromeda Galaxy",
+                object_type=ObjectType.GALAXY,
+                ra_hours=0.712,
+                dec_degrees=41.269,
+                magnitude=3.4,
+                size_arcmin=190.0,
+                constellation="Andromeda",
+                description="Nearest major galaxy to Milky Way",
+                aliases=["NGC 224", "ANDROMEDA"]
+            ),
+            CatalogObject(
+                catalog_id="M42",
+                name="Orion Nebula",
+                object_type=ObjectType.NEBULA,
+                ra_hours=5.588,
+                dec_degrees=-5.391,
+                magnitude=4.0,
+                size_arcmin=85.0,
+                constellation="Orion",
+                description="Great Orion Nebula",
+                aliases=["NGC 1976", "ORION NEBULA"]
+            ),
+        ]
 
     for obj in messier:
         db.insert_object(obj)
