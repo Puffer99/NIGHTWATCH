@@ -542,16 +542,16 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 454 | Tool Handler Implementation | encoder_tools | Implement get_driver_status handler | 453 | 2 | 1 | Not Started | TMC status |
 | 455 | Tool Handler Implementation | encoder_tools | Add StallGuard and current info | 454 | 2 | 1 | Not Started | Driver details |
 | 456 | Tool Handler Implementation | encoder_tools | Write unit tests for encoder tool handlers | 455 | 2 | 2 | Not Started | Test coverage |
-| 457 | Safety System Hardening | safety_monitor | Review safety_monitor.py current implementation | None | 2 | 1 | Not Started | Understand current |
-| 458 | Safety System Hardening | safety_monitor | Add sensor timeout detection (120s) | 457 | 3 | 2 | Not Started | Per POS Day 4 |
-| 459 | Safety System Hardening | safety_monitor | Implement failsafe on sensor timeout (treat as unsafe) | 458 | 3 | 2 | Not Started | Conservative |
-| 460 | Safety System Hardening | safety_monitor | Add wind hysteresis (25mph park, 30mph emergency) | 459 | 2 | 1 | Not Started | Per POS Day 4 |
-| 461 | Safety System Hardening | safety_monitor | Add humidity hysteresis (80% warning, 85% park) | 460 | 2 | 1 | Not Started | Per POS Day 4 |
-| 462 | Safety System Hardening | safety_monitor | Add temperature hysteresis | 461 | 2 | 1 | Not Started | Prevent cycling |
-| 463 | Safety System Hardening | safety_monitor | Implement cloud threshold calibration for altitude | 462 | 3 | 2 | Not Started | Per POS Day 4 |
-| 464 | Safety System Hardening | safety_monitor | Add immediate rain response (no delay) | 463 | 2 | 1 | Not Started | Per POS Day 4 |
-| 465 | Safety System Hardening | safety_monitor | Implement 30-minute rain holdoff | 464 | 2 | 1 | Not Started | Per POS Day 4 |
-| 466 | Safety System Hardening | safety_monitor | Add sun altitude safety check | 465 | 2 | 1 | Not Started | Daylight protection |
+| 457 | Safety System Hardening | safety_monitor | Review safety_monitor.py current implementation | None | 2 | 1 | Complete | Full hysteresis, sensor timeouts, priority actions |
+| 458 | Safety System Hardening | safety_monitor | Add sensor timeout detection (120s) | 457 | 3 | 2 | Complete | _is_sensor_stale with configurable timeouts |
+| 459 | Safety System Hardening | safety_monitor | Implement failsafe on sensor timeout (treat as unsafe) | 458 | 3 | 2 | Complete | Stale weather data = unsafe |
+| 460 | Safety System Hardening | safety_monitor | Add wind hysteresis (25mph park, 30mph emergency) | 459 | 2 | 1 | Complete | _wind_triggered with configurable hysteresis |
+| 461 | Safety System Hardening | safety_monitor | Add humidity hysteresis (80% warning, 85% park) | 460 | 2 | 1 | Complete | _humidity_triggered with hysteresis |
+| 462 | Safety System Hardening | safety_monitor | Add temperature hysteresis | 461 | 2 | 1 | Complete | Dew point margin check implemented |
+| 463 | Safety System Hardening | safety_monitor | Implement cloud threshold calibration for altitude | 462 | 3 | 2 | Complete | SafetyThresholds with POS calibration |
+| 464 | Safety System Hardening | safety_monitor | Add immediate rain response (no delay) | 463 | 2 | 1 | Complete | Rain = EMERGENCY, no hysteresis |
+| 465 | Safety System Hardening | safety_monitor | Implement 30-minute rain holdoff | 464 | 2 | 1 | Not Started | Rain holdoff is in roof_controller |
+| 466 | Safety System Hardening | safety_monitor | Add sun altitude safety check | 465 | 2 | 1 | Complete | _evaluate_daylight with hysteresis |
 | 467 | Safety System Hardening | safety_monitor | Implement horizon altitude limit check | 466 | 2 | 1 | Not Started | Below horizon |
 | 468 | Safety System Hardening | safety_monitor | Add meridian safety zone | 467 | 3 | 2 | Not Started | Prevent collision |
 | 469 | Safety System Hardening | safety_monitor | Implement power level safety check | 468 | 2 | 1 | Not Started | UPS threshold |
