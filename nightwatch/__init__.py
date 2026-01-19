@@ -13,12 +13,12 @@ Architecture:
 License: CC BY-NC-SA 4.0
 """
 
-__version__ = "0.1.0-dev"
+__version__ = "0.1.0"
 __author__ = "THOC Labs"
 __license__ = "CC BY-NC-SA 4.0"
 
 # Version tuple for programmatic comparison
-VERSION_INFO = (0, 1, 0, "dev")
+VERSION_INFO = (0, 1, 0)
 
 # Core exceptions (import base class for convenience)
 from nightwatch.exceptions import NightwatchError

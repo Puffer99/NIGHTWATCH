@@ -676,9 +676,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 588 | Testing & Quality Assurance | ci_cd | Add security scanning job | 587 | 3 | 2 | Not Started | Vulnerability check |
 | 589 | Testing & Quality Assurance | ci_cd | Add documentation build job | 588 | 2 | 1 | Not Started | Doc generation |
 | 590 | Testing & Quality Assurance | ci_cd | Add release automation | 589 | 3 | 2 | Not Started | Version tagging |
-| 591 | Testing & Quality Assurance | ci_cd | Create GitHub issue templates | 590 | 2 | 1 | Not Started | Bug/feature |
-| 592 | Testing & Quality Assurance | ci_cd | Create pull request template | 591 | 2 | 1 | Not Started | PR checklist |
-| 593 | Testing & Quality Assurance | ci_cd | Add branch protection rules documentation | 592 | 2 | 1 | Not Started | Git workflow |
+| 591 | Testing & Quality Assurance | ci_cd | Create GitHub issue templates | 590 | 2 | 1 | Complete | Bug report, feature request |
+| 592 | Testing & Quality Assurance | ci_cd | Create pull request template | 591 | 2 | 1 | Complete | Safety checklist included |
+| 593 | Testing & Quality Assurance | ci_cd | Add branch protection rules documentation | 592 | 2 | 1 | Complete | In CONTRIBUTING.md |
 | 594 | Documentation & POS | docs | Update README.md with v0.1 quickstart | None | 3 | 2 | Not Started | Entry point |
 | 595 | Documentation & POS | docs | Add installation section | 594 | 2 | 1 | Not Started | Setup guide |
 | 596 | Documentation & POS | docs | Add configuration section | 595 | 2 | 1 | Not Started | Config guide |
@@ -709,7 +709,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 621 | Deployment Preparation | install | Add configuration template generation | 620 | 2 | 1 | Complete | Full YAML template |
 | 622 | Deployment Preparation | install | Create install.bat for Windows | 621 | 3 | 2 | Not Started | Windows install |
 | 623 | Deployment Preparation | install | Create upgrade.sh script | 622 | 2 | 1 | Complete | Backup, update, restart services |
-| 624 | Deployment Preparation | install | Write installation documentation | 623 | 2 | 1 | Not Started | Install guide |
+| 624 | Deployment Preparation | install | Write installation documentation | 623 | 2 | 1 | Complete | INSTALLATION.md created |
 | 625 | Deployment Preparation | systemd | Create nightwatch.service systemd unit | None | 3 | 2 | Complete | Full service with security hardening |
 | 626 | Deployment Preparation | systemd | Add automatic restart on failure | 625 | 2 | 1 | Complete | RestartSec=10, StartLimitBurst=5 |
 | 627 | Deployment Preparation | systemd | Add watchdog integration | 626 | 2 | 1 | Complete | WatchdogSec=30, NotifyAccess=main |
@@ -731,10 +731,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 643 | Deployment Preparation | testing | Create encoder test | 642 | 2 | 1 | Not Started | Position verify |
 | 644 | Deployment Preparation | testing | Create voice pipeline test | 643 | 2 | 1 | Not Started | Audio verify |
 | 645 | Deployment Preparation | testing | Create full system integration test | 644 | 3 | 2 | Not Started | All systems |
-| 646 | Deployment Preparation | release | Create v0.1.0 release checklist | 645 | 2 | 1 | Not Started | Release prep |
+| 646 | Deployment Preparation | release | Create v0.1.0 release checklist | 645 | 2 | 1 | Complete | RELEASE_CHECKLIST.md |
 | 647 | Deployment Preparation | release | Verify all tests passing | 646 | 2 | 1 | Not Started | Quality gate |
-| 648 | Deployment Preparation | release | Update version numbers | 647 | 1 | 1 | Not Started | Version bump |
-| 649 | Deployment Preparation | release | Generate changelog | 648 | 2 | 1 | Not Started | Release notes |
+| 648 | Deployment Preparation | release | Update version numbers | 647 | 1 | 1 | Complete | 0.1.0 in __init__.py |
+| 649 | Deployment Preparation | release | Generate changelog | 648 | 2 | 1 | Complete | CHANGELOG.md updated |
 | 650 | Deployment Preparation | release | Create GitHub release | 649 | 2 | 1 | Not Started | Tag v0.1.0 |
 | 651 | Deployment Preparation | release | Record demo video | 650 | 3 | 3 | Not Started | Showcase |
 | 652 | Deployment Preparation | release | Write release announcement | 651 | 2 | 1 | Not Started | Communication |

@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Version pinned `services/requirements.txt` for reproducible builds (Step 30)
 - Version pinned `voice/requirements.txt` for reproducible builds (Step 31)
 
-## [0.1.0] - TBD
+## [0.1.0] - 2024-01-19
 
 ### Added
 - `nightwatch` package foundation with version 0.1.0-dev
@@ -112,7 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Milestone |
 |---------|------|-----------|
-| 0.1.0 | TBD | Initial v0.1 release - Core functionality |
+| 0.1.0 | 2024-01-19 | Initial v0.1 release - Core functionality |
 
 [Unreleased]: https://github.com/THOC-Labs/NIGHTWATCH/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/THOC-Labs/NIGHTWATCH/releases/tag/v0.1.0
