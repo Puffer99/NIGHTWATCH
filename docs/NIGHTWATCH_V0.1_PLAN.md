@@ -363,33 +363,33 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 275 | Orchestrator Development | response_formatter | Add voice style adaptation (normal, alert, calm) | 274 | 3 | 2 | Not Started | Per POS Day 5 |
 | 276 | Orchestrator Development | response_formatter | Write unit tests for response formatter | 275 | 2 | 2 | Complete | 31 tests in test_response_formatter.py |
 | 277 | Voice Pipeline Integration | llm | Create nightwatch/llm_client.py module | 21 | 3 | 2 | Complete | LLM integration |
-| 278 | Voice Pipeline Integration | llm | Implement local Llama 3.2 client using llama-cpp-python | 277 | 4 | 3 | Not Started | Local inference |
-| 279 | Voice Pipeline Integration | llm | Add model loading with GPU offload | 278 | 3 | 2 | Not Started | CUDA acceleration |
-| 280 | Voice Pipeline Integration | llm | Implement chat completion with tool definitions | 279 | 4 | 3 | Not Started | Function calling |
+| 278 | Voice Pipeline Integration | llm | Implement local Llama 3.2 client using llama-cpp-python | 277 | 4 | 3 | Complete | Local inference |
+| 279 | Voice Pipeline Integration | llm | Add model loading with GPU offload | 278 | 3 | 2 | Complete | CUDA acceleration |
+| 280 | Voice Pipeline Integration | llm | Implement chat completion with tool definitions | 279 | 4 | 3 | Complete | Function calling |
 | 281 | Voice Pipeline Integration | llm | Add streaming response support | 280 | 3 | 2 | Not Started | Real-time output |
-| 282 | Voice Pipeline Integration | llm | Implement tool call parsing from LLM response | 281 | 4 | 3 | Not Started | Extract tool calls |
-| 283 | Voice Pipeline Integration | llm | Add multi-turn conversation support | 282 | 3 | 2 | Not Started | Context retention |
-| 284 | Voice Pipeline Integration | llm | Implement conversation history management | 283 | 3 | 2 | Not Started | Memory limit |
+| 282 | Voice Pipeline Integration | llm | Implement tool call parsing from LLM response | 281 | 4 | 3 | Complete | Extract tool calls |
+| 283 | Voice Pipeline Integration | llm | Add multi-turn conversation support | 282 | 3 | 2 | Complete | Context retention |
+| 284 | Voice Pipeline Integration | llm | Implement conversation history management | 283 | 3 | 2 | Complete | Memory limit |
 | 285 | Voice Pipeline Integration | llm | Add system prompt with observatory context | 284 | 2 | 1 | Complete | Telescope domain |
-| 286 | Voice Pipeline Integration | llm | Implement Anthropic API client as fallback | 285 | 3 | 2 | Not Started | Optional cloud |
-| 287 | Voice Pipeline Integration | llm | Add OpenAI API client as fallback | 286 | 3 | 2 | Not Started | Optional cloud |
+| 286 | Voice Pipeline Integration | llm | Implement Anthropic API client as fallback | 285 | 3 | 2 | Complete | Optional cloud |
+| 287 | Voice Pipeline Integration | llm | Add OpenAI API client as fallback | 286 | 3 | 2 | Complete | Optional cloud |
 | 288 | Voice Pipeline Integration | llm | Implement client selection based on config | 287 | 2 | 1 | Complete | Flexible backend |
 | 289 | Voice Pipeline Integration | llm | Add response confidence scoring | 288 | 4 | 3 | Not Started | Quality check |
 | 290 | Voice Pipeline Integration | llm | Implement low confidence confirmation request | 289 | 3 | 2 | Not Started | Ask for clarification |
 | 291 | Voice Pipeline Integration | llm | Add token usage tracking | 290 | 2 | 1 | Complete | Cost monitoring |
 | 292 | Voice Pipeline Integration | llm | Write unit tests for LLM client | 291 | 2 | 2 | Complete | Test coverage |
-| 293 | Voice Pipeline Integration | voice_pipeline | Create nightwatch/voice_pipeline.py module | 277 | 3 | 2 | Not Started | End-to-end voice |
-| 294 | Voice Pipeline Integration | voice_pipeline | Define VoicePipeline class integrating STT, LLM, TTS | 293 | 3 | 2 | Not Started | Pipeline coordinator |
+| 293 | Voice Pipeline Integration | voice_pipeline | Create nightwatch/voice_pipeline.py module | 277 | 3 | 2 | Complete | End-to-end voice |
+| 294 | Voice Pipeline Integration | voice_pipeline | Define VoicePipeline class integrating STT, LLM, TTS | 293 | 3 | 2 | Complete | Pipeline coordinator |
 | 295 | Voice Pipeline Integration | voice_pipeline | Implement audio capture with VAD | 294 | 3 | 2 | Not Started | Voice detection |
 | 296 | Voice Pipeline Integration | voice_pipeline | Add push-to-talk mode support | 295 | 2 | 1 | Not Started | Alternative input |
 | 297 | Voice Pipeline Integration | voice_pipeline | Implement continuous listening mode | 296 | 3 | 2 | Not Started | Hands-free |
 | 298 | Voice Pipeline Integration | voice_pipeline | Add wake word detection (pymicro-vad as trigger) | 297 | 4 | 3 | Not Started | Voice activation |
-| 299 | Voice Pipeline Integration | voice_pipeline | Implement STT transcription call | 298 | 2 | 1 | Not Started | Speech to text |
+| 299 | Voice Pipeline Integration | voice_pipeline | Implement STT transcription call | 298 | 2 | 1 | Complete | Speech to text |
 | 300 | Voice Pipeline Integration | voice_pipeline | Add transcription post-processing (normalization) | 299 | 2 | 1 | Not Started | Clean input |
 | 301 | Voice Pipeline Integration | voice_pipeline | Implement LLM tool selection call | 300 | 3 | 2 | Not Started | Intent to tool |
-| 302 | Voice Pipeline Integration | voice_pipeline | Add tool execution via orchestrator | 301 | 2 | 1 | Not Started | Execute command |
-| 303 | Voice Pipeline Integration | voice_pipeline | Implement response formatting call | 302 | 2 | 1 | Not Started | Human text |
-| 304 | Voice Pipeline Integration | voice_pipeline | Add TTS synthesis call | 303 | 2 | 1 | Not Started | Text to speech |
+| 302 | Voice Pipeline Integration | voice_pipeline | Add tool execution via orchestrator | 301 | 2 | 1 | Complete | Execute command |
+| 303 | Voice Pipeline Integration | voice_pipeline | Implement response formatting call | 302 | 2 | 1 | Complete | Human text |
+| 304 | Voice Pipeline Integration | voice_pipeline | Add TTS synthesis call | 303 | 2 | 1 | Complete | Text to speech |
 | 305 | Voice Pipeline Integration | voice_pipeline | Implement audio playback | 304 | 2 | 1 | Not Started | Speaker output |
 | 306 | Voice Pipeline Integration | voice_pipeline | Add pipeline state machine | 305 | 3 | 2 | Not Started | State management |
 | 307 | Voice Pipeline Integration | voice_pipeline | Implement concurrent request handling | 306 | 3 | 2 | Not Started | Multiple users |
