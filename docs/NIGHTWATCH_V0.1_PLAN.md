@@ -233,15 +233,15 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 145 | Core Service Completion | power | Implement runtime estimation | 144 | 2 | 2 | Complete | battery.runtime variable |
 | 146 | Core Service Completion | power | Implement input/output voltage monitoring | 145 | 2 | 1 | Complete | input.voltage, output.voltage |
 | 147 | Core Service Completion | power | Implement load percentage monitoring | 146 | 2 | 1 | Complete | ups.load variable |
-| 148 | Core Service Completion | power | Add battery threshold callbacks | 147 | 3 | 2 | Not Started | Trigger actions |
-| 149 | Core Service Completion | power | Implement park-at-threshold (50%) logic | 148 | 3 | 2 | Not Started | Safe parking |
-| 150 | Core Service Completion | power | Implement shutdown-at-threshold (20%) logic | 149 | 3 | 2 | Not Started | Emergency shutdown |
-| 151 | Core Service Completion | power | Add power event logging | 150 | 2 | 1 | Not Started | Audit trail |
+| 148 | Core Service Completion | power | Add battery threshold callbacks | 147 | 3 | 2 | Complete | _initiate_park, _emergency_shutdown on threshold |
+| 149 | Core Service Completion | power | Implement park-at-threshold (50%) logic | 148 | 3 | 2 | Complete | park_threshold_pct in _process_status |
+| 150 | Core Service Completion | power | Implement shutdown-at-threshold (20%) logic | 149 | 3 | 2 | Complete | emergency_threshold_pct, _emergency_shutdown |
+| 151 | Core Service Completion | power | Add power event logging | 150 | 2 | 1 | Complete | _log_event, PowerEvent dataclass |
 | 152 | Core Service Completion | power | Implement smart PDU port control (optional) | 151 | 4 | 3 | Not Started | Device power cycling |
 | 153 | Core Service Completion | power | Add PDU HTTP/SNMP interface | 152 | 3 | 2 | Not Started | Protocol support |
 | 154 | Core Service Completion | power | Implement sequenced power-on order | 153 | 3 | 2 | Not Started | Safe startup |
 | 155 | Core Service Completion | power | Implement sequenced power-off order | 154 | 3 | 2 | Not Started | Safe shutdown |
-| 156 | Core Service Completion | power | Create mock UPS for testing | 155 | 2 | 2 | Not Started | Simulation mode |
+| 156 | Core Service Completion | power | Create mock UPS for testing | 155 | 2 | 2 | Complete | _use_simulation mode in PowerManager |
 | 157 | Core Service Completion | power | Write unit tests for NUT client | 156 | 2 | 2 | Not Started | Test coverage |
 | 158 | Core Service Completion | power | Write integration test for thresholds | 157 | 2 | 2 | Not Started | End-to-end test |
 | 159 | Core Service Completion | enclosure | Review roof_controller.py current implementation | None | 2 | 1 | Complete | Full ROR control, safety interlocks, rain holdoff |
