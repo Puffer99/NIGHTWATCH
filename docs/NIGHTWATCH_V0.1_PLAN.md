@@ -557,15 +557,15 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 469 | Safety System Hardening | safety_monitor | Implement power level safety check | 468 | 2 | 1 | Complete | _evaluate_power(), warning/critical/emergency levels |
 | 470 | Safety System Hardening | safety_monitor | Add enclosure safety integration | 469 | 2 | 1 | Complete | _evaluate_enclosure(), require_enclosure_open |
 | 471 | Safety System Hardening | safety_monitor | Write unit tests for safety thresholds | 470 | 2 | 2 | Complete | 37 tests in test_safety_monitor.py |
-| 472 | Safety System Hardening | safety_interlock | Create nightwatch/safety_interlock.py module | 457 | 3 | 2 | Not Started | Interlock logic |
-| 473 | Safety System Hardening | safety_interlock | Implement pre-command safety check | 472 | 3 | 2 | Not Started | Block unsafe |
-| 474 | Safety System Hardening | safety_interlock | Add command-specific safety rules | 473 | 3 | 2 | Not Started | Per-command checks |
-| 475 | Safety System Hardening | safety_interlock | Implement slew safety check (altitude, weather) | 474 | 2 | 1 | Not Started | Slew rules |
-| 476 | Safety System Hardening | safety_interlock | Implement unpark safety check (weather, enclosure) | 475 | 2 | 1 | Not Started | Unpark rules |
-| 477 | Safety System Hardening | safety_interlock | Implement roof open safety check | 476 | 2 | 1 | Not Started | Open rules |
-| 478 | Safety System Hardening | safety_interlock | Add safety override for emergency commands | 477 | 2 | 1 | Not Started | Park, close |
-| 479 | Safety System Hardening | safety_interlock | Implement safety veto response message | 478 | 2 | 1 | Not Started | Explain why |
-| 480 | Safety System Hardening | safety_interlock | Write unit tests for safety interlock | 479 | 2 | 2 | Not Started | Test coverage |
+| 472 | Safety System Hardening | safety_interlock | Create nightwatch/safety_interlock.py module | 457 | 3 | 2 | Complete | CommandType, SafetyVeto, InterlockStatus |
+| 473 | Safety System Hardening | safety_interlock | Implement pre-command safety check | 472 | 3 | 2 | Complete | check_command(), runs all safety checks |
+| 474 | Safety System Hardening | safety_interlock | Add command-specific safety rules | 473 | 3 | 2 | Complete | Per-command _check_* methods |
+| 475 | Safety System Hardening | safety_interlock | Implement slew safety check (altitude, weather) | 474 | 2 | 1 | Complete | _check_slew_safety() |
+| 476 | Safety System Hardening | safety_interlock | Implement unpark safety check (weather, enclosure) | 475 | 2 | 1 | Complete | _check_unpark_safety() |
+| 477 | Safety System Hardening | safety_interlock | Implement roof open safety check | 476 | 2 | 1 | Complete | _check_roof_open_safety() |
+| 478 | Safety System Hardening | safety_interlock | Add safety override for emergency commands | 477 | 2 | 1 | Complete | EMERGENCY_COMMANDS set |
+| 479 | Safety System Hardening | safety_interlock | Implement safety veto response message | 478 | 2 | 1 | Complete | SafetyVeto.to_spoken_response() |
+| 480 | Safety System Hardening | safety_interlock | Write unit tests for safety interlock | 479 | 2 | 2 | Complete | 46 tests in test_safety_interlock.py |
 | 481 | Safety System Hardening | emergency_response | Create nightwatch/emergency_response.py module | 457 | 3 | 2 | Not Started | Emergency actions |
 | 482 | Safety System Hardening | emergency_response | Implement emergency park sequence | 481 | 3 | 2 | Not Started | Quick park |
 | 483 | Safety System Hardening | emergency_response | Implement emergency close sequence | 482 | 3 | 2 | Not Started | Quick close |
