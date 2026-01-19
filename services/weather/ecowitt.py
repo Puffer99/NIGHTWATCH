@@ -44,11 +44,12 @@ class WeatherData:
     """Current weather conditions from WS90 station."""
     timestamp: datetime
 
-    # Temperature
+    # Temperature (Step 205)
     temperature_f: float
     temperature_c: float
     feels_like_f: float
     dew_point_f: float
+    ambient_temperature_c: float = 0.0  # Raw ambient sensor
 
     # Humidity
     humidity_percent: float
@@ -59,11 +60,12 @@ class WeatherData:
     wind_direction_deg: int
     wind_direction_str: str
 
-    # Rain
+    # Rain (Step 204)
     rain_rate_in_hr: float
     rain_daily_in: float
     rain_event_in: float
     is_raining: bool
+    rain_sensor_status: str = "ok"  # Sensor health status
 
     # Solar
     solar_radiation_wm2: float
@@ -72,6 +74,10 @@ class WeatherData:
     # Pressure
     pressure_inhg: float
     pressure_trend: str
+
+    # Sky Quality (Step 203)
+    sky_quality_mpsas: Optional[float] = None  # Mag per square arcsec
+    sky_brightness: Optional[str] = None  # "excellent", "good", "fair", "poor"
 
     # Derived
     condition: WeatherCondition
@@ -335,6 +341,134 @@ class EcowittClient:
     def register_callback(self, callback):
         """Register callback for weather updates."""
         self._callbacks.append(callback)
+
+    # =========================================================================
+    # Individual Sensor Readings (Steps 203-205)
+    # =========================================================================
+
+    def get_sky_quality(self) -> Optional[float]:
+        """
+        Get sky quality meter reading (Step 203).
+
+        Returns:
+            Sky quality in magnitudes per square arcsecond (MPSAS),
+            or None if not available.
+
+        Note:
+            Ecowitt stations don't include SQM sensors. This method
+            returns None unless an external SQM is integrated.
+            Typical dark sky values:
+            - 21.5+ MPSAS: Excellent (Bortle 1-2)
+            - 20.5-21.5: Good (Bortle 3-4)
+            - 19.5-20.5: Fair (Bortle 5-6)
+            - <19.5: Poor (Bortle 7+)
+        """
+        if self._latest_data:
+            return self._latest_data.sky_quality_mpsas
+        return None
+
+    def get_sky_brightness_category(self) -> Optional[str]:
+        """
+        Get sky brightness category based on SQM reading (Step 203).
+
+        Returns:
+            Category string: "excellent", "good", "fair", "poor", or None
+        """
+        sqm = self.get_sky_quality()
+        if sqm is None:
+            return None
+        if sqm >= 21.5:
+            return "excellent"
+        elif sqm >= 20.5:
+            return "good"
+        elif sqm >= 19.5:
+            return "fair"
+        else:
+            return "poor"
+
+    def get_rain_sensor_reading(self) -> dict:
+        """
+        Get detailed rain sensor data (Step 204).
+
+        Returns:
+            Dict with rain_rate, daily_total, event_total, is_raining, sensor_status
+        """
+        if not self._latest_data:
+            return {
+                "rain_rate_in_hr": 0.0,
+                "rain_daily_in": 0.0,
+                "rain_event_in": 0.0,
+                "is_raining": False,
+                "sensor_status": "no_data",
+            }
+
+        return {
+            "rain_rate_in_hr": self._latest_data.rain_rate_in_hr,
+            "rain_daily_in": self._latest_data.rain_daily_in,
+            "rain_event_in": self._latest_data.rain_event_in,
+            "is_raining": self._latest_data.is_raining,
+            "sensor_status": self._latest_data.rain_sensor_status,
+        }
+
+    def is_rain_detected(self) -> bool:
+        """
+        Check if rain is currently detected (Step 204).
+
+        Returns:
+            True if rain rate > 0 or recent rain event detected
+        """
+        if not self._latest_data:
+            return False
+        return self._latest_data.is_raining
+
+    def get_ambient_temperature(self) -> Optional[float]:
+        """
+        Get ambient temperature reading in Celsius (Step 205).
+
+        Returns:
+            Temperature in Celsius, or None if unavailable
+        """
+        if self._latest_data:
+            return self._latest_data.temperature_c
+        return None
+
+    def get_ambient_temperature_f(self) -> Optional[float]:
+        """
+        Get ambient temperature reading in Fahrenheit (Step 205).
+
+        Returns:
+            Temperature in Fahrenheit, or None if unavailable
+        """
+        if self._latest_data:
+            return self._latest_data.temperature_f
+        return None
+
+    def get_temperature_trend(self) -> Optional[str]:
+        """
+        Get temperature trend (Step 205).
+
+        Returns:
+            "rising", "falling", "stable", or None
+
+        Note:
+            Requires historical data; currently returns None.
+            Future: compare with data from 30 minutes ago.
+        """
+        # TODO: Implement temperature history tracking
+        return None
+
+    def is_dew_risk(self) -> bool:
+        """
+        Check if there's risk of dew formation (Step 205).
+
+        Returns:
+            True if temperature is within 3°F of dew point
+        """
+        if not self._latest_data:
+            return False
+        temp = self._latest_data.temperature_f
+        dew = self._latest_data.dew_point_f
+        return (temp - dew) < 3.0
 
     async def start_polling(self):
         """Start background polling of weather data."""

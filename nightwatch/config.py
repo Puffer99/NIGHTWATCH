@@ -248,6 +248,62 @@ class VoiceConfig(BaseModel):
         description="Enable voice activity detection",
     )
 
+    # Input mode settings (Step 296)
+    input_mode: Literal["wake_word", "push_to_talk", "continuous"] = Field(
+        default="wake_word",
+        description="Voice input mode: wake_word, push_to_talk, or continuous",
+    )
+    wake_word: str = Field(
+        default="nightwatch",
+        description="Wake word to activate listening (when input_mode=wake_word)",
+    )
+    wake_word_sensitivity: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Wake word detection sensitivity (0=strict, 1=loose)",
+    )
+    ptt_key: str = Field(
+        default="space",
+        description="Push-to-talk key (when input_mode=push_to_talk)",
+    )
+    ptt_timeout: float = Field(
+        default=10.0,
+        ge=1.0,
+        le=60.0,
+        description="Push-to-talk timeout in seconds",
+    )
+
+    # DGX Spark optimized settings (Step 314)
+    beam_size: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="Beam size for decoding (higher=better, slower)",
+    )
+    best_of: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="Number of candidates for best-of sampling",
+    )
+    patience: float = Field(
+        default=1.0,
+        ge=0.5,
+        le=2.0,
+        description="Patience factor for beam search",
+    )
+    temperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Sampling temperature (0=greedy, >0=sampling)",
+    )
+    condition_on_previous_text: bool = Field(
+        default=True,
+        description="Condition decoding on previous output",
+    )
+
 
 class TTSConfig(BaseModel):
     """Text-to-Speech (TTS) configuration (Step 7).

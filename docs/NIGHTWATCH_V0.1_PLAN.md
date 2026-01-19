@@ -288,13 +288,13 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Complete | Full WS90 integration, safety thresholds |
 | 201 | Core Service Completion | weather | Add AAG CloudWatcher integration | 200 | 4 | 3 | Not Started | Cloud sensing |
 | 202 | Core Service Completion | weather | Implement CloudWatcher serial protocol | 201 | 3 | 2 | Not Started | Data parsing |
-| 203 | Core Service Completion | weather | Add sky quality (SQM) reading | 202 | 2 | 1 | Not Started | Darkness level |
-| 204 | Core Service Completion | weather | Add rain sensor reading | 203 | 2 | 1 | Not Started | Precipitation |
-| 205 | Core Service Completion | weather | Add ambient temperature reading | 204 | 2 | 1 | Not Started | Weather data |
+| 203 | Core Service Completion | weather | Add sky quality (SQM) reading | 202 | 2 | 1 | Complete | get_sky_quality() in ecowitt.py |
+| 204 | Core Service Completion | weather | Add rain sensor reading | 203 | 2 | 1 | Complete | get_rain_sensor_reading() in ecowitt.py |
+| 205 | Core Service Completion | weather | Add ambient temperature reading | 204 | 2 | 1 | Complete | get_ambient_temperature() in ecowitt.py |
 | 206 | Core Service Completion | weather | Implement cloud threshold calibration | 205 | 3 | 2 | Not Started | Per POS Day 4 |
 | 207 | Core Service Completion | weather | Add seeing estimation (FWHM proxy) | 206 | 4 | 3 | Not Started | Image quality prediction |
 | 208 | Core Service Completion | weather | Create unified weather interface | 207 | 3 | 2 | Not Started | Abstract both sources |
-| 209 | Core Service Completion | weather | Write unit tests for weather service | 208 | 2 | 2 | Not Started | Test coverage |
+| 209 | Core Service Completion | weather | Write unit tests for weather service | 208 | 2 | 2 | Complete | tests/unit/test_weather.py |
 | 210 | Core Service Completion | ephemeris | Review skyfield_service.py current implementation | None | 2 | 1 | Complete | Full Skyfield integration, J2000/JNow, planets, twilight |
 | 211 | Core Service Completion | ephemeris | Add proper motion correction for stars | 210 | 4 | 3 | Not Started | Epoch adjustment |
 | 212 | Core Service Completion | Orchestrator Development | orchestrator | Create nightwatch/orchestrator.py module skeleton | 21 | 3 | 2 | Complete | Central orchestrator with protocols |
@@ -320,7 +320,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 232 | Orchestrator Development | orchestrator | Implement session end logic (park, close) | 231 | 3 | 2 | Not Started | End observation |
 | 233 | Orchestrator Development | orchestrator | Add observation log recording | 232 | 3 | 2 | Not Started | Session history |
 | 234 | Orchestrator Development | orchestrator | Implement command queue | 233 | 3 | 2 | Not Started | Async command handling |
-| 235 | Orchestrator Development | orchestrator | Add command priority levels | 234 | 2 | 1 | Not Started | Safety commands first |
+| 235 | Orchestrator Development | orchestrator | Add command priority levels | 234 | 2 | 1 | Complete | CommandPriority enum in orchestrator.py |
 | 236 | Orchestrator Development | orchestrator | Implement command timeout handling | 235 | 3 | 2 | Not Started | Prevent hangs |
 | 237 | Orchestrator Development | orchestrator | Add command cancellation support | 236 | 2 | 2 | Not Started | Abort in progress |
 | 238 | Orchestrator Development | orchestrator | Implement error recovery strategies | 237 | 4 | 3 | Not Started | Graceful degradation |
@@ -381,7 +381,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 293 | Voice Pipeline Integration | voice_pipeline | Create nightwatch/voice_pipeline.py module | 277 | 3 | 2 | Complete | End-to-end voice |
 | 294 | Voice Pipeline Integration | voice_pipeline | Define VoicePipeline class integrating STT, LLM, TTS | 293 | 3 | 2 | Complete | Pipeline coordinator |
 | 295 | Voice Pipeline Integration | voice_pipeline | Implement audio capture with VAD | 294 | 3 | 2 | Not Started | Voice detection |
-| 296 | Voice Pipeline Integration | voice_pipeline | Add push-to-talk mode support | 295 | 2 | 1 | Not Started | Alternative input |
+| 296 | Voice Pipeline Integration | voice_pipeline | Add push-to-talk mode support | 295 | 2 | 1 | Complete | input_mode, ptt_key in VoiceConfig |
 | 297 | Voice Pipeline Integration | voice_pipeline | Implement continuous listening mode | 296 | 3 | 2 | Not Started | Hands-free |
 | 298 | Voice Pipeline Integration | voice_pipeline | Add wake word detection (pymicro-vad as trigger) | 297 | 4 | 3 | Not Started | Voice activation |
 | 299 | Voice Pipeline Integration | voice_pipeline | Implement STT transcription call | 298 | 2 | 1 | Complete | Speech to text |
@@ -399,7 +399,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 311 | Voice Pipeline Integration | voice_pipeline | Write unit tests for voice pipeline | 310 | 3 | 2 | Complete | 55 tests in test_voice_pipeline.py |
 | 312 | Voice Pipeline Integration | voice_pipeline | Write integration test end-to-end | 311 | 3 | 3 | Not Started | Full flow test |
 | 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Complete | STTInterface wraps faster-whisper |
-| 314 | Voice Pipeline Integration | stt_integration | Configure DGX Spark optimized settings | 313 | 2 | 1 | Not Started | int8_float16 |
+| 314 | Voice Pipeline Integration | stt_integration | Configure DGX Spark optimized settings | 313 | 2 | 1 | Complete | beam_size, best_of, patience in VoiceConfig |
 | 315 | Voice Pipeline Integration | stt_integration | Add audio preprocessing (noise reduction) | 314 | 3 | 2 | Not Started | Clean audio |
 | 316 | Voice Pipeline Integration | stt_integration | Implement audio buffering for continuous mode | 315 | 3 | 2 | Not Started | Smooth capture |
 | 317 | Voice Pipeline Integration | stt_integration | Add transcription confidence filtering | 316 | 2 | 1 | Not Started | Quality gate |

@@ -73,7 +73,82 @@ __all__ = [
     "EventType",
     "OrchestratorEvent",
     "OrchestratorMetrics",
+    "CommandPriority",
 ]
+
+
+# =============================================================================
+# Command Priority System (Step 235)
+# =============================================================================
+
+
+class CommandPriority(Enum):
+    """
+    Command priority levels (Step 235).
+
+    Higher priority commands are processed first and can interrupt
+    lower priority commands in progress.
+
+    Priority order (highest to lowest):
+    1. EMERGENCY - Safety-critical commands (park, close, stop)
+    2. SAFETY - Safety-related commands (weather alerts)
+    3. HIGH - User-initiated immediate commands
+    4. NORMAL - Standard commands (slew, capture)
+    5. LOW - Background tasks (calibration, status)
+    6. BACKGROUND - Deferred tasks (cleanup, logging)
+    """
+    EMERGENCY = 100  # Highest - immediate execution, interrupts all
+    SAFETY = 80      # Safety-related commands
+    HIGH = 60        # User-initiated urgent commands
+    NORMAL = 40      # Standard user commands
+    LOW = 20         # Non-urgent commands
+    BACKGROUND = 0   # Lowest - background tasks
+
+    @classmethod
+    def from_command(cls, command: str) -> "CommandPriority":
+        """
+        Determine priority from command string.
+
+        Args:
+            command: The command string
+
+        Returns:
+            Appropriate CommandPriority level
+        """
+        command_lower = command.lower()
+
+        # Emergency commands
+        if any(kw in command_lower for kw in [
+            "emergency", "stop", "abort", "halt"
+        ]):
+            return cls.EMERGENCY
+
+        # Safety commands
+        if any(kw in command_lower for kw in [
+            "park", "close roof", "unsafe", "weather alert"
+        ]):
+            return cls.SAFETY
+
+        # High priority commands
+        if any(kw in command_lower for kw in [
+            "slew", "goto", "move", "track"
+        ]):
+            return cls.HIGH
+
+        # Normal commands
+        if any(kw in command_lower for kw in [
+            "capture", "expose", "focus", "guide"
+        ]):
+            return cls.NORMAL
+
+        # Low priority
+        if any(kw in command_lower for kw in [
+            "status", "what", "where", "report"
+        ]):
+            return cls.LOW
+
+        # Default to normal
+        return cls.NORMAL
 
 
 # =============================================================================
