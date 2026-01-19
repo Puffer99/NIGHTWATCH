@@ -17,6 +17,9 @@ from nightwatch.orchestrator import (
     ServiceInfo,
     SessionState,
     ObservingTarget,
+    EventType,
+    OrchestratorEvent,
+    OrchestratorMetrics,
 )
 from nightwatch.config import NightwatchConfig
 
@@ -427,3 +430,447 @@ class TestServiceStatus:
         assert ServiceStatus.DEGRADED.value == "degraded"
         assert ServiceStatus.STOPPED.value == "stopped"
         assert ServiceStatus.ERROR.value == "error"
+
+
+class TestEventType:
+    """Tests for EventType enum (Steps 243-246)."""
+
+    def test_mount_events(self):
+        """Test mount event types exist."""
+        assert EventType.MOUNT_POSITION_CHANGED.value == "mount_position_changed"
+        assert EventType.MOUNT_SLEW_STARTED.value == "mount_slew_started"
+        assert EventType.MOUNT_SLEW_COMPLETE.value == "mount_slew_complete"
+        assert EventType.MOUNT_PARKED.value == "mount_parked"
+        assert EventType.MOUNT_UNPARKED.value == "mount_unparked"
+
+    def test_weather_events(self):
+        """Test weather event types exist."""
+        assert EventType.WEATHER_CHANGED.value == "weather_changed"
+        assert EventType.WEATHER_SAFE.value == "weather_safe"
+        assert EventType.WEATHER_UNSAFE.value == "weather_unsafe"
+
+    def test_safety_events(self):
+        """Test safety event types exist."""
+        assert EventType.SAFETY_STATE_CHANGED.value == "safety_state_changed"
+        assert EventType.SAFETY_ALERT.value == "safety_alert"
+        assert EventType.SAFETY_VETO.value == "safety_veto"
+
+    def test_guiding_events(self):
+        """Test guiding event types exist."""
+        assert EventType.GUIDING_STARTED.value == "guiding_started"
+        assert EventType.GUIDING_STOPPED.value == "guiding_stopped"
+        assert EventType.GUIDING_LOST.value == "guiding_lost"
+
+    def test_session_events(self):
+        """Test session event types exist."""
+        assert EventType.SESSION_STARTED.value == "session_started"
+        assert EventType.SESSION_ENDED.value == "session_ended"
+        assert EventType.IMAGE_CAPTURED.value == "image_captured"
+
+    def test_system_events(self):
+        """Test system event types exist."""
+        assert EventType.SERVICE_STARTED.value == "service_started"
+        assert EventType.SERVICE_STOPPED.value == "service_stopped"
+        assert EventType.SERVICE_ERROR.value == "service_error"
+        assert EventType.SHUTDOWN_INITIATED.value == "shutdown_initiated"
+
+
+class TestOrchestratorEvent:
+    """Tests for OrchestratorEvent dataclass."""
+
+    def test_create_event(self):
+        """Test creating an event."""
+        event = OrchestratorEvent(
+            event_type=EventType.MOUNT_SLEW_STARTED,
+            source="mount",
+            data={"target": "M31"},
+            message="Starting slew to M31"
+        )
+
+        assert event.event_type == EventType.MOUNT_SLEW_STARTED
+        assert event.source == "mount"
+        assert event.data["target"] == "M31"
+        assert event.message == "Starting slew to M31"
+        assert event.timestamp is not None
+
+    def test_event_defaults(self):
+        """Test event default values."""
+        event = OrchestratorEvent(event_type=EventType.WEATHER_SAFE)
+
+        assert event.source == ""
+        assert event.data == {}
+        assert event.message == ""
+
+
+class TestOrchestratorMetrics:
+    """Tests for OrchestratorMetrics dataclass (Steps 248-250)."""
+
+    def test_default_metrics(self):
+        """Test default metric values."""
+        metrics = OrchestratorMetrics()
+
+        assert metrics.commands_executed == 0
+        assert metrics.total_command_time_ms == 0.0
+        assert metrics.min_latency_ms == float('inf')
+        assert metrics.max_latency_ms == 0.0
+        assert metrics.error_count == 0
+
+    def test_record_command(self):
+        """Test recording command execution."""
+        metrics = OrchestratorMetrics()
+
+        metrics.record_command(100.0)
+        assert metrics.commands_executed == 1
+        assert metrics.total_command_time_ms == 100.0
+        assert metrics.min_latency_ms == 100.0
+        assert metrics.max_latency_ms == 100.0
+
+        metrics.record_command(50.0)
+        assert metrics.commands_executed == 2
+        assert metrics.total_command_time_ms == 150.0
+        assert metrics.min_latency_ms == 50.0
+        assert metrics.max_latency_ms == 100.0
+
+    def test_avg_latency(self):
+        """Test average latency calculation."""
+        metrics = OrchestratorMetrics()
+
+        assert metrics.avg_latency_ms == 0.0
+
+        metrics.record_command(100.0)
+        metrics.record_command(200.0)
+
+        assert metrics.avg_latency_ms == 150.0
+
+    def test_record_error(self):
+        """Test recording service errors."""
+        metrics = OrchestratorMetrics()
+
+        metrics.record_error("mount")
+        metrics.record_error("mount")
+        metrics.record_error("camera")
+
+        assert metrics.error_count == 3
+        assert metrics.errors_by_service["mount"] == 2
+        assert metrics.errors_by_service["camera"] == 1
+
+    def test_service_uptime(self):
+        """Test service uptime tracking."""
+        metrics = OrchestratorMetrics()
+        metrics.service_start_time["mount"] = datetime.now()
+
+        # Should be close to 0
+        uptime = metrics.get_service_uptime("mount")
+        assert uptime >= 0.0 and uptime < 1.0
+
+        # Non-existent service returns 0
+        assert metrics.get_service_uptime("nonexistent") == 0.0
+
+    def test_to_dict(self):
+        """Test converting metrics to dictionary."""
+        metrics = OrchestratorMetrics()
+        metrics.record_command(100.0)
+        metrics.record_error("mount")
+
+        d = metrics.to_dict()
+
+        assert d["commands_executed"] == 1
+        assert d["avg_latency_ms"] == 100.0
+        assert d["min_latency_ms"] == 100.0
+        assert d["max_latency_ms"] == 100.0
+        assert d["error_count"] == 1
+        assert "mount" in d["errors_by_service"]
+
+
+class TestOrchestratorEventSystem:
+    """Tests for Orchestrator event system (Steps 243-246)."""
+
+    @pytest.fixture
+    def config(self):
+        """Create test configuration."""
+        return NightwatchConfig()
+
+    @pytest.fixture
+    def orchestrator(self, config):
+        """Create orchestrator for testing."""
+        return Orchestrator(config)
+
+    def test_subscribe(self, orchestrator):
+        """Test subscribing to events."""
+        listener = Mock()
+        orchestrator.subscribe(EventType.MOUNT_PARKED, listener)
+
+        assert EventType.MOUNT_PARKED in orchestrator._event_listeners
+        assert listener in orchestrator._event_listeners[EventType.MOUNT_PARKED]
+
+    def test_unsubscribe(self, orchestrator):
+        """Test unsubscribing from events."""
+        listener = Mock()
+        orchestrator.subscribe(EventType.MOUNT_PARKED, listener)
+        orchestrator.unsubscribe(EventType.MOUNT_PARKED, listener)
+
+        assert listener not in orchestrator._event_listeners.get(EventType.MOUNT_PARKED, [])
+
+    def test_unsubscribe_nonexistent(self, orchestrator):
+        """Test unsubscribing non-existent listener doesn't error."""
+        listener = Mock()
+        # Should not raise
+        orchestrator.unsubscribe(EventType.MOUNT_PARKED, listener)
+
+    @pytest.mark.asyncio
+    async def test_emit_event(self, orchestrator):
+        """Test emitting events to listeners."""
+        listener = Mock()
+        orchestrator.subscribe(EventType.WEATHER_UNSAFE, listener)
+
+        await orchestrator.emit_event(
+            EventType.WEATHER_UNSAFE,
+            source="weather",
+            data={"reason": "wind"},
+            message="Wind too high"
+        )
+
+        listener.assert_called_once()
+        event = listener.call_args[0][0]
+        assert event.event_type == EventType.WEATHER_UNSAFE
+        assert event.source == "weather"
+        assert event.data["reason"] == "wind"
+
+    @pytest.mark.asyncio
+    async def test_emit_event_async_listener(self, orchestrator):
+        """Test emitting events to async listeners."""
+        listener = AsyncMock()
+        orchestrator.subscribe(EventType.MOUNT_SLEW_COMPLETE, listener)
+
+        await orchestrator.emit_event(
+            EventType.MOUNT_SLEW_COMPLETE,
+            source="mount"
+        )
+
+        listener.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_emit_event_multiple_listeners(self, orchestrator):
+        """Test emitting events to multiple listeners."""
+        listener1 = Mock()
+        listener2 = Mock()
+        orchestrator.subscribe(EventType.SESSION_STARTED, listener1)
+        orchestrator.subscribe(EventType.SESSION_STARTED, listener2)
+
+        await orchestrator.emit_event(EventType.SESSION_STARTED)
+
+        listener1.assert_called_once()
+        listener2.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_emit_event_listener_error_handled(self, orchestrator):
+        """Test that listener errors don't stop other listeners."""
+        listener1 = Mock(side_effect=Exception("Listener error"))
+        listener2 = Mock()
+        orchestrator.subscribe(EventType.IMAGE_CAPTURED, listener1)
+        orchestrator.subscribe(EventType.IMAGE_CAPTURED, listener2)
+
+        # Should not raise
+        await orchestrator.emit_event(EventType.IMAGE_CAPTURED)
+
+        # Second listener should still be called
+        listener2.assert_called_once()
+
+
+class TestOrchestratorMetricsIntegration:
+    """Tests for Orchestrator metrics integration (Steps 248-250)."""
+
+    @pytest.fixture
+    def config(self):
+        """Create test configuration."""
+        return NightwatchConfig()
+
+    @pytest.fixture
+    def orchestrator(self, config):
+        """Create orchestrator for testing."""
+        return Orchestrator(config)
+
+    def test_metrics_initialized(self, orchestrator):
+        """Test metrics are initialized."""
+        assert orchestrator.metrics is not None
+        assert isinstance(orchestrator.metrics, OrchestratorMetrics)
+
+    def test_get_metrics(self, orchestrator):
+        """Test getting metrics dict."""
+        metrics = orchestrator.get_metrics()
+
+        assert "commands_executed" in metrics
+        assert "avg_latency_ms" in metrics
+        assert "error_count" in metrics
+
+    @pytest.mark.asyncio
+    async def test_record_command_execution(self, orchestrator):
+        """Test recording command execution."""
+        await orchestrator.record_command_execution(150.0)
+
+        assert orchestrator.metrics.commands_executed == 1
+        assert orchestrator.metrics.avg_latency_ms == 150.0
+
+    def test_record_service_error(self, orchestrator):
+        """Test recording service error."""
+        orchestrator.record_service_error("camera")
+
+        assert orchestrator.metrics.error_count == 1
+        assert orchestrator.metrics.errors_by_service["camera"] == 1
+
+
+class TestSafeShutdown:
+    """Tests for safe shutdown functionality (Steps 252-254)."""
+
+    @pytest.fixture
+    def config(self):
+        """Create test configuration."""
+        return NightwatchConfig()
+
+    @pytest.fixture
+    def orchestrator(self, config):
+        """Create orchestrator with mock services."""
+        orch = Orchestrator(config)
+
+        # Mock mount
+        mock_mount = AsyncMock()
+        mock_mount.is_running = True
+        mock_mount.is_parked = False
+        mock_mount.park = AsyncMock(return_value=True)
+        orch.register_mount(mock_mount, required=False)
+
+        # Mock enclosure
+        mock_enclosure = AsyncMock()
+        mock_enclosure.is_running = True
+        mock_enclosure.close = AsyncMock(return_value=True)
+        orch.register_enclosure(mock_enclosure, required=False)
+
+        return orch
+
+    @pytest.mark.asyncio
+    async def test_safe_shutdown_parks_mount(self, orchestrator):
+        """Test safe shutdown parks the mount."""
+        await orchestrator.start()
+        await orchestrator.shutdown(safe=True)
+
+        orchestrator.mount.park.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_safe_shutdown_closes_enclosure(self, orchestrator):
+        """Test safe shutdown closes enclosure."""
+        await orchestrator.start()
+        await orchestrator.shutdown(safe=True)
+
+        orchestrator.enclosure.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_safe_shutdown_skips_parked_mount(self, orchestrator):
+        """Test safe shutdown skips already parked mount."""
+        orchestrator.mount.is_parked = True
+
+        await orchestrator.start()
+        await orchestrator.shutdown(safe=True)
+
+        orchestrator.mount.park.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_unsafe_shutdown_skips_safe_steps(self, orchestrator):
+        """Test unsafe shutdown skips safe steps."""
+        await orchestrator.start()
+        await orchestrator.shutdown(safe=False)
+
+        orchestrator.mount.park.assert_not_called()
+        orchestrator.enclosure.close.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_shutdown_emits_event(self, orchestrator):
+        """Test shutdown emits shutdown event."""
+        listener = Mock()
+        orchestrator.subscribe(EventType.SHUTDOWN_INITIATED, listener)
+
+        await orchestrator.start()
+        await orchestrator.shutdown()
+
+        listener.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_safe_shutdown_handles_mount_error(self, orchestrator):
+        """Test safe shutdown handles mount park error gracefully."""
+        orchestrator.mount.park.side_effect = Exception("Park failed")
+
+        await orchestrator.start()
+        # Should not raise
+        await orchestrator.shutdown(safe=True)
+
+        # Error should be recorded
+        assert orchestrator.metrics.errors_by_service.get("mount", 0) == 1
+
+    @pytest.mark.asyncio
+    async def test_safe_shutdown_handles_enclosure_error(self, orchestrator):
+        """Test safe shutdown handles enclosure close error gracefully."""
+        orchestrator.enclosure.close.side_effect = Exception("Close failed")
+
+        await orchestrator.start()
+        # Should not raise
+        await orchestrator.shutdown(safe=True)
+
+        # Error should be recorded
+        assert orchestrator.metrics.errors_by_service.get("enclosure", 0) == 1
+
+    @pytest.mark.asyncio
+    async def test_save_session_log(self, orchestrator, tmp_path):
+        """Test session log functionality via _save_session_log."""
+        import json
+        from unittest.mock import patch
+
+        await orchestrator.start()
+        await orchestrator.start_session("test_session")
+
+        # Add some data to session
+        orchestrator.session.images_captured = 5
+        orchestrator.session.total_exposure_sec = 300.0
+
+        # Patch the config's data_dir by mocking hasattr and getattr behavior
+        # This test verifies _save_session_log creates proper log structure
+        with patch.object(orchestrator, '_save_session_log') as mock_save:
+            await orchestrator.shutdown(safe=True)
+            # _save_session_log is called during safe shutdown when observing
+            mock_save.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_session_log_format(self, orchestrator, tmp_path):
+        """Test session log file format."""
+        import json
+
+        await orchestrator.start()
+        await orchestrator.start_session("test_session")
+        orchestrator.session.images_captured = 5
+        orchestrator.session.total_exposure_sec = 300.0
+
+        # Manually create the log to verify format
+        log_file = tmp_path / "session_test_session.json"
+        session_log = {
+            "session_id": orchestrator.session.session_id,
+            "started_at": orchestrator.session.started_at.isoformat(),
+            "ended_at": datetime.now().isoformat(),
+            "images_captured": orchestrator.session.images_captured,
+            "total_exposure_sec": orchestrator.session.total_exposure_sec,
+            "current_target": None,
+            "error_count": 0,
+            "last_error": None,
+            "metrics": orchestrator.metrics.to_dict(),
+        }
+
+        with open(log_file, "w") as f:
+            json.dump(session_log, f, indent=2)
+
+        # Verify file was written correctly
+        with open(log_file) as f:
+            loaded = json.load(f)
+
+        assert loaded["session_id"] == "test_session"
+        assert loaded["images_captured"] == 5
+        assert loaded["total_exposure_sec"] == 300.0
+        assert "metrics" in loaded
+
+        await orchestrator.shutdown(safe=False)

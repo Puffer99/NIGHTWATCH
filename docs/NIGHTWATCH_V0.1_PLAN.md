@@ -328,18 +328,18 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 240 | Orchestrator Development | orchestrator | Add weather error recovery (cache) | 239 | 3 | 2 | Not Started | Data unavailable |
 | 241 | Orchestrator Development | orchestrator | Add camera error recovery (reset) | 240 | 3 | 2 | Not Started | Capture failure |
 | 242 | Orchestrator Development | orchestrator | Implement event bus for inter-service communication | 241 | 4 | 3 | Not Started | Loose coupling |
-| 243 | Orchestrator Development | orchestrator | Add mount position changed event | 242 | 2 | 1 | Not Started | Position updates |
-| 244 | Orchestrator Development | orchestrator | Add weather changed event | 243 | 2 | 1 | Not Started | Weather updates |
-| 245 | Orchestrator Development | orchestrator | Add safety state changed event | 244 | 2 | 1 | Not Started | Safety alerts |
+| 243 | Orchestrator Development | orchestrator | Add mount position changed event | 242 | 2 | 1 | Complete | Position updates |
+| 244 | Orchestrator Development | orchestrator | Add weather changed event | 243 | 2 | 1 | Complete | Weather updates |
+| 245 | Orchestrator Development | orchestrator | Add safety state changed event | 244 | 2 | 1 | Complete | Safety alerts |
 | 246 | Orchestrator Development | orchestrator | Add guiding state changed event | 245 | 2 | 1 | Not Started | Guide status |
 | 247 | Orchestrator Development | orchestrator | Implement metrics collection | 246 | 3 | 2 | Not Started | Performance data |
-| 248 | Orchestrator Development | orchestrator | Add command latency metrics | 247 | 2 | 1 | Not Started | Timing data |
-| 249 | Orchestrator Development | orchestrator | Add service uptime metrics | 248 | 2 | 1 | Not Started | Availability |
+| 248 | Orchestrator Development | orchestrator | Add command latency metrics | 247 | 2 | 1 | Complete | Timing data |
+| 249 | Orchestrator Development | orchestrator | Add service uptime metrics | 248 | 2 | 1 | Complete | Availability |
 | 250 | Orchestrator Development | orchestrator | Add error rate metrics | 249 | 2 | 1 | Not Started | Failure tracking |
 | 251 | Orchestrator Development | orchestrator | Implement graceful shutdown sequence | 250 | 3 | 2 | Not Started | Clean exit |
-| 252 | Orchestrator Development | orchestrator | Add park on shutdown | 251 | 2 | 1 | Not Started | Safety |
-| 253 | Orchestrator Development | orchestrator | Add close enclosure on shutdown | 252 | 2 | 1 | Not Started | Safety |
-| 254 | Orchestrator Development | orchestrator | Add save session log on shutdown | 253 | 2 | 1 | Not Started | Data preservation |
+| 252 | Orchestrator Development | orchestrator | Add park on shutdown | 251 | 2 | 1 | Complete | Safety |
+| 253 | Orchestrator Development | orchestrator | Add close enclosure on shutdown | 252 | 2 | 1 | Complete | Safety |
+| 254 | Orchestrator Development | orchestrator | Add save session log on shutdown | 253 | 2 | 1 | Complete | Data preservation |
 | 255 | Orchestrator Development | orchestrator | Write unit tests for orchestrator | 254 | 3 | 3 | Not Started | Test coverage |
 | 256 | Orchestrator Development | orchestrator | Write integration test with mock services | 255 | 3 | 2 | Not Started | End-to-end test |
 | 257 | Orchestrator Development | tool_executor | Create nightwatch/tool_executor.py module | 212 | 3 | 2 | Complete | Full tool executor with handlers |

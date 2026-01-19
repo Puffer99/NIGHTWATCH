@@ -70,7 +70,124 @@ __all__ = [
     "ServiceStatus",
     "SessionState",
     "ObservingTarget",
+    "EventType",
+    "OrchestratorEvent",
+    "OrchestratorMetrics",
 ]
+
+
+# =============================================================================
+# Event System (Steps 243-246)
+# =============================================================================
+
+
+class EventType(Enum):
+    """Types of orchestrator events."""
+    # Mount events (Step 243)
+    MOUNT_POSITION_CHANGED = "mount_position_changed"
+    MOUNT_SLEW_STARTED = "mount_slew_started"
+    MOUNT_SLEW_COMPLETE = "mount_slew_complete"
+    MOUNT_PARKED = "mount_parked"
+    MOUNT_UNPARKED = "mount_unparked"
+
+    # Weather events (Step 244)
+    WEATHER_CHANGED = "weather_changed"
+    WEATHER_SAFE = "weather_safe"
+    WEATHER_UNSAFE = "weather_unsafe"
+
+    # Safety events (Step 245)
+    SAFETY_STATE_CHANGED = "safety_state_changed"
+    SAFETY_ALERT = "safety_alert"
+    SAFETY_VETO = "safety_veto"
+
+    # Guiding events (Step 246)
+    GUIDING_STARTED = "guiding_started"
+    GUIDING_STOPPED = "guiding_stopped"
+    GUIDING_LOST = "guiding_lost"
+
+    # Session events
+    SESSION_STARTED = "session_started"
+    SESSION_ENDED = "session_ended"
+    IMAGE_CAPTURED = "image_captured"
+
+    # System events
+    SERVICE_STARTED = "service_started"
+    SERVICE_STOPPED = "service_stopped"
+    SERVICE_ERROR = "service_error"
+    SHUTDOWN_INITIATED = "shutdown_initiated"
+
+
+@dataclass
+class OrchestratorEvent:
+    """Event emitted by the orchestrator."""
+    event_type: EventType
+    timestamp: datetime = field(default_factory=datetime.now)
+    source: str = ""
+    data: Dict[str, Any] = field(default_factory=dict)
+    message: str = ""
+
+
+# =============================================================================
+# Metrics (Steps 247-250)
+# =============================================================================
+
+
+@dataclass
+class OrchestratorMetrics:
+    """
+    Orchestrator performance metrics.
+
+    Tracks command latency, service uptime, and error rates.
+    """
+    # Timing metrics (Step 248)
+    commands_executed: int = 0
+    total_command_time_ms: float = 0.0
+    min_latency_ms: float = float('inf')
+    max_latency_ms: float = 0.0
+
+    # Service metrics (Step 249)
+    service_start_time: Dict[str, datetime] = field(default_factory=dict)
+
+    # Error metrics (Step 250)
+    error_count: int = 0
+    errors_by_service: Dict[str, int] = field(default_factory=dict)
+
+    @property
+    def avg_latency_ms(self) -> float:
+        """Average command latency in milliseconds."""
+        if self.commands_executed == 0:
+            return 0.0
+        return self.total_command_time_ms / self.commands_executed
+
+    def record_command(self, latency_ms: float):
+        """Record a command execution."""
+        self.commands_executed += 1
+        self.total_command_time_ms += latency_ms
+        self.min_latency_ms = min(self.min_latency_ms, latency_ms)
+        self.max_latency_ms = max(self.max_latency_ms, latency_ms)
+
+    def record_error(self, service: str):
+        """Record a service error."""
+        self.error_count += 1
+        self.errors_by_service[service] = self.errors_by_service.get(service, 0) + 1
+
+    def get_service_uptime(self, service: str) -> float:
+        """Get service uptime in seconds."""
+        start = self.service_start_time.get(service)
+        if start:
+            return (datetime.now() - start).total_seconds()
+        return 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert metrics to dictionary."""
+        return {
+            "commands_executed": self.commands_executed,
+            "avg_latency_ms": self.avg_latency_ms,
+            "min_latency_ms": self.min_latency_ms if self.min_latency_ms != float('inf') else 0,
+            "max_latency_ms": self.max_latency_ms,
+            "error_count": self.error_count,
+            "errors_by_service": self.errors_by_service.copy(),
+        }
 
 
 # =============================================================================
@@ -445,6 +562,12 @@ class Orchestrator:
         self._health_task: Optional[asyncio.Task] = None
         self._callbacks: List[Callable] = []
 
+        # Metrics tracking (Steps 248-250)
+        self.metrics = OrchestratorMetrics()
+
+        # Event system (Steps 243-246)
+        self._event_listeners: Dict[EventType, List[Callable]] = {}
+
         logger.info("Orchestrator initialized")
 
     # =========================================================================
@@ -616,12 +739,24 @@ class Orchestrator:
         logger.info("Orchestrator started")
         return True
 
-    async def shutdown(self):
-        """Shutdown the orchestrator and all services."""
+    async def shutdown(self, safe: bool = True):
+        """
+        Shutdown the orchestrator and all services.
+
+        Args:
+            safe: If True, perform safe shutdown (park mount, close enclosure)
+        """
         if not self._running:
             return
 
         logger.info("Shutting down orchestrator...")
+
+        # Emit shutdown event
+        await self.emit_event(
+            EventType.SHUTDOWN_INITIATED,
+            source="orchestrator",
+            message="Shutdown initiated"
+        )
 
         # Cancel health monitoring
         if self._health_task:
@@ -631,6 +766,10 @@ class Orchestrator:
             except asyncio.CancelledError:
                 pass
 
+        # Safe shutdown steps (Steps 252-254)
+        if safe:
+            await self._safe_shutdown()
+
         # Stop all services in reverse order
         for name in reversed(self.registry.list_services()):
             service = self.registry.get(name)
@@ -638,12 +777,93 @@ class Orchestrator:
                 try:
                     await service.stop()
                     self.registry.set_status(name, ServiceStatus.STOPPED)
+                    await self.emit_event(
+                        EventType.SERVICE_STOPPED,
+                        source=name,
+                        message=f"Service {name} stopped"
+                    )
                     logger.info(f"Service stopped: {name}")
                 except Exception as e:
                     logger.error(f"Error stopping service {name}: {e}")
 
         self._running = False
         logger.info("Orchestrator shutdown complete")
+
+    async def _safe_shutdown(self):
+        """
+        Perform safe shutdown sequence (Steps 252-254).
+
+        - Step 252: Park the telescope mount
+        - Step 253: Close the enclosure/roof
+        - Step 254: Save session log
+        """
+        logger.info("Performing safe shutdown sequence...")
+
+        # Step 252: Park the telescope mount
+        if self.mount:
+            try:
+                if hasattr(self.mount, 'is_parked') and not self.mount.is_parked:
+                    logger.info("Parking telescope mount...")
+                    await self.mount.park()
+                    await self.emit_event(
+                        EventType.MOUNT_PARKED,
+                        source="mount",
+                        message="Mount parked during safe shutdown"
+                    )
+                    logger.info("Mount parked successfully")
+            except Exception as e:
+                logger.error(f"Failed to park mount during shutdown: {e}")
+                self.record_service_error("mount")
+
+        # Step 253: Close the enclosure/roof
+        if self.enclosure:
+            try:
+                if hasattr(self.enclosure, 'close'):
+                    logger.info("Closing enclosure...")
+                    await self.enclosure.close()
+                    logger.info("Enclosure closed successfully")
+            except Exception as e:
+                logger.error(f"Failed to close enclosure during shutdown: {e}")
+                self.record_service_error("enclosure")
+
+        # Step 254: Save session log
+        if self.session.is_observing:
+            await self._save_session_log()
+            await self.end_session()
+
+    async def _save_session_log(self):
+        """
+        Save session log to file (Step 254).
+
+        Records session summary including targets observed,
+        images captured, and any errors.
+        """
+        import json
+        from pathlib import Path
+
+        log_dir = Path(self.config.data_dir if hasattr(self.config, 'data_dir') else "logs")
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        log_file = log_dir / f"session_{self.session.session_id}.json"
+
+        session_log = {
+            "session_id": self.session.session_id,
+            "started_at": self.session.started_at.isoformat() if self.session.started_at else None,
+            "ended_at": datetime.now().isoformat(),
+            "images_captured": self.session.images_captured,
+            "total_exposure_sec": self.session.total_exposure_sec,
+            "current_target": self.session.current_target.name if self.session.current_target else None,
+            "error_count": self.session.error_count,
+            "last_error": self.session.last_error,
+            "metrics": self.metrics.to_dict(),
+        }
+
+        try:
+            with open(log_file, "w") as f:
+                json.dump(session_log, f, indent=2)
+            logger.info(f"Session log saved to {log_file}")
+        except Exception as e:
+            logger.error(f"Failed to save session log: {e}")
 
     async def _health_loop(self):
         """Background health monitoring loop."""
@@ -739,15 +959,15 @@ class Orchestrator:
         return result
 
     # =========================================================================
-    # Event Callbacks
+    # Event Callbacks (legacy)
     # =========================================================================
 
     def register_callback(self, callback: Callable):
-        """Register callback for orchestrator events."""
+        """Register callback for orchestrator events (legacy)."""
         self._callbacks.append(callback)
 
     async def _notify_callbacks(self, event: str, data: Any = None):
-        """Notify registered callbacks."""
+        """Notify registered callbacks (legacy)."""
         for callback in self._callbacks:
             try:
                 if asyncio.iscoroutinefunction(callback):
@@ -756,6 +976,99 @@ class Orchestrator:
                     callback(event, data)
             except Exception as e:
                 logger.error(f"Callback error: {e}")
+
+    # =========================================================================
+    # Event System (Steps 243-246)
+    # =========================================================================
+
+    def subscribe(self, event_type: EventType, listener: Callable[[OrchestratorEvent], None]):
+        """
+        Subscribe to an event type.
+
+        Args:
+            event_type: Type of event to listen for
+            listener: Callback function to invoke when event occurs
+        """
+        if event_type not in self._event_listeners:
+            self._event_listeners[event_type] = []
+        self._event_listeners[event_type].append(listener)
+        logger.debug(f"Subscribed listener to {event_type.value}")
+
+    def unsubscribe(self, event_type: EventType, listener: Callable[[OrchestratorEvent], None]):
+        """
+        Unsubscribe from an event type.
+
+        Args:
+            event_type: Type of event to unsubscribe from
+            listener: Callback function to remove
+        """
+        if event_type in self._event_listeners:
+            try:
+                self._event_listeners[event_type].remove(listener)
+            except ValueError:
+                pass
+
+    async def emit_event(
+        self,
+        event_type: EventType,
+        source: str = "",
+        data: Optional[Dict[str, Any]] = None,
+        message: str = ""
+    ):
+        """
+        Emit an event to all subscribed listeners.
+
+        Args:
+            event_type: Type of event to emit
+            source: Source of the event (e.g., service name)
+            data: Event data
+            message: Human-readable message
+        """
+        event = OrchestratorEvent(
+            event_type=event_type,
+            source=source,
+            data=data or {},
+            message=message,
+        )
+
+        listeners = self._event_listeners.get(event_type, [])
+        for listener in listeners:
+            try:
+                if asyncio.iscoroutinefunction(listener):
+                    await listener(event)
+                else:
+                    listener(event)
+            except Exception as e:
+                logger.error(f"Event listener error for {event_type.value}: {e}")
+
+        # Also notify legacy callbacks
+        await self._notify_callbacks(event_type.value, event)
+
+    # =========================================================================
+    # Metrics (Steps 248-250)
+    # =========================================================================
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get current orchestrator metrics."""
+        return self.metrics.to_dict()
+
+    async def record_command_execution(self, latency_ms: float):
+        """
+        Record a command execution for metrics.
+
+        Args:
+            latency_ms: Command execution time in milliseconds
+        """
+        self.metrics.record_command(latency_ms)
+
+    def record_service_error(self, service: str):
+        """
+        Record a service error for metrics.
+
+        Args:
+            service: Name of the service that had an error
+        """
+        self.metrics.record_error(service)
 
 
 # =============================================================================
