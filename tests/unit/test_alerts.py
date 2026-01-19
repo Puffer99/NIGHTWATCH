@@ -16,6 +16,7 @@ from services.alerts.alert_manager import (
     Alert,
     AlertLevel,
     AlertChannel,
+    AlertHistoryDB,
     MockNotifier,
     ALERT_TEMPLATES,
 )
@@ -480,3 +481,191 @@ class TestAcknowledgment:
         unacked = manager.get_unacknowledged()
         assert len(unacked) == 1
         assert unacked[0].id == alert2.id
+
+
+class TestAlertHistoryDB:
+    """Tests for AlertHistoryDB class."""
+
+    @pytest.fixture
+    def db(self):
+        """Create in-memory database for testing."""
+        db = AlertHistoryDB(":memory:")
+        db.connect()
+        yield db
+        db.close()
+
+    def test_insert_and_get_alert(self, db):
+        """Test inserting and retrieving an alert."""
+        alert = Alert(
+            level=AlertLevel.WARNING,
+            source="test",
+            message="Test alert",
+            data={"key": "value"}
+        )
+        alert.channels_sent = [AlertChannel.EMAIL, AlertChannel.PUSH]
+
+        db.insert_alert(alert)
+        retrieved = db.get_alert(alert.id)
+
+        assert retrieved is not None
+        assert retrieved.id == alert.id
+        assert retrieved.level == AlertLevel.WARNING
+        assert retrieved.source == "test"
+        assert retrieved.message == "Test alert"
+        assert retrieved.data == {"key": "value"}
+        assert AlertChannel.EMAIL in retrieved.channels_sent
+
+    def test_get_alerts_with_filters(self, db):
+        """Test querying alerts with filters."""
+        alert1 = Alert(level=AlertLevel.INFO, source="camera", message="Alert 1")
+        alert2 = Alert(level=AlertLevel.WARNING, source="mount", message="Alert 2")
+        alert3 = Alert(level=AlertLevel.WARNING, source="camera", message="Alert 3")
+
+        db.insert_alert(alert1)
+        db.insert_alert(alert2)
+        db.insert_alert(alert3)
+
+        # Filter by level
+        warnings = db.get_alerts(level=AlertLevel.WARNING)
+        assert len(warnings) == 2
+
+        # Filter by source
+        camera_alerts = db.get_alerts(source="camera")
+        assert len(camera_alerts) == 2
+
+        # Combined filters
+        camera_warnings = db.get_alerts(level=AlertLevel.WARNING, source="camera")
+        assert len(camera_warnings) == 1
+
+    def test_update_acknowledgment(self, db):
+        """Test updating alert acknowledgment."""
+        alert = Alert(level=AlertLevel.WARNING, source="test", message="Ack test")
+        db.insert_alert(alert)
+
+        ack_time = datetime.now()
+        db.update_acknowledgment(alert.id, "operator", ack_time)
+
+        retrieved = db.get_alert(alert.id)
+        assert retrieved.acknowledged is True
+        assert retrieved.acknowledged_by == "operator"
+
+    def test_get_unacknowledged(self, db):
+        """Test getting unacknowledged alerts."""
+        alert1 = Alert(level=AlertLevel.WARNING, source="test", message="Alert 1")
+        alert2 = Alert(level=AlertLevel.WARNING, source="test", message="Alert 2")
+        alert1.acknowledged = True
+        alert1.acknowledged_by = "operator"
+
+        db.insert_alert(alert1)
+        db.insert_alert(alert2)
+
+        unacked = db.get_unacknowledged()
+        assert len(unacked) == 1
+        assert unacked[0].id == alert2.id
+
+    def test_get_alert_count(self, db):
+        """Test getting alert count."""
+        for i in range(5):
+            alert = Alert(
+                level=AlertLevel.INFO if i < 3 else AlertLevel.WARNING,
+                source="test",
+                message=f"Alert {i}"
+            )
+            db.insert_alert(alert)
+
+        total = db.get_alert_count()
+        assert total == 5
+
+        info_count = db.get_alert_count(level=AlertLevel.INFO)
+        assert info_count == 3
+
+    def test_cleanup_old_alerts(self, db):
+        """Test cleaning up old alerts."""
+        # Create an old alert (manually set timestamp in the past)
+        old_alert = Alert(level=AlertLevel.INFO, source="test", message="Old")
+        old_alert.timestamp = datetime.now() - timedelta(days=60)
+        db.insert_alert(old_alert)
+
+        # Create a recent alert
+        new_alert = Alert(level=AlertLevel.INFO, source="test", message="New")
+        db.insert_alert(new_alert)
+
+        db.cleanup_old_alerts(retention_days=30)
+
+        # Old alert should be deleted
+        assert db.get_alert(old_alert.id) is None
+        # New alert should remain
+        assert db.get_alert(new_alert.id) is not None
+
+
+class TestAlertManagerWithDB:
+    """Tests for AlertManager with database persistence."""
+
+    @pytest.fixture
+    def manager_with_db(self):
+        """Create alert manager with in-memory database."""
+        config = AlertConfig(history_db_path=":memory:")
+        manager = AlertManager(config)
+        yield manager
+        manager.close()
+
+    @pytest.mark.asyncio
+    async def test_alerts_persisted_to_db(self, manager_with_db):
+        """Test that alerts are persisted to database."""
+        alert = Alert(
+            level=AlertLevel.WARNING,
+            source="test",
+            message="Persistence test"
+        )
+
+        await manager_with_db.raise_alert(alert)
+
+        # Check database directly
+        db_alert = manager_with_db._history_db.get_alert(alert.id)
+        assert db_alert is not None
+        assert db_alert.message == "Persistence test"
+
+    @pytest.mark.asyncio
+    async def test_acknowledgment_persisted(self, manager_with_db):
+        """Test that acknowledgments are persisted to database."""
+        alert = Alert(
+            level=AlertLevel.WARNING,
+            source="test",
+            message="Ack persistence test"
+        )
+
+        await manager_with_db.raise_alert(alert)
+        await manager_with_db.acknowledge(alert.id, "operator")
+
+        # Check database
+        db_alert = manager_with_db._history_db.get_alert(alert.id)
+        assert db_alert.acknowledged is True
+        assert db_alert.acknowledged_by == "operator"
+
+    def test_get_history_from_db(self, manager_with_db):
+        """Test querying history from database."""
+        # Insert some alerts directly
+        for i in range(5):
+            alert = Alert(
+                level=AlertLevel.INFO,
+                source="test",
+                message=f"History test {i}"
+            )
+            manager_with_db._history.append(alert)
+            manager_with_db._history_db.insert_alert(alert)
+
+        history = manager_with_db.get_history_from_db(limit=3)
+        assert len(history) == 3
+
+    def test_get_alert_stats(self, manager_with_db):
+        """Test getting alert statistics."""
+        # Add some alerts
+        for level in [AlertLevel.INFO, AlertLevel.INFO, AlertLevel.WARNING]:
+            alert = Alert(level=level, source="test", message="Stats test")
+            manager_with_db._history.append(alert)
+            manager_with_db._history_db.insert_alert(alert)
+
+        stats = manager_with_db.get_alert_stats()
+        assert stats["total"] == 3
+        assert stats["by_level"]["INFO"] == 2
+        assert stats["by_level"]["WARNING"] == 1

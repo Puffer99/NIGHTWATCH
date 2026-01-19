@@ -12,12 +12,14 @@ POS Panel v2.0 - Day 16 Recommendations (SRO Team + Bob Denny):
 import asyncio
 import logging
 import smtplib
+import sqlite3
 import ssl
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from enum import Enum
+from pathlib import Path
 from typing import Optional, List, Dict, Callable, Any
 import json
 import uuid
@@ -97,6 +99,10 @@ class AlertConfig:
     # Deduplication
     dedup_window_seconds: float = 300.0  # 5 minute window for dedup
 
+    # Alert history database
+    history_db_path: str = ""  # SQLite database path, empty for in-memory only
+    history_retention_days: int = 30  # How long to keep alerts
+
 
 @dataclass
 class Alert:
@@ -163,6 +169,231 @@ ALERT_TEMPLATES = {
 }
 
 
+class AlertHistoryDB:
+    """
+    SQLite database for persistent alert history.
+
+    Stores all alerts with their metadata for audit trail and analysis.
+    """
+
+    def __init__(self, db_path: str = ":memory:"):
+        """
+        Initialize alert history database.
+
+        Args:
+            db_path: Path to SQLite database, ":memory:" for in-memory
+        """
+        self.db_path = db_path
+        self._conn: Optional[sqlite3.Connection] = None
+
+    def connect(self):
+        """Connect to database and create tables."""
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        self._create_tables()
+
+    def close(self):
+        """Close database connection."""
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
+    def _create_tables(self):
+        """Create database tables."""
+        self._conn.executescript("""
+            CREATE TABLE IF NOT EXISTS alerts (
+                id TEXT PRIMARY KEY,
+                level TEXT NOT NULL,
+                source TEXT NOT NULL,
+                message TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                data TEXT,
+                acknowledged INTEGER DEFAULT 0,
+                acknowledged_by TEXT,
+                acknowledged_at TEXT,
+                channels_sent TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_alerts_timestamp
+                ON alerts(timestamp);
+            CREATE INDEX IF NOT EXISTS idx_alerts_level
+                ON alerts(level);
+            CREATE INDEX IF NOT EXISTS idx_alerts_source
+                ON alerts(source);
+            CREATE INDEX IF NOT EXISTS idx_alerts_acknowledged
+                ON alerts(acknowledged);
+        """)
+        self._conn.commit()
+
+    def insert_alert(self, alert: Alert):
+        """Insert alert into database."""
+        if not self._conn:
+            return
+
+        channels_json = json.dumps([c.value for c in alert.channels_sent])
+        data_json = json.dumps(alert.data) if alert.data else None
+
+        self._conn.execute("""
+            INSERT OR REPLACE INTO alerts
+            (id, level, source, message, timestamp, data,
+             acknowledged, acknowledged_by, acknowledged_at, channels_sent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            alert.id,
+            alert.level.name,
+            alert.source,
+            alert.message,
+            alert.timestamp.isoformat(),
+            data_json,
+            1 if alert.acknowledged else 0,
+            alert.acknowledged_by,
+            alert.acknowledged_at.isoformat() if alert.acknowledged_at else None,
+            channels_json
+        ))
+        self._conn.commit()
+
+    def update_acknowledgment(self, alert_id: str, user: str, timestamp: datetime):
+        """Update alert acknowledgment."""
+        if not self._conn:
+            return
+
+        self._conn.execute("""
+            UPDATE alerts
+            SET acknowledged = 1, acknowledged_by = ?, acknowledged_at = ?
+            WHERE id = ?
+        """, (user, timestamp.isoformat(), alert_id))
+        self._conn.commit()
+
+    def get_alert(self, alert_id: str) -> Optional[Alert]:
+        """Get alert by ID."""
+        if not self._conn:
+            return None
+
+        cursor = self._conn.execute(
+            "SELECT * FROM alerts WHERE id = ?", (alert_id,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return self._row_to_alert(row)
+        return None
+
+    def get_alerts(
+        self,
+        since: Optional[datetime] = None,
+        level: Optional[AlertLevel] = None,
+        source: Optional[str] = None,
+        acknowledged: Optional[bool] = None,
+        limit: int = 100
+    ) -> List[Alert]:
+        """
+        Query alerts with optional filters.
+
+        Args:
+            since: Only alerts after this time
+            level: Filter by level
+            source: Filter by source
+            acknowledged: Filter by acknowledgment status
+            limit: Maximum results
+
+        Returns:
+            List of matching alerts
+        """
+        if not self._conn:
+            return []
+
+        query = "SELECT * FROM alerts WHERE 1=1"
+        params = []
+
+        if since:
+            query += " AND timestamp >= ?"
+            params.append(since.isoformat())
+
+        if level:
+            query += " AND level = ?"
+            params.append(level.name)
+
+        if source:
+            query += " AND source = ?"
+            params.append(source)
+
+        if acknowledged is not None:
+            query += " AND acknowledged = ?"
+            params.append(1 if acknowledged else 0)
+
+        query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+
+        cursor = self._conn.execute(query, params)
+        return [self._row_to_alert(row) for row in cursor.fetchall()]
+
+    def get_unacknowledged(self) -> List[Alert]:
+        """Get all unacknowledged alerts."""
+        return self.get_alerts(acknowledged=False, limit=1000)
+
+    def get_alert_count(
+        self,
+        since: Optional[datetime] = None,
+        level: Optional[AlertLevel] = None
+    ) -> int:
+        """Get count of alerts matching criteria."""
+        if not self._conn:
+            return 0
+
+        query = "SELECT COUNT(*) FROM alerts WHERE 1=1"
+        params = []
+
+        if since:
+            query += " AND timestamp >= ?"
+            params.append(since.isoformat())
+
+        if level:
+            query += " AND level = ?"
+            params.append(level.name)
+
+        cursor = self._conn.execute(query, params)
+        return cursor.fetchone()[0]
+
+    def cleanup_old_alerts(self, retention_days: int):
+        """Delete alerts older than retention period."""
+        if not self._conn:
+            return
+
+        cutoff = datetime.now() - timedelta(days=retention_days)
+        self._conn.execute(
+            "DELETE FROM alerts WHERE timestamp < ?",
+            (cutoff.isoformat(),)
+        )
+        self._conn.commit()
+        logger.info(f"Cleaned up alerts older than {retention_days} days")
+
+    def _row_to_alert(self, row: sqlite3.Row) -> Alert:
+        """Convert database row to Alert object."""
+        channels = []
+        if row["channels_sent"]:
+            channel_values = json.loads(row["channels_sent"])
+            channels = [AlertChannel(v) for v in channel_values]
+
+        data = None
+        if row["data"]:
+            data = json.loads(row["data"])
+
+        return Alert(
+            id=row["id"],
+            level=AlertLevel[row["level"]],
+            source=row["source"],
+            message=row["message"],
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+            data=data,
+            acknowledged=bool(row["acknowledged"]),
+            acknowledged_by=row["acknowledged_by"],
+            acknowledged_at=(
+                datetime.fromisoformat(row["acknowledged_at"])
+                if row["acknowledged_at"] else None
+            ),
+            channels_sent=channels
+        )
+
+
 class AlertManager:
     """
     Multi-channel alert system for NIGHTWATCH.
@@ -172,7 +403,7 @@ class AlertManager:
     - Severity-based routing
     - Escalation for unacknowledged alerts
     - Rate limiting
-    - Alert history
+    - Alert history (in-memory and optional SQLite persistence)
     """
 
     def __init__(self, config: Optional[AlertConfig] = None):
@@ -191,6 +422,13 @@ class AlertManager:
         self._escalation_tasks: Dict[str, asyncio.Task] = {}
         self._callbacks: List[Callable] = []
         self._http_session = None  # Lazy initialized for webhook/ntfy
+
+        # Initialize history database if configured
+        self._history_db: Optional[AlertHistoryDB] = None
+        if self.config.history_db_path:
+            self._history_db = AlertHistoryDB(self.config.history_db_path)
+            self._history_db.connect()
+            logger.info(f"Alert history database: {self.config.history_db_path}")
 
     def _get_channels_for_level(self, level: AlertLevel) -> List[AlertChannel]:
         """Get notification channels for alert level."""
@@ -305,8 +543,10 @@ class AlertManager:
             except Exception as e:
                 logger.error(f"Failed to send to {channel.value}: {e}")
 
-        # Store in history
+        # Store in history (both in-memory and database)
         self._history.append(alert)
+        if self._history_db:
+            self._history_db.insert_alert(alert)
 
         # Start escalation timer for critical/emergency
         if alert.level in [AlertLevel.CRITICAL, AlertLevel.EMERGENCY]:
@@ -753,6 +993,12 @@ class AlertManager:
                 alert.acknowledged_by = user
                 alert.acknowledged_at = datetime.now()
 
+                # Update database
+                if self._history_db:
+                    self._history_db.update_acknowledgment(
+                        alert_id, user, alert.acknowledged_at
+                    )
+
                 # Cancel escalation
                 if alert_id in self._escalation_tasks:
                     self._escalation_tasks[alert_id].cancel()
@@ -771,6 +1017,94 @@ class AlertManager:
         """Get alerts from the last N hours."""
         cutoff = datetime.now() - timedelta(hours=hours)
         return [a for a in self._history if a.timestamp > cutoff]
+
+    def get_history_from_db(
+        self,
+        since: Optional[datetime] = None,
+        level: Optional[AlertLevel] = None,
+        source: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Alert]:
+        """
+        Query alerts from persistent database.
+
+        Args:
+            since: Only alerts after this time
+            level: Filter by level
+            source: Filter by source
+            limit: Maximum results
+
+        Returns:
+            List of matching alerts
+        """
+        if not self._history_db:
+            # Fall back to in-memory if no database
+            results = self._history
+            if since:
+                results = [a for a in results if a.timestamp >= since]
+            if level:
+                results = [a for a in results if a.level == level]
+            if source:
+                results = [a for a in results if a.source == source]
+            return results[:limit]
+
+        return self._history_db.get_alerts(
+            since=since, level=level, source=source, limit=limit
+        )
+
+    def get_alert_stats(self, hours: float = 24.0) -> Dict[str, Any]:
+        """
+        Get alert statistics for the specified period.
+
+        Returns:
+            Dict with counts by level, source, and acknowledgment rate
+        """
+        cutoff = datetime.now() - timedelta(hours=hours)
+
+        if self._history_db:
+            # Use database for stats
+            stats = {
+                "total": self._history_db.get_alert_count(since=cutoff),
+                "by_level": {},
+                "unacknowledged": len(self._history_db.get_unacknowledged()),
+            }
+            for level in AlertLevel:
+                stats["by_level"][level.name] = self._history_db.get_alert_count(
+                    since=cutoff, level=level
+                )
+        else:
+            # Use in-memory history
+            recent = [a for a in self._history if a.timestamp >= cutoff]
+            stats = {
+                "total": len(recent),
+                "by_level": {},
+                "unacknowledged": len([a for a in recent if not a.acknowledged]),
+            }
+            for level in AlertLevel:
+                stats["by_level"][level.name] = len(
+                    [a for a in recent if a.level == level]
+                )
+
+        return stats
+
+    def cleanup_old_alerts(self):
+        """Clean up old alerts from database based on retention policy."""
+        if self._history_db:
+            self._history_db.cleanup_old_alerts(self.config.history_retention_days)
+
+    def close(self):
+        """Close alert manager and cleanup resources."""
+        # Cancel all escalation tasks
+        for task in self._escalation_tasks.values():
+            task.cancel()
+        self._escalation_tasks.clear()
+
+        # Close database
+        if self._history_db:
+            self._history_db.close()
+            self._history_db = None
+
+        logger.info("Alert manager closed")
 
     # =========================================================================
     # ESCALATION

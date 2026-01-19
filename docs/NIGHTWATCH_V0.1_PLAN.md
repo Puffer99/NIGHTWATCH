@@ -220,12 +220,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 132 | Core Service Completion | alerts | Implement alert severity levels (INFO, WARNING, CRITICAL, EMERGENCY) | 131 | 2 | 1 | Complete | Alert classification |
 | 133 | Core Service Completion | alerts | Implement alert escalation logic | 132 | 3 | 2 | Complete | Severity routing |
 | 134 | Core Service Completion | alerts | Add alert acknowledgment tracking | 133 | 2 | 2 | Complete | Operator response |
-| 135 | Core Service Completion | alerts | Implement alert history database (SQLite) | 134 | 3 | 2 | Not Started | Audit trail |
+| 135 | Core Service Completion | alerts | Implement alert history database (SQLite) | 134 | 3 | 2 | Complete | AlertHistoryDB class with full CRUD |
 | 136 | Core Service Completion | alerts | Add alert deduplication | 135 | 2 | 2 | Complete | _is_duplicate method with dedup_window_seconds |
 | 137 | Core Service Completion | alerts | Implement quiet hours configuration | 136 | 2 | 1 | Complete | _is_quiet_hours, quiet_hours_start/end config |
 | 138 | Core Service Completion | alerts | Create mock notifier for testing | 137 | 2 | 1 | Complete | MockNotifier class records all sends |
 | 139 | Core Service Completion | alerts | Write unit tests for alert channels | 138 | 2 | 2 | Complete | 29 tests in test_alerts.py |
-| 140 | Core Service Completion | alerts | Write integration test for escalation | 139 | 2 | 2 | Not Started | End-to-end test |
+| 140 | Core Service Completion | alerts | Write integration test for escalation | 139 | 2 | 2 | Complete | 7 tests in test_alert_escalation.py |
 | 141 | Core Service Completion | power | Review power_manager.py current implementation | None | 2 | 1 | Complete | Good structure, NUT placeholder, thresholds configured |
 | 142 | Core Service Completion | power | Implement NUT (Network UPS Tools) client | 141 | 4 | 3 | Not Started | UPS monitoring |
 | 143 | Core Service Completion | power | Add NUT protocol message parsing | 142 | 3 | 2 | Not Started | UPS data extraction |
@@ -278,14 +278,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 190 | Core Service Completion | focus | Create mock focuser for testing | 189 | 2 | 2 | Not Started | Simulation mode |
 | 191 | Core Service Completion | focus | Write unit tests for autofocus algorithms | 190 | 3 | 2 | Not Started | Test coverage |
 | 192 | Core Service Completion | focus | Write integration test with camera | 191 | 3 | 2 | Not Started | End-to-end test |
-| 193 | Core Service Completion | guiding | Review phd2_client.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 193 | Core Service Completion | guiding | Review phd2_client.py current implementation | None | 2 | 1 | Complete | Full JSON-RPC client, dither, calibration, events |
 | 194 | Core Service Completion | guiding | Complete dither implementation | 193 | 3 | 2 | Not Started | Imaging workflow |
 | 195 | Core Service Completion | guiding | Add settling detection with timeout | 194 | 3 | 2 | Not Started | Wait for stable |
 | 196 | Core Service Completion | guiding | Implement guide star loss recovery | 195 | 3 | 2 | Not Started | Auto-reselect |
 | 197 | Core Service Completion | guiding | Add RMS trending and alerts | 196 | 3 | 2 | Not Started | Quality monitoring |
 | 198 | Core Service Completion | guiding | Implement guide log parsing | 197 | 3 | 2 | Not Started | Session analysis |
 | 199 | Core Service Completion | guiding | Write unit tests for PHD2 client | 198 | 2 | 2 | Not Started | Test coverage |
-| 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Complete | Full WS90 integration, safety thresholds |
 | 201 | Core Service Completion | weather | Add AAG CloudWatcher integration | 200 | 4 | 3 | Not Started | Cloud sensing |
 | 202 | Core Service Completion | weather | Implement CloudWatcher serial protocol | 201 | 3 | 2 | Not Started | Data parsing |
 | 203 | Core Service Completion | weather | Add sky quality (SQM) reading | 202 | 2 | 1 | Not Started | Darkness level |
@@ -295,7 +295,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 207 | Core Service Completion | weather | Add seeing estimation (FWHM proxy) | 206 | 4 | 3 | Not Started | Image quality prediction |
 | 208 | Core Service Completion | weather | Create unified weather interface | 207 | 3 | 2 | Not Started | Abstract both sources |
 | 209 | Core Service Completion | weather | Write unit tests for weather service | 208 | 2 | 2 | Not Started | Test coverage |
-| 210 | Core Service Completion | ephemeris | Review skyfield_service.py current implementation | None | 2 | 1 | Not Started | Understand gaps |
+| 210 | Core Service Completion | ephemeris | Review skyfield_service.py current implementation | None | 2 | 1 | Complete | Full Skyfield integration, J2000/JNow, planets, twilight |
 | 211 | Core Service Completion | ephemeris | Add proper motion correction for stars | 210 | 4 | 3 | Not Started | Epoch adjustment |
 | 212 | Core Service Completion | Orchestrator Development | orchestrator | Create nightwatch/orchestrator.py module skeleton | 21 | 3 | 2 | Not Started | Central control |
 | 213 | Orchestrator Development | orchestrator | Define Orchestrator class with config injection | 212 | 2 | 1 | Not Started | Constructor |
