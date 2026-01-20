@@ -186,7 +186,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 98 | Core Service Completion | camera | Add SER file recording for planetary | 97 | 4 | 3 | Not Started | Video format |
 | 99 | Core Service Completion | camera | Create mock camera for testing | 98 | 3 | 2 | Complete | tests/mocks/mock_camera.py with presets |
 | 100 | Core Service Completion | camera | Write unit tests for camera control | 99 | 2 | 2 | Complete | test_camera_service.py (26 tests) |
-| 101 | Core Service Completion | camera | Write integration test with simulator | 100 | 3 | 2 | Not Started | End-to-end test |
+| 101 | Core Service Completion | camera | Write integration test with simulator | 100 | 3 | 2 | Complete | tests/integration/test_camera_simulator.py (6 test classes) |
 | 102 | Core Service Completion | astrometry | Review plate_solver.py current implementation | None | 2 | 1 | Complete | Full astrometry.net/ASTAP, WCS parsing, mount sync |
 | 103 | Core Service Completion | astrometry | Implement astrometry.net local solver backend | 102 | 4 | 4 | Complete | _solve_astrometry_net() in plate_solver.py |
 | 104 | Core Service Completion | astrometry | Add index file configuration for astrometry.net | 103 | 3 | 2 | Complete | SolverConfig.index_path in plate_solver.py |
@@ -614,8 +614,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 526 | Hardware-in-Loop Simulation | simulators | Add weather pattern generation | 525 | 3 | 2 | Complete | Diurnal temp cycles, wind variability, rain events |
 | 527 | Hardware-in-Loop Simulation | simulators | Add configurable weather scenarios | 526 | 2 | 1 | Complete | WeatherScenario enum, SCENARIO_PRESETS in weather_simulator.py |
 | 528 | Hardware-in-Loop Simulation | simulators | Create camera_simulator.py | 527 | 3 | 2 | Complete | CameraSimulator class with 5 ASI models, cooler sim |
-| 529 | Hardware-in-Loop Simulation | simulators | Implement simulated image generation | 528 | 4 | 3 | Not Started | Synthetic stars |
-| 530 | Hardware-in-Loop Simulation | simulators | Add configurable star field | 529 | 3 | 2 | Not Started | Test images |
+| 529 | Hardware-in-Loop Simulation | simulators | Implement simulated image generation | 528 | 4 | 3 | Complete | StarFieldGenerator in star_field.py with Gaussian PSF |
+| 530 | Hardware-in-Loop Simulation | simulators | Add configurable star field | 529 | 3 | 2 | Complete | StarFieldConfig with density, FWHM, hot pixels, cosmic rays |
 | 531 | Hardware-in-Loop Simulation | simulators | Add noise simulation | 530 | 2 | 1 | Complete | Realistic images |
 | 532 | Hardware-in-Loop Simulation | simulators | Create phd2_simulator.py | 531 | 3 | 2 | Complete | guider_simulator.py in services/simulators/, phd2_simulator.py in docker/simulators/ |
 | 533 | Hardware-in-Loop Simulation | simulators | Implement JSON-RPC protocol | 532 | 3 | 2 | Complete | Full JSON-RPC in docker/simulators/phd2_simulator.py |
@@ -707,7 +707,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 619 | Deployment Preparation | install | Add virtual environment creation | 618 | 2 | 1 | Complete | venv with pip upgrade |
 | 620 | Deployment Preparation | install | Add pip dependency installation | 619 | 2 | 1 | Complete | Services + voice + dev deps |
 | 621 | Deployment Preparation | install | Add configuration template generation | 620 | 2 | 1 | Complete | Full YAML template |
-| 622 | Deployment Preparation | install | Create install.bat for Windows | 621 | 3 | 2 | Not Started | Windows install |
+| 622 | Deployment Preparation | install | Create install.bat for Windows | 621 | 3 | 2 | Complete | install.bat with venv, pip, config generation |
 | 623 | Deployment Preparation | install | Create upgrade.sh script | 622 | 2 | 1 | Complete | Backup, update, restart services |
 | 624 | Deployment Preparation | install | Write installation documentation | 623 | 2 | 1 | Complete | INSTALLATION.md created |
 | 625 | Deployment Preparation | systemd | Create nightwatch.service systemd unit | None | 3 | 2 | Complete | Full service with security hardening |
@@ -720,7 +720,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 632 | Deployment Preparation | hardware | Document encoder wiring | 631 | 2 | 1 | Complete | AMT103-V in HARDWARE_SETUP.md |
 | 633 | Deployment Preparation | hardware | Document Ecowitt WS90 network setup | 632 | 2 | 1 | Complete | Network config in HARDWARE_SETUP.md |
 | 634 | Deployment Preparation | hardware | Document AAG CloudWatcher serial setup | 633 | 2 | 1 | Complete | Cloud sensor section in HARDWARE_SETUP.md |
-| 635 | Deployment Preparation | hardware | Document DGX Spark setup | 634 | 3 | 2 | Not Started | AI compute |
+| 635 | Deployment Preparation | hardware | Document DGX Spark setup | 634 | 3 | 2 | Complete | DGX_SPARK_SETUP.md with Ollama/vLLM/TensorRT-LLM |
 | 636 | Deployment Preparation | hardware | Document microphone selection and setup | 635 | 2 | 1 | Complete | Audio section in HARDWARE_SETUP.md |
 | 637 | Deployment Preparation | hardware | Document speaker selection and setup | 636 | 2 | 1 | Complete | Audio section in HARDWARE_SETUP.md |
 | 638 | Deployment Preparation | hardware | Create pre-flight checklist | 637 | 2 | 1 | Complete | PREFLIGHT_CHECKLIST.md |
