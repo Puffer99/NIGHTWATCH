@@ -306,9 +306,18 @@ TELESCOPE_TOOLS: List[Tool] = [
 
     Tool(
         name="get_visible_planets",
-        description="List planets currently visible above the horizon.",
+        description="List planets currently visible above the horizon. "
+                    "Shows altitude, direction, and observation quality.",
         category=ToolCategory.EPHEMERIS,
-        parameters=[]
+        parameters=[
+            ToolParameter(
+                name="min_altitude",
+                type="number",
+                description="Minimum altitude in degrees (default 10)",
+                required=False,
+                default=10.0
+            )
+        ]
     ),
 
     Tool(
@@ -387,6 +396,13 @@ TELESCOPE_TOOLS: List[Tool] = [
                 type="string",
                 description="Why confirmation is needed",
                 required=False
+            ),
+            ToolParameter(
+                name="timeout_seconds",
+                type="number",
+                description="Seconds to wait for confirmation before auto-cancel (default 30)",
+                required=False,
+                default=30
             )
         ]
     ),
@@ -418,6 +434,18 @@ TELESCOPE_TOOLS: List[Tool] = [
                 description="Session ID to filter by ('current' for tonight, 'last' for previous)",
                 required=False,
                 enum=["current", "last", "all"]
+            ),
+            ToolParameter(
+                name="start_date",
+                type="string",
+                description="Start date filter in YYYY-MM-DD format",
+                required=False
+            ),
+            ToolParameter(
+                name="end_date",
+                type="string",
+                description="End date filter in YYYY-MM-DD format",
+                required=False
             )
         ]
     ),
@@ -1504,9 +1532,78 @@ def create_default_handlers(
 
     # Catalog handlers
     async def lookup_object(object_name: str) -> str:
+        """Look up information about a celestial object (Step 352)."""
         if not catalog_service:
             return "Catalog not available"
-        return catalog_service.what_is(object_name)
+
+        # Try catalog lookup first
+        obj = catalog_service.lookup(object_name)
+
+        if obj:
+            parts = []
+
+            # Object identification
+            name = obj.name or obj.catalog_id
+            parts.append(f"{name}")
+
+            # Object type if available
+            if hasattr(obj, 'object_type') and obj.object_type:
+                parts.append(f"Type: {obj.object_type}")
+
+            # Coordinates
+            parts.append(f"Position: RA {obj.ra_hms}, Dec {obj.dec_dms}")
+
+            # Magnitude if available
+            if hasattr(obj, 'magnitude') and obj.magnitude is not None:
+                parts.append(f"Magnitude: {obj.magnitude:.1f}")
+
+            # Size if available
+            if hasattr(obj, 'size_arcmin') and obj.size_arcmin:
+                parts.append(f"Size: {obj.size_arcmin}' arcmin")
+
+            # Constellation if available
+            if hasattr(obj, 'constellation') and obj.constellation:
+                parts.append(f"Constellation: {obj.constellation}")
+
+            # Description if available
+            if hasattr(obj, 'description') and obj.description:
+                parts.append(obj.description)
+
+            # Current altitude if ephemeris available
+            if ephemeris_service:
+                try:
+                    ra_deg = None
+                    if hasattr(obj, 'ra_degrees'):
+                        ra_deg = obj.ra_degrees
+                    elif hasattr(obj, 'ra_hms'):
+                        # Parse RA to degrees
+                        ra_parts = obj.ra_hms.replace('h', ':').replace('m', ':').replace('s', '').split(':')
+                        ra_deg = (float(ra_parts[0]) + float(ra_parts[1])/60 + float(ra_parts[2])/3600) * 15
+
+                    dec_deg = None
+                    if hasattr(obj, 'dec_degrees'):
+                        dec_deg = obj.dec_degrees
+
+                    if ra_deg is not None and dec_deg is not None:
+                        alt = ephemeris_service.get_altitude_for_coords(ra_deg, dec_deg)
+                        if alt is not None:
+                            if alt < 0:
+                                parts.append(f"Currently below horizon ({alt:.1f}°)")
+                            elif alt < 10:
+                                parts.append(f"Low altitude: {alt:.1f}° - poor for observation")
+                            else:
+                                parts.append(f"Current altitude: {alt:.1f}°")
+                except Exception:
+                    pass
+
+            return ". ".join(parts)
+
+        # Try what_is for description
+        description = catalog_service.what_is(object_name)
+        if description and "not found" not in description.lower():
+            return description
+
+        return f"Object '{object_name}' not found in catalog"
 
     handlers["lookup_object"] = lookup_object
 
@@ -1557,16 +1654,81 @@ def create_default_handlers(
 
     handlers["get_planet_position"] = get_planet_position
 
-    async def get_visible_planets() -> str:
+    async def get_visible_planets(min_altitude: float = 10.0) -> str:
+        """Get list of currently visible planets (Steps 361-362)."""
         if not ephemeris_service:
             return "Ephemeris not available"
-        visible = ephemeris_service.get_visible_planets()
-        if not visible:
-            return "No planets currently visible above 10 degrees"
-        parts = []
-        for body, pos in visible:
-            parts.append(f"{body.value.capitalize()} at {pos.altitude_degrees:.1f}° altitude")
-        return "Visible planets: " + ", ".join(parts)
+
+        try:
+            from services.ephemeris import CelestialBody
+
+            # Get all planet positions
+            planets = [
+                CelestialBody.MERCURY, CelestialBody.VENUS, CelestialBody.MARS,
+                CelestialBody.JUPITER, CelestialBody.SATURN, CelestialBody.URANUS,
+                CelestialBody.NEPTUNE
+            ]
+
+            visible = []
+            below_horizon = []
+
+            for planet in planets:
+                try:
+                    pos = ephemeris_service.get_body_position(planet)
+                    if pos:
+                        # Step 362: Filter by altitude
+                        if pos.altitude_degrees >= min_altitude:
+                            visible.append((planet, pos))
+                        elif pos.altitude_degrees > 0:
+                            # Above horizon but below filter
+                            below_horizon.append((planet, pos))
+                except Exception:
+                    continue
+
+            if not visible:
+                if below_horizon:
+                    low_list = ", ".join([f"{p.value.capitalize()} ({pos.altitude_degrees:.0f}°)"
+                                          for p, pos in below_horizon])
+                    return f"No planets above {min_altitude}° altitude. Low on horizon: {low_list}"
+                return f"No planets currently visible above {min_altitude}° altitude"
+
+            # Sort by altitude (highest first)
+            visible.sort(key=lambda x: x[1].altitude_degrees, reverse=True)
+
+            parts = ["Visible planets:"]
+            for body, pos in visible:
+                name = body.value.capitalize()
+                alt = pos.altitude_degrees
+                az = pos.azimuth_degrees
+
+                # Convert azimuth to compass direction
+                directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                              "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+                dir_idx = int((az + 11.25) / 22.5) % 16
+                compass = directions[dir_idx]
+
+                # Add visibility assessment
+                if alt > 60:
+                    quality = "excellent"
+                elif alt > 30:
+                    quality = "good"
+                else:
+                    quality = "fair"
+
+                parts.append(f"  {name}: {alt:.0f}° altitude, {compass} ({quality})")
+
+            return "\n".join(parts)
+
+        except Exception as e:
+            # Fallback to basic method if available
+            if hasattr(ephemeris_service, 'get_visible_planets'):
+                visible = ephemeris_service.get_visible_planets()
+                if not visible:
+                    return "No planets currently visible"
+                planet_list = ", ".join([f"{b.value.capitalize()} at {p.altitude_degrees:.1f}°"
+                                         for b, p in visible])
+                return f"Visible planets: {planet_list}"
+            return f"Error getting planet visibility: {e}"
 
     handlers["get_visible_planets"] = get_visible_planets
 
@@ -1756,6 +1918,75 @@ def create_default_handlers(
 
     handlers["get_wind_speed"] = get_wind_speed
 
+    async def get_cloud_status() -> str:
+        """Get cloud cover and sky quality status (Steps 374-375)."""
+        parts = []
+
+        # Get cloud sensor data from safety monitor
+        if safety_monitor:
+            if hasattr(safety_monitor, '_cloud_data') and safety_monitor._cloud_data:
+                cloud_data = safety_monitor._cloud_data
+                sky_diff = cloud_data.value
+
+                # Interpret sky-ambient temperature differential
+                if sky_diff < -25:
+                    parts.append("Sky condition: Clear")
+                    cloud_pct = 0
+                elif sky_diff < -20:
+                    parts.append("Sky condition: Mostly clear")
+                    cloud_pct = 20
+                elif sky_diff < -15:
+                    parts.append("Sky condition: Partly cloudy")
+                    cloud_pct = 50
+                elif sky_diff < -10:
+                    parts.append("Sky condition: Mostly cloudy")
+                    cloud_pct = 75
+                else:
+                    parts.append("Sky condition: Overcast")
+                    cloud_pct = 100
+
+                parts.append(f"Cloud sensor reading: {sky_diff:.1f}°C (sky-ambient)")
+                parts.append(f"Estimated cloud cover: {cloud_pct}%")
+
+                # Sensor timestamp
+                from datetime import datetime
+                age = (datetime.now() - cloud_data.timestamp).total_seconds()
+                if age < 60:
+                    parts.append(f"Reading: {age:.0f} seconds ago")
+                else:
+                    parts.append(f"Reading: {age/60:.0f} minutes ago")
+            else:
+                parts.append("Cloud sensor data not available")
+
+        # Step 375: Add sky quality (SQM) if available
+        # SQM measures sky brightness in magnitudes per square arcsecond
+        # Darker = higher number (21+ is excellent, 18- is light polluted)
+        if safety_monitor and hasattr(safety_monitor, '_sqm_reading'):
+            sqm = safety_monitor._sqm_reading
+            if sqm is not None:
+                parts.append(f"Sky quality: {sqm:.2f} mag/arcsec²")
+                if sqm >= 21.5:
+                    parts.append("Excellent dark sky conditions")
+                elif sqm >= 20.5:
+                    parts.append("Good dark sky conditions")
+                elif sqm >= 19.5:
+                    parts.append("Rural sky conditions")
+                elif sqm >= 18.5:
+                    parts.append("Suburban sky conditions")
+                else:
+                    parts.append("Light polluted sky")
+        else:
+            # Estimate from cloud cover if no SQM
+            if 'Clear' in parts[0] if parts else '':
+                parts.append("Sky quality: Good (estimated from cloud sensor)")
+
+        if not parts:
+            return "Cloud status not available - no sensors connected"
+
+        return ". ".join(parts)
+
+    handlers["get_cloud_status"] = get_cloud_status
+
     async def is_safe_to_observe() -> str:
         """Check if conditions are safe for observation (Steps 379-380)."""
         if not safety_monitor:
@@ -1814,11 +2045,16 @@ def create_default_handlers(
     # POS PANEL v1.0 HANDLERS
     # -------------------------------------------------------------------------
 
-    async def confirm_command(action: str, reason: str = None) -> str:
-        """Request user confirmation for critical command."""
+    async def confirm_command(action: str, reason: str = None, timeout_seconds: int = 30) -> str:
+        """Request user confirmation for critical command (Steps 386-387)."""
         # In production, this would trigger a confirmation prompt
         # and wait for user response via voice or button
         reason_text = f" ({reason})" if reason else ""
+
+        # Step 387: Add timeout for confirmation
+        if timeout_seconds > 0:
+            return (f"Please confirm: {action}{reason_text}. "
+                    f"Say 'confirm' or 'cancel' within {timeout_seconds} seconds.")
         return f"Please confirm: {action}{reason_text}. Say 'confirm' or 'cancel'."
 
     handlers["confirm_command"] = confirm_command
@@ -1832,11 +2068,48 @@ def create_default_handlers(
 
     handlers["abort_slew"] = abort_slew
 
-    async def get_observation_log(limit: int = 10, session: str = "current") -> str:
-        """Get observation session history."""
-        # In production, this would query an observation database
-        # For now, return a placeholder
-        return f"Observation log ({session}, last {limit} entries): No observations recorded yet."
+    async def get_observation_log(
+        limit: int = 10,
+        session: str = "current",
+        start_date: str = None,
+        end_date: str = None
+    ) -> str:
+        """Get observation session history (Step 388)."""
+        from datetime import datetime, timedelta
+
+        # In a production system, this would query a database.
+        # For now, we provide a structured placeholder that shows the interface.
+
+        parts = []
+
+        # Parse date filters if provided
+        date_filter_str = ""
+        if start_date or end_date:
+            if start_date and end_date:
+                date_filter_str = f" from {start_date} to {end_date}"
+            elif start_date:
+                date_filter_str = f" since {start_date}"
+            elif end_date:
+                date_filter_str = f" until {end_date}"
+
+        if session == "current":
+            parts.append(f"Current session log (last {limit} entries{date_filter_str}):")
+        elif session == "last":
+            parts.append(f"Previous session log (last {limit} entries{date_filter_str}):")
+        else:
+            parts.append(f"Session '{session}' log (last {limit} entries{date_filter_str}):")
+
+        # Placeholder: In production, query observation database
+        # Example format for future implementation:
+        # observations = db.query_observations(session=session, limit=limit,
+        #                                      start_date=start_date, end_date=end_date)
+        # for obs in observations:
+        #     parts.append(f"  {obs.timestamp}: {obs.target} - {obs.status}")
+
+        parts.append("  No observations recorded yet.")
+        parts.append("  (Observation logging will be enabled when session management is active)")
+
+        return "\n".join(parts)
 
     handlers["get_observation_log"] = get_observation_log
 

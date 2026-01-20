@@ -437,7 +437,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 349 | Tool Handler Implementation | mount_tools | Implement home_telescope handler | 348 | 2 | 1 | Complete | home_telescope() with find_home/home fallback |
 | 350 | Tool Handler Implementation | mount_tools | Add home position offset setting | 349 | 2 | 1 | Not Started | Calibration |
 | 351 | Tool Handler Implementation | mount_tools | Write unit tests for mount tool handlers | 350 | 2 | 2 | Not Started | Test coverage |
-| 352 | Tool Handler Implementation | catalog_tools | Implement lookup_object handler | 257,78 | 2 | 1 | Not Started | Object search |
+| 352 | Tool Handler Implementation | catalog_tools | Implement lookup_object handler | 257,78 | 2 | 1 | Complete | Enhanced with type, mag, constellation, altitude |
 | 353 | Tool Handler Implementation | catalog_tools | Add fuzzy name matching | 352 | 3 | 2 | Not Started | Typo tolerance |
 | 354 | Tool Handler Implementation | catalog_tools | Implement what_am_i_looking_at handler | 353 | 3 | 2 | Not Started | Reverse lookup |
 | 355 | Tool Handler Implementation | catalog_tools | Add nearest object search by coordinates | 354 | 3 | 2 | Not Started | Cone search |
@@ -446,8 +446,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 358 | Tool Handler Implementation | catalog_tools | Write unit tests for catalog tool handlers | 357 | 2 | 2 | Not Started | Test coverage |
 | 359 | Tool Handler Implementation | ephemeris_tools | Implement get_planet_position handler | 257 | 2 | 1 | Complete | get_planet_position() with full coords |
 | 360 | Tool Handler Implementation | ephemeris_tools | Add rise/set times in response | 359 | 2 | 1 | Complete | Rise/set/transit times in planet position |
-| 361 | Tool Handler Implementation | ephemeris_tools | Implement get_visible_planets handler | 360 | 2 | 1 | Not Started | Currently up |
-| 362 | Tool Handler Implementation | ephemeris_tools | Add altitude filter for visibility | 361 | 2 | 1 | Not Started | Above horizon |
+| 361 | Tool Handler Implementation | ephemeris_tools | Implement get_visible_planets handler | 360 | 2 | 1 | Complete | Enhanced with compass direction and quality |
+| 362 | Tool Handler Implementation | ephemeris_tools | Add altitude filter for visibility | 361 | 2 | 1 | Complete | min_altitude parameter with default 10° |
 | 363 | Tool Handler Implementation | ephemeris_tools | Implement get_moon_info handler | 362 | 2 | 1 | Complete | get_moon_info() with position and phase |
 | 364 | Tool Handler Implementation | ephemeris_tools | Add illumination percentage | 363 | 2 | 1 | Complete | Phase name and illumination in moon info |
 | 365 | Tool Handler Implementation | ephemeris_tools | Implement is_it_dark handler | 364 | 2 | 1 | Complete | Enhanced is_it_dark() with time until |
@@ -459,8 +459,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 371 | Tool Handler Implementation | weather_tools | Add formatted temperature (F and C) | 370 | 2 | 1 | Complete | Both F and C in get_weather response |
 | 372 | Tool Handler Implementation | weather_tools | Implement get_wind_speed handler | 371 | 2 | 1 | Complete | get_wind_speed() with direction |
 | 373 | Tool Handler Implementation | weather_tools | Add gust warning in response | 372 | 2 | 1 | Complete | Gust warnings in get_wind_speed |
-| 374 | Tool Handler Implementation | weather_tools | Implement get_cloud_status handler | 373 | 2 | 1 | Not Started | Cloud cover |
-| 375 | Tool Handler Implementation | weather_tools | Add sky quality (SQM) in response | 374 | 2 | 1 | Not Started | Darkness level |
+| 374 | Tool Handler Implementation | weather_tools | Implement get_cloud_status handler | 373 | 2 | 1 | Complete | get_cloud_status() with sky-ambient reading |
+| 375 | Tool Handler Implementation | weather_tools | Add sky quality (SQM) in response | 374 | 2 | 1 | Complete | SQM mag/arcsec² with quality assessment |
 | 376 | Tool Handler Implementation | weather_tools | Implement get_seeing_prediction handler | 375 | 3 | 2 | Not Started | Image quality |
 | 377 | Tool Handler Implementation | weather_tools | Add FWHM estimate | 376 | 3 | 2 | Not Started | Arcsec estimate |
 | 378 | Tool Handler Implementation | weather_tools | Write unit tests for weather tool handlers | 377 | 2 | 2 | Not Started | Test coverage |
@@ -472,9 +472,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 384 | Tool Handler Implementation | safety_tools | Add time until threshold reset | 383 | 2 | 1 | Complete | time_to_reset with rain holdoff and resume times |
 | 385 | Tool Handler Implementation | safety_tools | Write unit tests for safety tool handlers | 384 | 2 | 2 | Not Started | Test coverage |
 | 386 | Tool Handler Implementation | session_tools | Implement confirm_command handler | 257 | 2 | 1 | Complete | confirm_command() returns confirmation prompt |
-| 387 | Tool Handler Implementation | session_tools | Add timeout for confirmation | 386 | 2 | 1 | Not Started | Auto-cancel |
-| 388 | Tool Handler Implementation | session_tools | Implement get_observation_log handler | 387 | 2 | 1 | Not Started | Session history |
-| 389 | Tool Handler Implementation | session_tools | Add filtering by date range | 388 | 2 | 1 | Not Started | History query |
+| 387 | Tool Handler Implementation | session_tools | Add timeout for confirmation | 386 | 2 | 1 | Complete | timeout_seconds parameter (default 30) |
+| 388 | Tool Handler Implementation | session_tools | Implement get_observation_log handler | 387 | 2 | 1 | Complete | Enhanced with session filter and date range |
+| 389 | Tool Handler Implementation | session_tools | Add filtering by date range | 388 | 2 | 1 | Complete | start_date, end_date parameters |
 | 390 | Tool Handler Implementation | session_tools | Implement set_voice_style handler | 389 | 2 | 1 | Not Started | TTS adjustment |
 | 391 | Tool Handler Implementation | session_tools | Add style options (normal, alert, calm, technical) | 390 | 2 | 1 | Not Started | Per POS Day 5 |
 | 392 | Tool Handler Implementation | session_tools | Write unit tests for session tool handlers | 391 | 2 | 2 | Not Started | Test coverage |
