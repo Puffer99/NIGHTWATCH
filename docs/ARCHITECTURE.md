@@ -316,6 +316,91 @@ stateDiagram-v2
     Parked --> [*]: disconnect()
 ```
 
+## Catalog Resolution Sequence
+
+```mermaid
+sequenceDiagram
+    participant Voice as Voice Pipeline
+    participant Tools as Tool Handler
+    participant Catalog as Catalog Service
+    participant DB as SQLite Database
+    participant Cache as LRU Cache
+
+    Voice->>Tools: goto_object("Andromeda")
+    Tools->>Catalog: resolve_object("Andromeda")
+    Catalog->>Cache: check_cache("andromeda")
+    Cache-->>Catalog: Cache miss
+    Catalog->>DB: exact_match("ANDROMEDA")
+    DB-->>Catalog: Not found
+    Catalog->>DB: name_search("ANDROMEDA")
+    DB-->>Catalog: Not found
+    Catalog->>DB: alias_search("ANDROMEDA")
+    DB-->>Catalog: Found: M31
+    Catalog->>Cache: store("andromeda", M31)
+    Catalog-->>Tools: CatalogObject(M31, RA, Dec)
+    Tools-->>Voice: "Slewing to Andromeda Galaxy"
+```
+
+## Mount Slew with Safety Check
+
+```mermaid
+sequenceDiagram
+    participant Tools as Tool Handler
+    participant Safety as Safety Monitor
+    participant Weather as Weather Service
+    participant Ephemeris as Ephemeris
+    participant Mount as Mount Control
+
+    Tools->>Safety: check_slew_safe(ra, dec)
+    Safety->>Weather: get_conditions()
+    Weather-->>Safety: {wind: 5mph, humidity: 60%}
+    Safety->>Safety: evaluate_thresholds()
+    Safety->>Ephemeris: get_object_altitude(ra, dec)
+    Ephemeris-->>Safety: altitude: 45°
+    Safety->>Safety: check_altitude_limit(45°)
+    Safety-->>Tools: Safe to slew
+
+    Tools->>Mount: slew_to_coordinates(ra, dec)
+    Mount-->>Tools: Slewing started
+
+    loop Until slew complete
+        Tools->>Mount: is_slewing()
+        Mount-->>Tools: true/false
+    end
+
+    Mount-->>Tools: Slew complete
+    Tools->>Mount: set_tracking(true)
+```
+
+## Weather Monitoring Loop
+
+```mermaid
+sequenceDiagram
+    participant Timer as Poll Timer
+    participant Weather as Weather Service
+    participant Station as Ecowitt Station
+    participant Safety as Safety Monitor
+    participant EventBus as Event Bus
+
+    loop Every 60 seconds
+        Timer->>Weather: poll()
+        Weather->>Station: GET /get_livedata_info
+        Station-->>Weather: JSON weather data
+        Weather->>Weather: parse_response()
+        Weather->>EventBus: publish("weather.update", data)
+
+        alt Rain detected
+            Weather->>EventBus: publish("weather.rain", alert)
+            EventBus->>Safety: on_rain_detected()
+            Safety->>Safety: set_emergency_veto()
+        else Wind exceeds threshold
+            Weather->>EventBus: publish("weather.wind_warning", data)
+            EventBus->>Safety: on_wind_warning()
+            Safety->>Safety: evaluate_wind_veto()
+        end
+    end
+```
+
 ## Module Dependencies
 
 ```mermaid

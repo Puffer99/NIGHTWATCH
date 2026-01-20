@@ -2003,6 +2003,173 @@ def create_default_handlers(
 
     handlers["find_objects"] = find_objects
 
+    async def what_am_i_looking_at() -> str:
+        """Identify what object is at current telescope position (Step 354).
+
+        Performs reverse lookup based on current mount coordinates to identify
+        nearby catalog objects. Useful for confirming slew targets or
+        identifying objects in the field of view.
+        """
+        if not mount_controller:
+            return "Mount not available"
+
+        if not catalog_service:
+            return "Catalog not available"
+
+        try:
+            # Get current mount position
+            ra_hours = mount_controller.get_ra()
+            dec_degrees = mount_controller.get_dec()
+
+            if ra_hours is None or dec_degrees is None:
+                return "Unable to read mount position"
+
+            # Convert to RA degrees if needed
+            ra_degrees = ra_hours * 15.0
+
+            # Search for objects within 1 degree (60 arcmin) of current position
+            search_radius = 60.0  # arcminutes
+            nearby_objects = []
+
+            # Use cone search if available
+            if hasattr(catalog_service, 'objects_in_area'):
+                nearby = catalog_service.objects_in_area(
+                    ra_hours, dec_degrees, search_radius, limit=5
+                )
+                for name, dist in nearby:
+                    nearby_objects.append((name, dist))
+            elif hasattr(catalog_service, 'db') and hasattr(catalog_service.db, 'cone_search'):
+                results = catalog_service.db.cone_search(
+                    ra_hours, dec_degrees, search_radius, limit=5
+                )
+                for obj, dist in results:
+                    name = obj.name or obj.catalog_id
+                    nearby_objects.append((name, dist))
+
+            if not nearby_objects:
+                # Format current position for response
+                ra_h = int(ra_hours)
+                ra_m = int((ra_hours - ra_h) * 60)
+                ra_s = ((ra_hours - ra_h) * 60 - ra_m) * 60
+                ra_str = f"{ra_h:02d}h {ra_m:02d}m {ra_s:04.1f}s"
+
+                dec_sign = "+" if dec_degrees >= 0 else "-"
+                dec_abs = abs(dec_degrees)
+                dec_d = int(dec_abs)
+                dec_m = int((dec_abs - dec_d) * 60)
+                dec_s = ((dec_abs - dec_d) * 60 - dec_m) * 60
+                dec_str = f"{dec_sign}{dec_d:02d}° {dec_m:02d}' {dec_s:04.1f}\""
+
+                return f"No cataloged objects within 1 degree of current position: RA {ra_str}, Dec {dec_str}"
+
+            # Build response
+            parts = []
+            closest = nearby_objects[0]
+            parts.append(f"Pointing at {closest[0]} ({closest[1]:.1f}' away)")
+
+            if len(nearby_objects) > 1:
+                others = [f"{name} ({dist:.1f}')" for name, dist in nearby_objects[1:4]]
+                parts.append(f"Also nearby: {', '.join(others)}")
+
+            return ". ".join(parts)
+
+        except Exception as e:
+            return f"Error identifying target: {e}"
+
+    handlers["what_am_i_looking_at"] = what_am_i_looking_at
+
+    async def nearest_objects(
+        ra: str = None,
+        dec: str = None,
+        radius_arcmin: float = 60.0,
+        limit: int = 10
+    ) -> str:
+        """Find objects near specified coordinates or current position (Step 355).
+
+        Args:
+            ra: Right Ascension (HH:MM:SS or decimal hours). If None, uses mount position.
+            dec: Declination (sDD:MM:SS or decimal degrees). If None, uses mount position.
+            radius_arcmin: Search radius in arcminutes (default 60')
+            limit: Maximum number of objects to return
+
+        Returns:
+            List of objects within the search cone, sorted by distance.
+        """
+        if not catalog_service:
+            return "Catalog not available"
+
+        try:
+            # Determine search center
+            if ra is None or dec is None:
+                # Use current mount position
+                if not mount_controller:
+                    return "Specify coordinates or connect mount"
+
+                ra_hours = mount_controller.get_ra()
+                dec_degrees = mount_controller.get_dec()
+                if ra_hours is None or dec_degrees is None:
+                    return "Unable to read mount position"
+                position_source = "current mount position"
+            else:
+                # Parse provided coordinates
+                # Parse RA
+                if ':' in str(ra):
+                    parts = str(ra).replace('h', ':').replace('m', ':').replace('s', '').split(':')
+                    ra_hours = float(parts[0]) + float(parts[1])/60
+                    if len(parts) > 2:
+                        ra_hours += float(parts[2])/3600
+                else:
+                    ra_hours = float(ra)
+
+                # Parse Dec
+                if ':' in str(dec) or '°' in str(dec):
+                    dec_str = str(dec).replace('°', ':').replace("'", ':').replace('"', '').replace('+', '')
+                    negative = dec_str.startswith('-')
+                    dec_str = dec_str.lstrip('-')
+                    parts = dec_str.split(':')
+                    dec_degrees = float(parts[0]) + float(parts[1])/60
+                    if len(parts) > 2:
+                        dec_degrees += float(parts[2])/3600
+                    if negative:
+                        dec_degrees = -dec_degrees
+                else:
+                    dec_degrees = float(dec)
+
+                position_source = f"RA {ra}, Dec {dec}"
+
+            # Perform cone search
+            nearby_objects = []
+            if hasattr(catalog_service, 'objects_in_area'):
+                nearby = catalog_service.objects_in_area(
+                    ra_hours, dec_degrees, radius_arcmin, limit=limit
+                )
+                for name, dist in nearby:
+                    nearby_objects.append((name, dist))
+            elif hasattr(catalog_service, 'db') and hasattr(catalog_service.db, 'cone_search'):
+                results = catalog_service.db.cone_search(
+                    ra_hours, dec_degrees, radius_arcmin, limit=limit
+                )
+                for obj, dist in results:
+                    name = obj.name or obj.catalog_id
+                    nearby_objects.append((name, dist))
+
+            if not nearby_objects:
+                return f"No objects found within {radius_arcmin}' of {position_source}"
+
+            # Build response
+            parts = [f"Objects within {radius_arcmin}' of {position_source}:"]
+            for name, dist in nearby_objects:
+                parts.append(f"  {name}: {dist:.1f}' away")
+
+            return "\n".join(parts)
+
+        except ValueError as e:
+            return f"Invalid coordinates: {e}"
+        except Exception as e:
+            return f"Error searching: {e}"
+
+    handlers["nearest_objects"] = nearest_objects
+
     # Ephemeris handlers
     async def get_planet_position(planet: str) -> str:
         """Get current position of a planet (Steps 359-360)."""
@@ -4099,6 +4266,189 @@ def create_default_handlers(
             return f"Error calculating pointing error: {e}"
 
     handlers["get_pointing_error"] = get_pointing_error
+
+    # Observing suggestions handler
+    async def whats_up_tonight(
+        object_type: str = None,
+        min_altitude: float = 20.0,
+        max_magnitude: float = 10.0,
+        limit: int = 10
+    ) -> str:
+        """Get observing suggestions for tonight (Step 367).
+
+        Returns a summary of what's visible and recommended for observation,
+        including planets, notable deep sky objects, and seasonal highlights.
+
+        Args:
+            object_type: Filter by type (galaxy, nebula, cluster, planet)
+            min_altitude: Minimum altitude in degrees (default 20)
+            max_magnitude: Maximum magnitude/brightness limit (default 10)
+            limit: Maximum number of suggestions (default 10)
+        """
+        parts = []
+
+        # Check if it's dark enough to observe
+        is_dark = False
+        if ephemeris_service:
+            try:
+                is_dark = ephemeris_service.is_astronomical_night()
+                if not is_dark:
+                    sun_alt = ephemeris_service.get_sun_altitude()
+                    if sun_alt > 0:
+                        parts.append("The sun is still up. Wait for sunset to observe.")
+                    else:
+                        parts.append(f"Twilight in progress. Sun is {abs(sun_alt):.1f}° below horizon.")
+                        parts.append("Deep sky objects may not be visible yet.")
+            except Exception:
+                pass
+
+        suggestions = []
+
+        # Get visible planets
+        if not object_type or object_type.lower() == "planet":
+            if ephemeris_service:
+                try:
+                    from services.ephemeris import CelestialBody
+                    planets = [
+                        CelestialBody.VENUS, CelestialBody.MARS,
+                        CelestialBody.JUPITER, CelestialBody.SATURN
+                    ]
+                    for planet in planets:
+                        try:
+                            pos = ephemeris_service.get_body_position(planet)
+                            if pos and pos.altitude_degrees >= min_altitude:
+                                suggestions.append({
+                                    'name': planet.value.capitalize(),
+                                    'type': 'planet',
+                                    'altitude': pos.altitude_degrees,
+                                    'azimuth': pos.azimuth_degrees,
+                                    'description': f"Visible at {pos.altitude_degrees:.0f}° altitude"
+                                })
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
+
+        # Get Moon info (important for planning)
+        moon_warning = None
+        if ephemeris_service:
+            try:
+                from services.ephemeris import CelestialBody
+                moon_pos = ephemeris_service.get_body_position(CelestialBody.MOON)
+                if moon_pos and moon_pos.altitude_degrees > 0:
+                    illumination = 50  # default
+                    if hasattr(ephemeris_service, 'get_moon_phase'):
+                        phase = ephemeris_service.get_moon_phase()
+                        if phase:
+                            illumination = phase.get('illumination', 0.5) * 100
+                    if illumination > 50:
+                        moon_warning = f"Moon is up ({illumination:.0f}% illuminated) - may affect faint objects"
+            except Exception:
+                pass
+
+        # Get deep sky objects from catalog
+        if catalog_service and (not object_type or object_type.lower() != "planet"):
+            try:
+                # Get objects by type if specified
+                type_filter = None
+                if object_type:
+                    type_map = {
+                        'galaxy': 'galaxy',
+                        'galaxies': 'galaxy',
+                        'nebula': 'nebula',
+                        'nebulae': 'nebula',
+                        'cluster': 'open_cluster',
+                        'clusters': 'open_cluster',
+                        'globular': 'globular_cluster',
+                        'planetary': 'planetary_nebula'
+                    }
+                    type_filter = type_map.get(object_type.lower())
+
+                # Try to get objects visible tonight
+                dso_list = []
+
+                if hasattr(catalog_service, 'objects_by_type') and type_filter:
+                    results = catalog_service.objects_by_type(
+                        type_filter, max_magnitude, limit=limit*2
+                    )
+                    for obj in results:
+                        dso_list.append(obj)
+                elif hasattr(catalog_service, 'db'):
+                    # Query database directly for bright objects
+                    if hasattr(catalog_service.db, 'get_all_objects'):
+                        all_objs = catalog_service.db.get_all_objects()
+                        # Filter by magnitude
+                        for obj in all_objs:
+                            if obj.magnitude and obj.magnitude <= max_magnitude:
+                                if not type_filter or (obj.object_type and obj.object_type.value == type_filter):
+                                    dso_list.append(obj)
+
+                # Filter by altitude if ephemeris available
+                for obj in dso_list[:limit*2]:
+                    if len(suggestions) >= limit:
+                        break
+
+                    # Check if above horizon
+                    is_visible = True
+                    obj_alt = None
+                    if ephemeris_service and hasattr(obj, 'ra_hours') and hasattr(obj, 'dec_degrees'):
+                        try:
+                            obj_alt = ephemeris_service.get_object_altitude(
+                                obj.ra_hours, obj.dec_degrees
+                            )
+                            if obj_alt < min_altitude:
+                                is_visible = False
+                        except Exception:
+                            pass
+
+                    if is_visible:
+                        name = obj.name or obj.catalog_id
+                        obj_type = obj.object_type.value if hasattr(obj.object_type, 'value') else str(obj.object_type)
+                        desc = f"Magnitude {obj.magnitude:.1f}" if obj.magnitude else ""
+                        if obj_alt:
+                            desc += f", altitude {obj_alt:.0f}°"
+
+                        suggestions.append({
+                            'name': name,
+                            'type': obj_type,
+                            'altitude': obj_alt,
+                            'magnitude': obj.magnitude,
+                            'description': desc
+                        })
+            except Exception as e:
+                parts.append(f"(Catalog search limited: {e})")
+
+        # Build response
+        if moon_warning:
+            parts.append(moon_warning)
+
+        if not suggestions:
+            parts.append("No objects matching criteria currently visible.")
+            if not is_dark:
+                parts.append("Try again after astronomical twilight.")
+            return " ".join(parts)
+
+        # Sort by altitude (highest first)
+        suggestions.sort(key=lambda x: x.get('altitude') or 0, reverse=True)
+        suggestions = suggestions[:limit]
+
+        # Group by type
+        planets = [s for s in suggestions if s['type'] == 'planet']
+        dso = [s for s in suggestions if s['type'] != 'planet']
+
+        if planets:
+            parts.append("Visible planets:")
+            for p in planets:
+                parts.append(f"  • {p['name']}: {p['description']}")
+
+        if dso:
+            parts.append("Recommended objects:")
+            for obj in dso:
+                parts.append(f"  • {obj['name']} ({obj['type']}): {obj['description']}")
+
+        return "\n".join(parts)
+
+    handlers["whats_up_tonight"] = whats_up_tonight
 
     return handlers
 

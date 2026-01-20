@@ -439,8 +439,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 351 | Tool Handler Implementation | mount_tools | Write unit tests for mount tool handlers | 350 | 2 | 2 | Complete | TestMountToolHandlers in test_telescope_tools.py (6 tests) |
 | 352 | Tool Handler Implementation | catalog_tools | Implement lookup_object handler | 257,78 | 2 | 1 | Complete | Enhanced with type, mag, constellation, altitude |
 | 353 | Tool Handler Implementation | catalog_tools | Add fuzzy name matching | 352 | 3 | 2 | Complete | Levenshtein distance, similarity score, fuzzy_search(), suggest() |
-| 354 | Tool Handler Implementation | catalog_tools | Implement what_am_i_looking_at handler | 353 | 3 | 2 | Not Started | Reverse lookup |
-| 355 | Tool Handler Implementation | catalog_tools | Add nearest object search by coordinates | 354 | 3 | 2 | Not Started | Cone search |
+| 354 | Tool Handler Implementation | catalog_tools | Implement what_am_i_looking_at handler | 353 | 3 | 2 | Complete | Reverse lookup via cone search from mount position |
+| 355 | Tool Handler Implementation | catalog_tools | Add nearest object search by coordinates | 354 | 3 | 2 | Complete | nearest_objects() with configurable radius |
 | 356 | Tool Handler Implementation | catalog_tools | Implement find_objects handler | 355 | 2 | 1 | Complete | find_objects() with catalog search |
 | 357 | Tool Handler Implementation | catalog_tools | Add filtering by type, magnitude, constellation | 356 | 2 | 1 | Complete | object_type, max_magnitude, constellation, min_altitude params |
 | 358 | Tool Handler Implementation | catalog_tools | Write unit tests for catalog tool handlers | 357 | 2 | 2 | Complete | TestCatalogToolHandlers in test_telescope_tools.py (4 tests) |
@@ -452,7 +452,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 364 | Tool Handler Implementation | ephemeris_tools | Add illumination percentage | 363 | 2 | 1 | Complete | Phase name and illumination in moon info |
 | 365 | Tool Handler Implementation | ephemeris_tools | Implement is_it_dark handler | 364 | 2 | 1 | Complete | Enhanced is_it_dark() with time until |
 | 366 | Tool Handler Implementation | ephemeris_tools | Add twilight phase details | 365 | 2 | 1 | Complete | Civil/nautical/astro descriptions |
-| 367 | Tool Handler Implementation | ephemeris_tools | Implement whats_up_tonight handler | 366 | 3 | 2 | Not Started | Observing list |
+| 367 | Tool Handler Implementation | ephemeris_tools | Implement whats_up_tonight handler | 366 | 3 | 2 | Complete | Planets, DSO, moon warning, altitude filter |
 | 368 | Tool Handler Implementation | ephemeris_tools | Add object prioritization by visibility window | 367 | 3 | 2 | Not Started | Best timing |
 | 369 | Tool Handler Implementation | ephemeris_tools | Write unit tests for ephemeris tool handlers | 368 | 2 | 2 | Complete | TestEphemerisToolHandlers in test_telescope_tools.py (5 tests) |
 | 370 | Tool Handler Implementation | weather_tools | Implement get_weather handler | 257 | 2 | 1 | Complete | Enhanced get_weather() with full conditions |
@@ -692,7 +692,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 604 | Documentation & POS | docs | Create docs/SIMULATOR_GUIDE.md | 603 | 2 | 2 | Complete | Alpaca, INDI, Mock fixtures |
 | 605 | Documentation & POS | docs | Update docs/INTEGRATION_PLAN.md for v0.1 | 604 | 2 | 1 | Complete | Alignment |
 | 606 | Documentation & POS | docs | Add architecture diagrams (Mermaid) | 605 | 3 | 2 | Complete | ARCHITECTURE.md with system, voice, safety, data flow diagrams |
-| 607 | Documentation & POS | docs | Add sequence diagrams for key flows | 606 | 3 | 2 | Not Started | Visual docs |
+| 607 | Documentation & POS | docs | Add sequence diagrams for key flows | 606 | 3 | 2 | Complete | Catalog resolution, mount slew, weather monitoring sequences |
 | 608 | Documentation & POS | pos | Create POS deliberation for LLM integration | None | 4 | 3 | Not Started | Expert consensus |
 | 609 | Documentation & POS | pos | Add Michael Clive perspective (DGX Spark) | 608 | 3 | 2 | Not Started | AI expert |
 | 610 | Documentation & POS | pos | Add Alec Radford perspective (Whisper) | 609 | 3 | 2 | Not Started | STT expert |
