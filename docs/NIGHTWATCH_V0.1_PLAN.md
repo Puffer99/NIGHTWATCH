@@ -659,10 +659,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 571 | Testing & Quality Assurance | integration_tests | Add simulator startup helper | 570 | 2 | 1 | Complete | SimulatorManager.start(), start_simulators() in tests/integration/__init__.py |
 | 572 | Testing & Quality Assurance | integration_tests | Add simulator shutdown helper | 571 | 2 | 1 | Complete | SimulatorManager.stop(), stop_simulators() in tests/integration/__init__.py |
 | 573 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/__init__.py | 570 | 1 | 1 | Complete | E2E test package with pytest markers for e2e, requires_simulators, slow |
-| 574 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_goto_object.py | 573 | 3 | 2 | Not Started | Voice to slew |
-| 575 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_park_unpark.py | 574 | 3 | 2 | Not Started | Park cycle |
-| 576 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_safety_veto.py | 575 | 3 | 2 | Not Started | Safety block |
-| 577 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_weather_response.py | 576 | 3 | 2 | Not Started | Weather query |
+| 574 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_goto_object.py | 573 | 3 | 2 | Complete | Voice to slew e2e with catalog lookup, safety checks |
+| 575 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_park_unpark.py | 574 | 3 | 2 | Complete | Park/unpark cycle e2e with safety checks |
+| 576 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_safety_veto.py | 575 | 3 | 2 | Complete | Safety veto e2e for wind, rain, horizon limits |
+| 577 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_weather_response.py | 576 | 3 | 2 | Complete | Weather degradation, improvement, query e2e tests |
 | 578 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_session_flow.py | 577 | 4 | 3 | Not Started | Full session |
 | 579 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_emergency_shutdown.py | 578 | 3 | 2 | Not Started | Emergency flow |
 | 580 | Testing & Quality Assurance | e2e_tests | Add audio fixture files for voice tests | 579 | 2 | 2 | Complete | Test audio |
