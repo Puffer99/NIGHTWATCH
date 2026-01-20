@@ -566,16 +566,16 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 478 | Safety System Hardening | safety_interlock | Add safety override for emergency commands | 477 | 2 | 1 | Complete | EMERGENCY_COMMANDS set |
 | 479 | Safety System Hardening | safety_interlock | Implement safety veto response message | 478 | 2 | 1 | Complete | SafetyVeto.to_spoken_response() |
 | 480 | Safety System Hardening | safety_interlock | Write unit tests for safety interlock | 479 | 2 | 2 | Complete | 46 tests in test_safety_interlock.py |
-| 481 | Safety System Hardening | emergency_response | Create nightwatch/emergency_response.py module | 457 | 3 | 2 | Not Started | Emergency actions |
-| 482 | Safety System Hardening | emergency_response | Implement emergency park sequence | 481 | 3 | 2 | Not Started | Quick park |
-| 483 | Safety System Hardening | emergency_response | Implement emergency close sequence | 482 | 3 | 2 | Not Started | Quick close |
+| 481 | Safety System Hardening | emergency_response | Create nightwatch/emergency_response.py module | 457 | 3 | 2 | Complete | EmergencyResponse class with full infrastructure |
+| 482 | Safety System Hardening | emergency_response | Implement emergency park sequence | 481 | 3 | 2 | Complete | emergency_park() with retries and timeout |
+| 483 | Safety System Hardening | emergency_response | Implement emergency close sequence | 482 | 3 | 2 | Complete | emergency_close() with retries and timeout |
 | 484 | Safety System Hardening | emergency_response | Add mount safety position for enclosure close | 483 | 3 | 2 | Not Started | Clear path |
 | 485 | Safety System Hardening | emergency_response | Implement power failure response | 484 | 4 | 3 | Not Started | UPS detected |
 | 486 | Safety System Hardening | emergency_response | Add staged shutdown on low battery | 485 | 3 | 2 | Not Started | Graceful degradation |
 | 487 | Safety System Hardening | emergency_response | Implement weather emergency response | 486 | 3 | 2 | Not Started | Storm detected |
-| 488 | Safety System Hardening | emergency_response | Add rain emergency response | 487 | 3 | 2 | Not Started | Immediate action |
+| 488 | Safety System Hardening | emergency_response | Add rain emergency response | 487 | 3 | 2 | Complete | respond_to_rain() with park+close+alerts |
 | 489 | Safety System Hardening | emergency_response | Implement network failure response | 488 | 3 | 2 | Not Started | Lose connectivity |
-| 490 | Safety System Hardening | emergency_response | Add alert escalation during emergency | 489 | 2 | 1 | Not Started | Notify operator |
+| 490 | Safety System Hardening | emergency_response | Add alert escalation during emergency | 489 | 2 | 1 | Complete | _send_alert() and escalate_alert() |
 | 491 | Safety System Hardening | emergency_response | Write unit tests for emergency response | 490 | 2 | 2 | Not Started | Test coverage |
 | 492 | Safety System Hardening | watchdog | Create nightwatch/watchdog.py module | 457 | 3 | 2 | Complete | System health |
 | 493 | Safety System Hardening | watchdog | Implement service heartbeat monitoring | 492 | 3 | 2 | Complete | Detect hangs |
