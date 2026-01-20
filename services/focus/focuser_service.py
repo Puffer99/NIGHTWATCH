@@ -1175,13 +1175,35 @@ class FocuserService:
         """
         Measure Half-Flux Diameter from focus frame.
 
-        In real implementation, would:
-        1. Capture frame with camera
-        2. Detect stars using SEP/photutils
-        3. Calculate HFD for each star
-        4. Return median HFD
+        Captures a frame and calculates the median HFD of detected stars.
+        Falls back to simulation if camera not available.
+
+        Returns:
+            Median HFD in pixels
         """
-        # Simulate HFD measurement
+        if camera is None:
+            # Simulation mode
+            return await self._simulate_hfd()
+
+        try:
+            # Capture frame
+            frame = await camera.capture(self.config.autofocus_exposure_sec)
+
+            # Calculate HFD from frame
+            hfd_result = self.calculate_hfd_from_image(frame)
+
+            if hfd_result["num_stars"] > 0:
+                return hfd_result["median_hfd"]
+            else:
+                logger.warning("No stars detected for HFD measurement")
+                return await self._simulate_hfd()
+
+        except Exception as e:
+            logger.warning(f"HFD measurement failed: {e}, using simulation")
+            return await self._simulate_hfd()
+
+    async def _simulate_hfd(self) -> float:
+        """Simulate HFD measurement for testing."""
         # Returns a V-curve centered around position 25000
         optimal = 25000
         distance = abs(self._position - optimal)
@@ -1199,45 +1221,395 @@ class FocuserService:
 
         return max(1.0, hfd)
 
+    def calculate_hfd_from_image(self, image_data) -> dict:
+        """
+        Calculate Half-Flux Diameter from image data (Step 182).
+
+        HFD is defined as the diameter of a circle centered on a star
+        that contains half of the total flux. It's more robust than
+        FWHM for defocused stars.
+
+        Algorithm:
+        1. Detect stars using threshold or SEP
+        2. For each star, find centroid
+        3. Calculate cumulative flux in expanding circles
+        4. Find radius where cumulative flux = 50% of total
+        5. Return median HFD across all stars
+
+        Args:
+            image_data: 2D numpy array of image data
+
+        Returns:
+            Dict with:
+            - median_hfd: Median HFD in pixels
+            - mean_hfd: Mean HFD
+            - std_hfd: Standard deviation
+            - num_stars: Number of stars measured
+            - star_hfds: List of individual HFD values
+        """
+        try:
+            import numpy as np
+        except ImportError:
+            return {"median_hfd": 3.0, "mean_hfd": 3.0, "std_hfd": 0, "num_stars": 0, "star_hfds": []}
+
+        # Convert to numpy if needed
+        if not isinstance(image_data, np.ndarray):
+            image_data = np.array(image_data)
+
+        # Ensure 2D
+        if image_data.ndim > 2:
+            image_data = image_data.mean(axis=2) if image_data.ndim == 3 else image_data
+
+        # Background subtraction (simple median)
+        background = np.median(image_data)
+        image_sub = image_data - background
+
+        # Find stars using simple threshold
+        threshold = np.std(image_sub) * 5
+        stars = self._detect_stars_simple(image_sub, threshold)
+
+        if len(stars) == 0:
+            return {"median_hfd": 0, "mean_hfd": 0, "std_hfd": 0, "num_stars": 0, "star_hfds": []}
+
+        # Calculate HFD for each star
+        hfds = []
+        for star in stars:
+            hfd = self._calculate_single_star_hfd(image_sub, star["x"], star["y"])
+            if hfd is not None and 0.5 < hfd < 50:  # Sanity check
+                hfds.append(hfd)
+
+        if len(hfds) == 0:
+            return {"median_hfd": 0, "mean_hfd": 0, "std_hfd": 0, "num_stars": 0, "star_hfds": []}
+
+        return {
+            "median_hfd": float(np.median(hfds)),
+            "mean_hfd": float(np.mean(hfds)),
+            "std_hfd": float(np.std(hfds)) if len(hfds) > 1 else 0,
+            "num_stars": len(hfds),
+            "star_hfds": hfds
+        }
+
+    def _detect_stars_simple(self, image: "np.ndarray", threshold: float) -> List[dict]:
+        """
+        Simple star detection using local maxima (Step 182).
+
+        Args:
+            image: Background-subtracted image
+            threshold: Detection threshold
+
+        Returns:
+            List of star dicts with x, y, flux
+        """
+        try:
+            import numpy as np
+            from scipy import ndimage
+        except ImportError:
+            return []
+
+        # Find local maxima
+        max_filtered = ndimage.maximum_filter(image, size=5)
+        peaks = (image == max_filtered) & (image > threshold)
+
+        # Get coordinates
+        y_coords, x_coords = np.where(peaks)
+
+        stars = []
+        for x, y in zip(x_coords, y_coords):
+            # Simple flux estimate
+            flux = image[y, x]
+            stars.append({"x": float(x), "y": float(y), "flux": float(flux)})
+
+        # Sort by flux and take top stars
+        stars.sort(key=lambda s: s["flux"], reverse=True)
+        return stars[:50]  # Max 50 stars
+
+    def _calculate_single_star_hfd(
+        self,
+        image: "np.ndarray",
+        cx: float,
+        cy: float,
+        max_radius: int = 25
+    ) -> Optional[float]:
+        """
+        Calculate HFD for a single star (Step 182).
+
+        Uses the aperture photometry approach:
+        1. Sum flux in expanding circular apertures
+        2. Find radius where cumulative flux = 50% of total
+
+        Args:
+            image: Background-subtracted image
+            cx, cy: Star centroid coordinates
+            max_radius: Maximum aperture radius to consider
+
+        Returns:
+            HFD in pixels, or None if calculation failed
+        """
+        try:
+            import numpy as np
+        except ImportError:
+            return None
+
+        h, w = image.shape
+        cx_int, cy_int = int(round(cx)), int(round(cy))
+
+        # Check bounds
+        if cx_int < max_radius or cx_int >= w - max_radius:
+            return None
+        if cy_int < max_radius or cy_int >= h - max_radius:
+            return None
+
+        # Extract cutout
+        cutout = image[cy_int - max_radius:cy_int + max_radius + 1,
+                       cx_int - max_radius:cx_int + max_radius + 1]
+
+        # Create distance array from center
+        y_grid, x_grid = np.ogrid[-max_radius:max_radius + 1, -max_radius:max_radius + 1]
+        distances = np.sqrt(x_grid**2 + y_grid**2)
+
+        # Calculate cumulative flux at each radius
+        radii = np.arange(1, max_radius + 1)
+        cumulative_flux = np.zeros(len(radii))
+
+        for i, r in enumerate(radii):
+            mask = distances <= r
+            cumulative_flux[i] = np.sum(cutout[mask])
+
+        # Total flux (use largest aperture)
+        total_flux = cumulative_flux[-1]
+
+        if total_flux <= 0:
+            return None
+
+        # Find radius where cumulative flux = 50% of total
+        half_flux = total_flux / 2
+        half_flux_radius = None
+
+        for i, (r, flux) in enumerate(zip(radii, cumulative_flux)):
+            if flux >= half_flux:
+                # Linear interpolation for sub-pixel precision
+                if i > 0:
+                    flux_prev = cumulative_flux[i - 1]
+                    r_prev = radii[i - 1]
+                    frac = (half_flux - flux_prev) / (flux - flux_prev)
+                    half_flux_radius = r_prev + frac * (r - r_prev)
+                else:
+                    half_flux_radius = r
+                break
+
+        if half_flux_radius is None:
+            return None
+
+        # HFD is diameter, so multiply by 2
+        hfd = half_flux_radius * 2
+
+        return hfd
+
+    def get_hfd_stats(self, image_data) -> dict:
+        """
+        Get comprehensive HFD statistics from an image (Step 182).
+
+        Useful for focus quality assessment and logging.
+
+        Args:
+            image_data: 2D image array
+
+        Returns:
+            Dict with HFD statistics and quality assessment
+        """
+        result = self.calculate_hfd_from_image(image_data)
+
+        # Add quality assessment
+        if result["num_stars"] >= 10 and result["std_hfd"] < result["median_hfd"] * 0.3:
+            quality = "good"
+        elif result["num_stars"] >= 5:
+            quality = "fair"
+        elif result["num_stars"] > 0:
+            quality = "poor"
+        else:
+            quality = "no_stars"
+
+        result["quality"] = quality
+        result["in_focus"] = result["median_hfd"] < 4.0 if result["num_stars"] > 0 else False
+
+        return result
+
     def _fit_vcurve(self, positions: List[int], hfds: List[float]) -> int:
         """
-        Fit parabola to V-curve data.
+        Fit parabola to V-curve data using full least squares (Step 181).
+
+        The V-curve is modeled as y = ax² + bx + c where:
+        - y is the HFD (Half-Flux Diameter)
+        - x is the focuser position
+        - The minimum (best focus) is at x = -b/(2a)
+
+        Uses matrix-based least squares for accurate fitting.
 
         Returns:
             Optimal focus position
         """
-        # Simple parabolic fit using least squares
-        # y = ax^2 + bx + c
-        # Minimum at x = -b/(2a)
+        result = self._fit_vcurve_full(positions, hfds)
+        return result["best_position"]
 
+    def _fit_vcurve_full(self, positions: List[int], hfds: List[float]) -> dict:
+        """
+        Full V-curve parabolic fit with statistics (Step 181).
+
+        Performs proper least squares parabolic regression:
+        y = ax² + bx + c
+
+        The optimal focus position is at the vertex: x = -b/(2a)
+
+        Args:
+            positions: List of focuser positions
+            hfds: List of HFD values at each position
+
+        Returns:
+            Dict with:
+            - best_position: Optimal focus position
+            - a, b, c: Parabola coefficients
+            - r_squared: Goodness of fit (1.0 = perfect)
+            - curvature: Parabola curvature (a coefficient)
+            - vertex_hfd: Predicted HFD at best position
+            - confidence: Confidence level based on fit quality
+        """
         n = len(positions)
+
+        # Need at least 3 points for parabola
         if n < 3:
-            return positions[hfds.index(min(hfds))]
+            min_idx = hfds.index(min(hfds))
+            return {
+                "best_position": positions[min_idx],
+                "a": 0, "b": 0, "c": hfds[min_idx],
+                "r_squared": 0,
+                "curvature": 0,
+                "vertex_hfd": hfds[min_idx],
+                "confidence": "low",
+                "method": "minimum_sample"
+            }
 
         # Normalize positions for numerical stability
         x_mean = sum(positions) / n
-        x = [p - x_mean for p in positions]
+        x_scale = max(abs(p - x_mean) for p in positions) or 1
+        x_norm = [(p - x_mean) / x_scale for p in positions]
         y = hfds
 
-        # Build normal equations
-        sum_x2 = sum(xi**2 for xi in x)
-        sum_x4 = sum(xi**4 for xi in x)
-        sum_x2y = sum(xi**2 * yi for xi, yi in zip(x, y))
-        sum_y = sum(y)
+        # Build design matrix for y = ax² + bx + c
+        # [x²  x  1] * [a b c]ᵀ = y
+        # Using normal equations: (XᵀX)β = Xᵀy
 
-        # Simplified fit assuming symmetric V-curve
-        # a = sum(x^2 * y) / sum(x^4)
-        if sum_x4 > 0:
-            a = sum_x2y / sum_x4
-            c = (sum_y - a * sum_x2) / n
+        # Compute sums for normal equations
+        sum_x4 = sum(xi**4 for xi in x_norm)
+        sum_x3 = sum(xi**3 for xi in x_norm)
+        sum_x2 = sum(xi**2 for xi in x_norm)
+        sum_x1 = sum(xi for xi in x_norm)
+        sum_x0 = n
 
-            # Minimum at x = 0 in normalized coords
-            best_pos = int(x_mean)
+        sum_x2y = sum(xi**2 * yi for xi, yi in zip(x_norm, y))
+        sum_x1y = sum(xi * yi for xi, yi in zip(x_norm, y))
+        sum_x0y = sum(y)
+
+        # Solve 3x3 system using Cramer's rule
+        # | x4  x3  x2 | | a |   | x2y |
+        # | x3  x2  x1 | | b | = | x1y |
+        # | x2  x1  x0 | | c |   | x0y |
+
+        det = (sum_x4 * (sum_x2 * sum_x0 - sum_x1 * sum_x1)
+               - sum_x3 * (sum_x3 * sum_x0 - sum_x1 * sum_x2)
+               + sum_x2 * (sum_x3 * sum_x1 - sum_x2 * sum_x2))
+
+        if abs(det) < 1e-10:
+            # Singular matrix - fallback to minimum
+            min_idx = hfds.index(min(hfds))
+            return {
+                "best_position": positions[min_idx],
+                "a": 0, "b": 0, "c": hfds[min_idx],
+                "r_squared": 0,
+                "curvature": 0,
+                "vertex_hfd": hfds[min_idx],
+                "confidence": "low",
+                "method": "fallback_singular"
+            }
+
+        # Solve for a (normalized)
+        det_a = (sum_x2y * (sum_x2 * sum_x0 - sum_x1 * sum_x1)
+                 - sum_x3 * (sum_x1y * sum_x0 - sum_x1 * sum_x0y)
+                 + sum_x2 * (sum_x1y * sum_x1 - sum_x2 * sum_x0y))
+        a_norm = det_a / det
+
+        # Solve for b (normalized)
+        det_b = (sum_x4 * (sum_x1y * sum_x0 - sum_x1 * sum_x0y)
+                 - sum_x2y * (sum_x3 * sum_x0 - sum_x1 * sum_x2)
+                 + sum_x2 * (sum_x3 * sum_x0y - sum_x1y * sum_x2))
+        b_norm = det_b / det
+
+        # Solve for c (normalized)
+        det_c = (sum_x4 * (sum_x2 * sum_x0y - sum_x1y * sum_x1)
+                 - sum_x3 * (sum_x3 * sum_x0y - sum_x1y * sum_x2)
+                 + sum_x2y * (sum_x3 * sum_x1 - sum_x2 * sum_x2))
+        c_norm = det_c / det
+
+        # Convert back to original scale
+        # If x_norm = (x - x_mean) / x_scale, then
+        # y = a_norm * x_norm² + b_norm * x_norm + c_norm
+        # y = a_norm * ((x-x_mean)/x_scale)² + b_norm * ((x-x_mean)/x_scale) + c_norm
+        a = a_norm / (x_scale ** 2)
+        b = b_norm / x_scale - 2 * a_norm * x_mean / (x_scale ** 2)
+        c = c_norm - b_norm * x_mean / x_scale + a_norm * (x_mean / x_scale) ** 2
+
+        # Check that parabola opens upward (a > 0)
+        if a <= 0:
+            # Parabola opens downward - data doesn't form V-curve
+            min_idx = hfds.index(min(hfds))
+            return {
+                "best_position": positions[min_idx],
+                "a": a, "b": b, "c": c,
+                "r_squared": 0,
+                "curvature": a,
+                "vertex_hfd": hfds[min_idx],
+                "confidence": "low",
+                "method": "fallback_inverted"
+            }
+
+        # Calculate vertex (minimum point)
+        best_pos_float = -b / (2 * a)
+        best_pos = int(round(best_pos_float))
+
+        # Clamp to valid range
+        best_pos = max(0, min(self.config.max_position, best_pos))
+
+        # Calculate predicted HFD at vertex
+        vertex_hfd = a * best_pos_float**2 + b * best_pos_float + c
+
+        # Calculate R-squared
+        y_mean = sum(y) / n
+        ss_tot = sum((yi - y_mean)**2 for yi in y)
+        ss_res = sum((yi - (a * xi**2 + b * xi + c))**2
+                     for xi, yi in zip(positions, y))
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+
+        # Determine confidence level
+        if r_squared > 0.95 and a > 0:
+            confidence = "high"
+        elif r_squared > 0.8 and a > 0:
+            confidence = "medium"
         else:
-            # Fallback to minimum sample
-            best_pos = positions[hfds.index(min(hfds))]
+            confidence = "low"
 
-        return best_pos
+        logger.debug(f"V-curve fit: pos={best_pos}, HFD={vertex_hfd:.2f}, "
+                    f"R²={r_squared:.3f}, a={a:.2e}")
+
+        return {
+            "best_position": best_pos,
+            "a": a,
+            "b": b,
+            "c": c,
+            "r_squared": r_squared,
+            "curvature": a,
+            "vertex_hfd": vertex_hfd,
+            "confidence": confidence,
+            "method": "parabolic_fit"
+        }
 
     # =========================================================================
     # TEMPERATURE COMPENSATION

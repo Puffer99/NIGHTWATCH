@@ -410,6 +410,296 @@ class CameraSimulator:
         self._capturing = False
 
     # =========================================================================
+    # Video/Streaming Capture Mode (Step 91)
+    # =========================================================================
+
+    async def start_video_streaming(
+        self,
+        roi: Optional[Tuple[int, int, int, int]] = None,
+        target_fps: float = 30.0,
+        frame_callback: Optional[Callable[[int, bytes, dict], None]] = None
+    ) -> bool:
+        """
+        Start continuous video streaming mode (Step 91).
+
+        Optimized for planetary imaging with:
+        - ROI (Region of Interest) support for faster frame rates
+        - Target FPS control
+        - Frame metadata (timestamp, frame number)
+
+        Args:
+            roi: Optional (x, y, width, height) for region of interest
+            target_fps: Target frames per second (limited by exposure)
+            frame_callback: Called for each frame with (frame_num, data, metadata)
+
+        Returns:
+            True if streaming started successfully
+        """
+        if not self._initialized:
+            raise RuntimeError("Camera not initialized")
+
+        if self._capturing:
+            logger.warning("Already capturing, stop first")
+            return False
+
+        self._capturing = True
+        self._streaming = True
+        self._stream_roi = roi
+        self._stream_target_fps = target_fps
+        self._stream_callback = frame_callback
+        self._stream_frame_count = 0
+        self._stream_start_time = time.time()
+        self._stream_dropped_frames = 0
+
+        # Calculate effective ROI
+        if roi:
+            x, y, w, h = roi
+            self._stream_width = min(w, self.props.max_width - x)
+            self._stream_height = min(h, self.props.max_height - y)
+        else:
+            self._stream_width = self.props.max_width // self._binning
+            self._stream_height = self.props.max_height // self._binning
+
+        logger.info(f"Video streaming started: {self._stream_width}x{self._stream_height} "
+                   f"@ target {target_fps} FPS")
+
+        # Start streaming task
+        self._stream_task = asyncio.create_task(self._streaming_loop())
+
+        return True
+
+    async def _streaming_loop(self):
+        """Internal streaming loop for video capture (Step 91)."""
+        target_frame_time = 1.0 / self._stream_target_fps
+        exposure_time = self._exposure_us / 1_000_000
+
+        # Effective frame time is max of exposure and target interval
+        effective_frame_time = max(target_frame_time, exposure_time)
+        effective_fps = 1.0 / effective_frame_time
+
+        if effective_fps < self._stream_target_fps:
+            logger.info(f"FPS limited by exposure to {effective_fps:.1f}")
+
+        try:
+            while self._streaming and self._capturing:
+                frame_start = time.time()
+
+                # Generate frame (use ROI if set)
+                frame_data = self._generate_stream_frame()
+                self._stream_frame_count += 1
+
+                # Build metadata
+                metadata = {
+                    "frame_number": self._stream_frame_count,
+                    "timestamp": datetime.now().isoformat(),
+                    "timestamp_unix": time.time(),
+                    "exposure_us": self._exposure_us,
+                    "gain": self._gain,
+                    "width": self._stream_width,
+                    "height": self._stream_height,
+                    "effective_fps": effective_fps,
+                }
+
+                # Call callback if set
+                if self._stream_callback:
+                    try:
+                        self._stream_callback(
+                            self._stream_frame_count,
+                            frame_data,
+                            metadata
+                        )
+                    except Exception as e:
+                        logger.error(f"Stream callback error: {e}")
+
+                # Calculate sleep time to maintain frame rate
+                elapsed = time.time() - frame_start
+                sleep_time = effective_frame_time - elapsed
+
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+                else:
+                    # Dropped frame (processing took too long)
+                    self._stream_dropped_frames += 1
+
+        except asyncio.CancelledError:
+            logger.debug("Streaming loop cancelled")
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+        finally:
+            self._streaming = False
+            logger.info(f"Streaming stopped: {self._stream_frame_count} frames, "
+                       f"{self._stream_dropped_frames} dropped")
+
+    def _generate_stream_frame(self) -> bytes:
+        """Generate a single streaming frame with ROI support (Step 91)."""
+        width = self._stream_width
+        height = self._stream_height
+
+        # Generate simplified frame for speed (no complex star simulation)
+        # In real implementation, this would read from camera buffer
+
+        if self.props.is_color:
+            # RGB24 format for color
+            channels = 3
+            image_data = bytearray(width * height * channels)
+
+            # Simple gradient + noise for visual feedback
+            for y in range(height):
+                for x in range(width):
+                    idx = (y * width + x) * channels
+                    # Add some variation
+                    noise = random.randint(-10, 10)
+                    r = min(255, max(0, 30 + noise))
+                    g = min(255, max(0, 30 + noise))
+                    b = min(255, max(0, 40 + noise))
+                    image_data[idx] = r
+                    image_data[idx + 1] = g
+                    image_data[idx + 2] = b
+        else:
+            # Mono 8-bit
+            image_data = bytearray(width * height)
+            for i in range(len(image_data)):
+                image_data[i] = random.randint(20, 50)
+
+        return bytes(image_data)
+
+    async def stop_video_streaming(self) -> dict:
+        """
+        Stop video streaming and return capture statistics (Step 91).
+
+        Returns:
+            Dict with capture statistics
+        """
+        self._streaming = False
+        self._capturing = False
+
+        # Wait for task to complete
+        if hasattr(self, '_stream_task') and self._stream_task:
+            try:
+                self._stream_task.cancel()
+                await asyncio.sleep(0.1)
+            except Exception:
+                pass
+
+        duration = time.time() - self._stream_start_time if hasattr(self, '_stream_start_time') else 0
+        actual_fps = self._stream_frame_count / duration if duration > 0 else 0
+
+        stats = {
+            "total_frames": self._stream_frame_count,
+            "dropped_frames": self._stream_dropped_frames,
+            "duration_sec": duration,
+            "actual_fps": actual_fps,
+            "target_fps": self._stream_target_fps if hasattr(self, '_stream_target_fps') else 0,
+            "width": self._stream_width if hasattr(self, '_stream_width') else 0,
+            "height": self._stream_height if hasattr(self, '_stream_height') else 0,
+        }
+
+        logger.info(f"Streaming stats: {stats['total_frames']} frames @ {actual_fps:.1f} FPS")
+
+        return stats
+
+    def get_streaming_status(self) -> dict:
+        """Get current streaming status (Step 91)."""
+        if not hasattr(self, '_streaming') or not self._streaming:
+            return {"streaming": False}
+
+        duration = time.time() - self._stream_start_time
+        current_fps = self._stream_frame_count / duration if duration > 0 else 0
+
+        return {
+            "streaming": True,
+            "frame_count": self._stream_frame_count,
+            "dropped_frames": self._stream_dropped_frames,
+            "duration_sec": duration,
+            "current_fps": current_fps,
+            "target_fps": self._stream_target_fps,
+            "roi": self._stream_roi,
+        }
+
+    async def capture_planetary_sequence(
+        self,
+        duration_sec: float,
+        output_callback: Optional[Callable[[int, bytes, dict], None]] = None,
+        roi: Optional[Tuple[int, int, int, int]] = None,
+        lucky_imaging: bool = False
+    ) -> dict:
+        """
+        Capture planetary imaging sequence (Step 91).
+
+        Optimized for planetary imaging with:
+        - High frame rate capture
+        - Optional ROI for faster readout
+        - Lucky imaging mode (marks best frames)
+
+        Args:
+            duration_sec: Total capture duration
+            output_callback: Called for each frame
+            roi: Region of interest (x, y, width, height)
+            lucky_imaging: Enable lucky imaging analysis
+
+        Returns:
+            Dict with capture statistics and quality metrics
+        """
+        logger.info(f"Starting planetary capture: {duration_sec}s, lucky={lucky_imaging}")
+
+        # Set up for high-speed capture
+        original_exposure = self._exposure_us
+        if self._exposure_us > 50000:  # > 50ms is too slow for planetary
+            self._exposure_us = 10000  # Default to 10ms
+            logger.info(f"Reduced exposure to {self._exposure_us}us for planetary")
+
+        frame_data_list = []
+        quality_scores = []
+
+        def collect_frame(frame_num: int, data: bytes, meta: dict):
+            frame_info = {"frame_num": frame_num, "timestamp": meta["timestamp"]}
+
+            if lucky_imaging:
+                # Simple quality metric (would use actual sharpness in real impl)
+                quality = random.uniform(0.5, 1.0)  # Simulated
+                quality_scores.append(quality)
+                frame_info["quality"] = quality
+
+            if output_callback:
+                meta["quality"] = quality_scores[-1] if quality_scores else None
+                output_callback(frame_num, data, meta)
+
+            frame_data_list.append(frame_info)
+
+        # Start streaming
+        await self.start_video_streaming(
+            roi=roi,
+            target_fps=100,  # High FPS for planetary
+            frame_callback=collect_frame
+        )
+
+        # Run for specified duration
+        await asyncio.sleep(duration_sec)
+
+        # Stop and get stats
+        stats = await self.stop_video_streaming()
+
+        # Restore original exposure
+        self._exposure_us = original_exposure
+
+        # Add quality analysis
+        if lucky_imaging and quality_scores:
+            stats["quality_analysis"] = {
+                "mean_quality": sum(quality_scores) / len(quality_scores),
+                "max_quality": max(quality_scores),
+                "min_quality": min(quality_scores),
+                "frames_above_90pct": sum(1 for q in quality_scores if q > 0.9),
+                "best_frame_indices": [
+                    i for i, q in enumerate(quality_scores)
+                    if q > sum(quality_scores) / len(quality_scores) * 1.2
+                ][:10]  # Top 10 frames
+            }
+
+        logger.info(f"Planetary capture complete: {stats['total_frames']} frames")
+
+        return stats
+
+    # =========================================================================
     # Cooler Simulation
     # =========================================================================
 

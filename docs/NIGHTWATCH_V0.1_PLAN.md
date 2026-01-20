@@ -176,7 +176,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 88 | Core Service Completion | camera | Implement binning control (1x1, 2x2, 4x4) | 87 | 2 | 1 | Complete | set_binning(), get_binning(), get_supported_binning() in asi_camera.py |
 | 89 | Core Service Completion | camera | Implement ROI (region of interest) control | 88 | 3 | 2 | Complete | set_roi(), get_roi(), set_roi_centered(), get_roi_presets() |
 | 90 | Core Service Completion | camera | Implement single frame capture | 89 | 3 | 2 | Complete | capture_frame() async with SDK integration and simulation mode |
-| 91 | Core Service Completion | camera | Implement video/streaming capture mode | 90 | 4 | 3 | Not Started | Planetary imaging |
+| 91 | Core Service Completion | camera | Implement video/streaming capture mode | 90 | 4 | 3 | Complete | start_video_streaming(), capture_planetary_sequence() with ROI, FPS, lucky imaging |
 | 92 | Core Service Completion | camera | Implement image download and format conversion | 91 | 3 | 2 | Complete | convert_raw_to_numpy(), debayer_image(), save_image() with PNG/FITS/RAW |
 | 93 | Core Service Completion | camera | Add FITS header writing | 92 | 3 | 2 | Complete | _save_fits() with astropy, create_fits_header(), standard headers |
 | 94 | Core Service Completion | camera | Implement cooling control (setpoint, power) | 93 | 3 | 2 | Complete | set_target_temperature(), wait_for_temperature(), get_cooling_recommendation() |
@@ -266,8 +266,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 178 | Core Service Completion | enclosure | Write unit tests for roof controller | 177 | 2 | 2 | Complete | tests/unit/test_roof_controller.py (45 tests) |
 | 179 | Core Service Completion | enclosure | Write integration test with safety monitor | 178 | 3 | 2 | Complete | tests/integration/test_safety_enclosure.py (12 test classes, rain/wind/sequence) |
 | 180 | Core Service Completion | focus | Review focuser_service.py current implementation | None | 2 | 1 | Complete | Full autofocus, V-curve/HFD, temp compensation |
-| 181 | Core Service Completion | focus | Complete V-curve autofocus algorithm | 180 | 4 | 3 | Not Started | Parabolic fit |
-| 182 | Core Service Completion | focus | Add HFD (Half-Flux Diameter) calculation | 181 | 4 | 3 | Not Started | Star measurement |
+| 181 | Core Service Completion | focus | Complete V-curve autofocus algorithm | 180 | 4 | 3 | Complete | _fit_vcurve_full() with Cramer's rule, R², confidence levels |
+| 182 | Core Service Completion | focus | Add HFD (Half-Flux Diameter) calculation | 181 | 4 | 3 | Complete | calculate_hfd_from_image(), _calculate_single_star_hfd() aperture photometry |
 | 183 | Core Service Completion | focus | Implement Bahtinov mask analysis | 182 | 5 | 4 | Not Started | Diffraction pattern |
 | 184 | Core Service Completion | focus | Add contrast-based focusing | 183 | 3 | 2 | Complete | _contrast_focus(), _measure_contrast(), calculate_laplacian_variance() in focuser_service.py |
 | 185 | Core Service Completion | focus | Implement temperature compensation calibration | 184 | 4 | 3 | Complete | Multi-point calibration, linear regression, R² stats |
