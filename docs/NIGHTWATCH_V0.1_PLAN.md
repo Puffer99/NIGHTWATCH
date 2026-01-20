@@ -314,7 +314,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 226 | Orchestrator Development | orchestrator | Add enclosure service registration | 225 | 2 | 1 | Complete | register_enclosure() |
 | 227 | Orchestrator Development | orchestrator | Implement async initialization sequence | 226 | 3 | 2 | Complete | start() method |
 | 228 | Orchestrator Development | orchestrator | Add service health monitoring loop | 227 | 3 | 2 | Complete | _health_loop() |
-| 229 | Orchestrator Development | orchestrator | Implement service restart on failure | 228 | 4 | 3 | Not Started | Auto-recovery |
+| 229 | Orchestrator Development | orchestrator | Implement service restart on failure | 228 | 4 | 3 | Complete | Auto-recovery with RestartPolicy, RestartConfig, exponential backoff |
 | 230 | Orchestrator Development | orchestrator | Add session state management | 229 | 3 | 2 | Complete | SessionState dataclass |
 | 231 | Orchestrator Development | orchestrator | Implement session start logic | 230 | 2 | 1 | Complete | start_session(), end_session() |
 | 232 | Orchestrator Development | orchestrator | Implement session end logic (park, close) | 231 | 3 | 2 | Complete | end_session() with park, close, guiding stop in orchestrator.py |
@@ -651,10 +651,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 563 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_enclosure.py | 178 | 2 | 2 | Complete | Created with GPIO, RoofController, safety tests |
 | 564 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_focus.py | 191 | 2 | 2 | Complete | Created with config, state, metrics tests |
 | 565 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_mount_catalog.py | 351,358 | 3 | 2 | Complete | Mount+catalog |
-| 566 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_voice_mount.py | 312,351 | 3 | 3 | Not Started | Voice+mount |
+| 566 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_voice_mount.py | 312,351 | 3 | 3 | Complete | Voice+mount integration tests (30+ tests) |
 | 567 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_safety_mount.py | 480,351 | 3 | 2 | Complete | Safety+mount |
 | 568 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_safety_enclosure.py | 480,433 | 3 | 2 | Complete | Safety+enclosure |
-| 569 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_orchestrator_services.py | 256,547 | 3 | 3 | Not Started | Full orchestration |
+| 569 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_orchestrator_services.py | 256,547 | 3 | 3 | Complete | Full orchestration tests (25+ tests, 7 mock services) |
 | 570 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_full_pipeline.py | 312,569 | 4 | 3 | Not Started | End-to-end |
 | 571 | Testing & Quality Assurance | integration_tests | Add simulator startup helper | 570 | 2 | 1 | Complete | SimulatorManager.start(), start_simulators() in tests/integration/__init__.py |
 | 572 | Testing & Quality Assurance | integration_tests | Add simulator shutdown helper | 571 | 2 | 1 | Complete | SimulatorManager.stop(), stop_simulators() in tests/integration/__init__.py |

@@ -68,6 +68,8 @@ __all__ = [
     "Orchestrator",
     "ServiceRegistry",
     "ServiceStatus",
+    "RestartPolicy",
+    "RestartConfig",
     "SessionState",
     "ObservingTarget",
     "ObservationLogEntry",
@@ -668,6 +670,33 @@ class ServiceStatus(Enum):
     DEGRADED = "degraded"
     STOPPED = "stopped"
     ERROR = "error"
+    RESTARTING = "restarting"  # Step 229: Service is being restarted
+
+
+class RestartPolicy(Enum):
+    """
+    Service restart policies (Step 229).
+
+    Defines how services should be handled when they fail.
+    """
+    NEVER = "never"           # Never auto-restart
+    ON_FAILURE = "on_failure" # Restart only on failure
+    ALWAYS = "always"         # Always restart (unless manually stopped)
+
+
+@dataclass
+class RestartConfig:
+    """
+    Service restart configuration (Step 229).
+
+    Configures automatic restart behavior for a service.
+    """
+    policy: RestartPolicy = RestartPolicy.ON_FAILURE
+    max_restarts: int = 3           # Maximum restart attempts before giving up
+    restart_delay_sec: float = 5.0  # Initial delay between restart attempts
+    backoff_multiplier: float = 2.0 # Multiply delay after each failure
+    max_delay_sec: float = 60.0     # Maximum delay between attempts
+    reset_after_sec: float = 300.0  # Reset failure count after this many seconds of success
 
 
 @dataclass
@@ -679,6 +708,13 @@ class ServiceInfo:
     last_error: Optional[str] = None
     last_check: Optional[datetime] = None
     required: bool = True  # If True, orchestrator won't start without it
+
+    # Step 229: Restart tracking
+    restart_config: RestartConfig = field(default_factory=RestartConfig)
+    restart_count: int = 0               # Current restart attempt count
+    last_restart_attempt: Optional[datetime] = None
+    last_successful_start: Optional[datetime] = None
+    manually_stopped: bool = False       # True if stopped by user/code (not failure)
 
 
 class ServiceRegistry:
@@ -694,7 +730,13 @@ class ServiceRegistry:
         self._services: Dict[str, ServiceInfo] = {}
         self._callbacks: List[Callable] = []
 
-    def register(self, name: str, service: Any, required: bool = True) -> None:
+    def register(
+        self,
+        name: str,
+        service: Any,
+        required: bool = True,
+        restart_config: Optional[RestartConfig] = None
+    ) -> None:
         """
         Register a service.
 
@@ -702,12 +744,14 @@ class ServiceRegistry:
             name: Service identifier (e.g., "mount", "camera")
             service: The service instance
             required: If True, orchestrator requires this service to start
+            restart_config: Optional restart configuration (Step 229)
         """
         self._services[name] = ServiceInfo(
             name=name,
             service=service,
             status=ServiceStatus.UNKNOWN,
             required=required,
+            restart_config=restart_config or RestartConfig(),
         )
         logger.info(f"Registered service: {name} (required={required})")
 
@@ -761,6 +805,153 @@ class ServiceRegistry:
             if info.required and info.status != ServiceStatus.RUNNING:
                 return False
         return True
+
+    # =========================================================================
+    # Step 229: Service Restart Management
+    # =========================================================================
+
+    def set_restart_config(self, name: str, config: RestartConfig) -> bool:
+        """
+        Set restart configuration for a service (Step 229).
+
+        Args:
+            name: Service name
+            config: Restart configuration
+
+        Returns:
+            True if service found and config set
+        """
+        if name in self._services:
+            self._services[name].restart_config = config
+            logger.info(f"Updated restart config for {name}: policy={config.policy.value}")
+            return True
+        return False
+
+    def get_restart_config(self, name: str) -> Optional[RestartConfig]:
+        """Get restart configuration for a service (Step 229)."""
+        if name in self._services:
+            return self._services[name].restart_config
+        return None
+
+    def record_restart_attempt(self, name: str) -> None:
+        """Record a restart attempt for a service (Step 229)."""
+        if name in self._services:
+            self._services[name].restart_count += 1
+            self._services[name].last_restart_attempt = datetime.now()
+            logger.debug(f"Service {name} restart attempt #{self._services[name].restart_count}")
+
+    def record_successful_start(self, name: str) -> None:
+        """Record successful service start (Step 229)."""
+        if name in self._services:
+            self._services[name].last_successful_start = datetime.now()
+            self._services[name].manually_stopped = False
+            logger.debug(f"Service {name} started successfully")
+
+    def reset_restart_count(self, name: str) -> None:
+        """Reset restart count for a service (Step 229)."""
+        if name in self._services:
+            self._services[name].restart_count = 0
+            logger.debug(f"Reset restart count for {name}")
+
+    def mark_manually_stopped(self, name: str) -> None:
+        """Mark service as manually stopped (Step 229)."""
+        if name in self._services:
+            self._services[name].manually_stopped = True
+
+    def should_restart(self, name: str) -> bool:
+        """
+        Check if a service should be restarted (Step 229).
+
+        Evaluates the restart policy and current state.
+
+        Args:
+            name: Service name
+
+        Returns:
+            True if service should be restarted
+        """
+        if name not in self._services:
+            return False
+
+        info = self._services[name]
+        config = info.restart_config
+
+        # Never restart if policy is NEVER
+        if config.policy == RestartPolicy.NEVER:
+            return False
+
+        # Don't restart if manually stopped
+        if info.manually_stopped:
+            return False
+
+        # Check if max restarts exceeded
+        if info.restart_count >= config.max_restarts:
+            logger.warning(f"Service {name} exceeded max restarts ({config.max_restarts})")
+            return False
+
+        # Check if we should reset the restart count (service was stable)
+        if info.last_successful_start and info.restart_count > 0:
+            stable_time = (datetime.now() - info.last_successful_start).total_seconds()
+            if stable_time >= config.reset_after_sec:
+                logger.info(f"Service {name} was stable for {stable_time:.0f}s, resetting restart count")
+                self.reset_restart_count(name)
+
+        # ALWAYS policy restarts unless manually stopped
+        if config.policy == RestartPolicy.ALWAYS:
+            return info.status in [ServiceStatus.STOPPED, ServiceStatus.ERROR]
+
+        # ON_FAILURE policy only restarts on error
+        if config.policy == RestartPolicy.ON_FAILURE:
+            return info.status == ServiceStatus.ERROR
+
+        return False
+
+    def get_restart_delay(self, name: str) -> float:
+        """
+        Get the current restart delay for a service (Step 229).
+
+        Uses exponential backoff based on restart count.
+
+        Args:
+            name: Service name
+
+        Returns:
+            Delay in seconds before next restart attempt
+        """
+        if name not in self._services:
+            return 5.0
+
+        info = self._services[name]
+        config = info.restart_config
+
+        # Calculate delay with exponential backoff
+        delay = config.restart_delay_sec * (config.backoff_multiplier ** info.restart_count)
+        return min(delay, config.max_delay_sec)
+
+    def get_services_needing_restart(self) -> List[str]:
+        """
+        Get list of services that need to be restarted (Step 229).
+
+        Returns:
+            List of service names that should be restarted
+        """
+        return [name for name in self._services if self.should_restart(name)]
+
+    def get_restart_stats(self, name: str) -> Dict[str, Any]:
+        """Get restart statistics for a service (Step 229)."""
+        if name not in self._services:
+            return {}
+
+        info = self._services[name]
+        return {
+            "restart_count": info.restart_count,
+            "max_restarts": info.restart_config.max_restarts,
+            "policy": info.restart_config.policy.value,
+            "last_restart_attempt": info.last_restart_attempt.isoformat() if info.last_restart_attempt else None,
+            "last_successful_start": info.last_successful_start.isoformat() if info.last_successful_start else None,
+            "manually_stopped": info.manually_stopped,
+            "current_delay": self.get_restart_delay(name),
+        }
 
 
 # =============================================================================
@@ -1007,7 +1198,16 @@ class Orchestrator:
                     self.registry.set_status(name, ServiceStatus.STARTING)
                     await service.start()
                     self.registry.set_status(name, ServiceStatus.RUNNING)
+                    # Step 229: Record successful start for restart tracking
+                    self.registry.record_successful_start(name)
+                    self.metrics.service_start_time[name] = datetime.now()
                     logger.info(f"Service started: {name}")
+                    # Emit service started event
+                    await self.emit_event(
+                        EventType.SERVICE_STARTED,
+                        source=name,
+                        message=f"Service {name} started"
+                    )
                 except Exception as e:
                     self.registry.set_status(name, ServiceStatus.ERROR, str(e))
                     logger.error(f"Failed to start service {name}: {e}")
@@ -1152,7 +1352,7 @@ class Orchestrator:
             logger.error(f"Failed to save session log: {e}")
 
     async def _health_loop(self):
-        """Background health monitoring loop."""
+        """Background health monitoring loop with auto-restart (Step 229)."""
         while self._running:
             try:
                 await asyncio.sleep(30)  # Check every 30 seconds
@@ -1163,15 +1363,189 @@ class Orchestrator:
                         try:
                             if service.is_running:
                                 self.registry.set_status(name, ServiceStatus.RUNNING)
+                                # Reset restart count if service has been stable
+                                info = self.registry._services.get(name)
+                                if info and info.restart_count > 0 and info.last_successful_start:
+                                    stable_time = (datetime.now() - info.last_successful_start).total_seconds()
+                                    if stable_time >= info.restart_config.reset_after_sec:
+                                        self.registry.reset_restart_count(name)
                             else:
                                 self.registry.set_status(name, ServiceStatus.STOPPED)
                         except Exception as e:
                             self.registry.set_status(name, ServiceStatus.ERROR, str(e))
 
+                # Step 229: Check for services needing restart
+                await self._check_and_restart_services()
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Health check error: {e}")
+
+    async def _check_and_restart_services(self) -> None:
+        """
+        Check for failed services and restart them (Step 229).
+
+        This is called by the health loop to automatically restart
+        services that have failed according to their restart policy.
+        """
+        services_needing_restart = self.registry.get_services_needing_restart()
+
+        for name in services_needing_restart:
+            try:
+                await self._restart_service(name)
+            except Exception as e:
+                logger.error(f"Failed to restart service {name}: {e}")
+                self.record_service_error(name)
+
+    async def _restart_service(self, name: str) -> bool:
+        """
+        Restart a single service (Step 229).
+
+        Args:
+            name: Service name to restart
+
+        Returns:
+            True if restart successful
+        """
+        service = self.registry.get(name)
+        if not service:
+            return False
+
+        info = self.registry._services.get(name)
+        if not info:
+            return False
+
+        # Get delay before restart
+        delay = self.registry.get_restart_delay(name)
+        logger.info(f"Restarting service {name} (attempt #{info.restart_count + 1}, "
+                   f"delay={delay:.1f}s)")
+
+        # Record restart attempt
+        self.registry.record_restart_attempt(name)
+        self.registry.set_status(name, ServiceStatus.RESTARTING)
+
+        # Wait for backoff delay
+        await asyncio.sleep(delay)
+
+        # Emit event
+        await self.emit_event(
+            EventType.SERVICE_ERROR,
+            source=name,
+            data={
+                "action": "restart_attempt",
+                "attempt": info.restart_count,
+                "delay": delay,
+            },
+            message=f"Attempting to restart {name} (attempt #{info.restart_count})"
+        )
+
+        try:
+            # Stop the service first (ignore errors)
+            if hasattr(service, 'stop'):
+                try:
+                    await service.stop()
+                except Exception:
+                    pass
+
+            await asyncio.sleep(1.0)  # Brief pause
+
+            # Start the service
+            if hasattr(service, 'start'):
+                await service.start()
+
+            # Verify it's running
+            if hasattr(service, 'is_running') and service.is_running:
+                self.registry.set_status(name, ServiceStatus.RUNNING)
+                self.registry.record_successful_start(name)
+                logger.info(f"Service {name} restarted successfully")
+
+                await self.emit_event(
+                    EventType.SERVICE_STARTED,
+                    source=name,
+                    data={
+                        "recovery": True,
+                        "attempt": info.restart_count,
+                    },
+                    message=f"Service {name} recovered after restart"
+                )
+                return True
+
+            # Service didn't start properly
+            self.registry.set_status(name, ServiceStatus.ERROR, "Failed to start after restart")
+            return False
+
+        except Exception as e:
+            logger.error(f"Service {name} restart failed: {e}")
+            self.registry.set_status(name, ServiceStatus.ERROR, str(e))
+            self.record_service_error(name)
+            return False
+
+    async def restart_service(self, name: str, force: bool = False) -> bool:
+        """
+        Manually restart a service (Step 229).
+
+        Unlike automatic restarts, this resets the restart count
+        and ignores the manually_stopped flag.
+
+        Args:
+            name: Service name to restart
+            force: If True, restart even if max restarts exceeded
+
+        Returns:
+            True if restart successful
+        """
+        if name not in self.registry._services:
+            logger.warning(f"Service {name} not found")
+            return False
+
+        # Reset state for manual restart
+        if force:
+            self.registry.reset_restart_count(name)
+
+        info = self.registry._services[name]
+        info.manually_stopped = False
+
+        logger.info(f"Manual restart requested for service {name}")
+        return await self._restart_service(name)
+
+    def set_service_restart_policy(
+        self,
+        name: str,
+        policy: RestartPolicy,
+        max_restarts: int = 3,
+        restart_delay: float = 5.0
+    ) -> bool:
+        """
+        Configure restart policy for a service (Step 229).
+
+        Args:
+            name: Service name
+            policy: Restart policy to use
+            max_restarts: Maximum restart attempts
+            restart_delay: Initial delay between restarts
+
+        Returns:
+            True if configuration applied
+        """
+        config = RestartConfig(
+            policy=policy,
+            max_restarts=max_restarts,
+            restart_delay_sec=restart_delay,
+        )
+        return self.registry.set_restart_config(name, config)
+
+    def get_restart_statistics(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get restart statistics for all services (Step 229).
+
+        Returns:
+            Dict mapping service names to their restart stats
+        """
+        return {
+            name: self.registry.get_restart_stats(name)
+            for name in self.registry.list_services()
+        }
 
     # =========================================================================
     # Session Management (Step 231)
