@@ -49,6 +49,16 @@ from .sky_describer import (
     get_sky_describer,
 )
 
+from .session_narrator import (
+    SessionNarrator,
+    NarrationStyle,
+    SessionPhase,
+    NarratedTarget,
+    SessionNarration,
+    SessionState,
+    get_narrator,
+)
+
 __all__ = [
     # Conversation Context
     "ConversationContext",
@@ -85,4 +95,12 @@ __all__ = [
     "SkyState",
     "SkyDescription",
     "get_sky_describer",
+    # Session Narrator
+    "SessionNarrator",
+    "NarrationStyle",
+    "SessionPhase",
+    "NarratedTarget",
+    "SessionNarration",
+    "SessionState",
+    "get_narrator",
 ]
