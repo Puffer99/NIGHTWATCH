@@ -483,7 +483,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 395 | Tool Handler Implementation | guiding_tools | Implement stop_guiding handler | 394 | 2 | 1 | Complete | stop_guiding() with stop/stop_guiding fallback |
 | 396 | Tool Handler Implementation | guiding_tools | Implement get_guiding_status handler | 395 | 2 | 1 | Complete | get_guiding_status() with state and RMS |
 | 397 | Tool Handler Implementation | guiding_tools | Add RMS in arcseconds | 396 | 2 | 1 | Complete | RMS RA/Dec/total with quality assessment |
-| 398 | Tool Handler Implementation | guiding_tools | Implement dither handler | 397 | 3 | 2 | Not Started | Imaging workflow |
+| 398 | Tool Handler Implementation | guiding_tools | Implement dither handler | 397 | 3 | 2 | Complete | dither() with PHD2 settle and fallback in telescope_tools.py |
 | 399 | Tool Handler Implementation | guiding_tools | Add dither amount parameter | 398 | 2 | 1 | Complete | pixels, ra_only, wait_settle params for dither in telescope_tools.py |
 | 400 | Tool Handler Implementation | guiding_tools | Write unit tests for guiding tool handlers | 399 | 2 | 2 | Complete | TestGuidingToolHandlers in test_telescope_tools.py (5 tests) |
 | 401 | Tool Handler Implementation | camera_tools | Implement start_capture handler | 257 | 3 | 2 | Not Started | Begin imaging |
@@ -526,12 +526,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 438 | Tool Handler Implementation | power_tools | Implement emergency_shutdown handler | 437 | 3 | 2 | Not Started | Critical action |
 | 439 | Tool Handler Implementation | power_tools | Add confirmation requirement | 438 | 2 | 1 | Complete | confirmed param in set_port_power(), power_cycle_port() |
 | 440 | Tool Handler Implementation | power_tools | Write unit tests for power tool handlers | 439 | 2 | 2 | Complete | TestPowerToolHandlers in test_telescope_tools.py (4 tests) |
-| 441 | Tool Handler Implementation | indi_tools | Implement indi_discover_devices handler | 257 | 3 | 2 | Not Started | Device scan |
+| 441 | Tool Handler Implementation | indi_tools | Implement indi_discover_devices handler | 257 | 3 | 2 | Complete | indi_discover_devices() with XML parsing in telescope_tools.py |
 | 442 | Tool Handler Implementation | indi_tools | Implement indi_connect_device handler | 441 | 2 | 1 | Complete | Connect device |
 | 443 | Tool Handler Implementation | indi_tools | Implement indi_get_property handler | 442 | 2 | 1 | Complete | Read property |
 | 444 | Tool Handler Implementation | indi_tools | Implement indi_set_property handler | 443 | 2 | 1 | Complete | Write property |
 | 445 | Tool Handler Implementation | indi_tools | Write unit tests for INDI tool handlers | 444 | 2 | 2 | Complete | TestINDIToolHandlers in test_telescope_tools.py (4 tests) |
-| 446 | Tool Handler Implementation | alpaca_tools | Implement alpaca_discover_devices handler | 257 | 3 | 2 | Not Started | Device scan |
+| 446 | Tool Handler Implementation | alpaca_tools | Implement alpaca_discover_devices handler | 257 | 3 | 2 | Complete | alpaca_discover_devices() with UDP broadcast in telescope_tools.py |
 | 447 | Tool Handler Implementation | alpaca_tools | Implement alpaca_connect_device handler | 446 | 2 | 1 | Complete | Connect device |
 | 448 | Tool Handler Implementation | alpaca_tools | Implement alpaca_get_status handler | 447 | 2 | 1 | Complete | Device status |
 | 449 | Tool Handler Implementation | alpaca_tools | Write unit tests for Alpaca tool handlers | 448 | 2 | 2 | Complete | TestAlpacaToolHandlers in test_telescope_tools.py (4 tests) |
@@ -591,10 +591,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 503 | Hardware-in-Loop Simulation | docker | Configure mount simulator with LX200 protocol | 502 | 2 | 1 | Complete | TCP port 9999, full LX200 command set |
 | 504 | Hardware-in-Loop Simulation | docker | Add weather simulator service | 503 | 3 | 2 | Complete | Dockerfile.weather, weather_simulator.py |
 | 505 | Hardware-in-Loop Simulation | docker | Configure weather simulator with HTTP API | 504 | 2 | 1 | Complete | Ecowitt JSON API at /get_livedata_info |
-| 506 | Hardware-in-Loop Simulation | docker | Add cloud sensor simulator service | 505 | 3 | 2 | Not Started | AAG sim |
-| 507 | Hardware-in-Loop Simulation | docker | Configure cloud simulator with serial protocol | 506 | 2 | 1 | Not Started | Mock data |
-| 508 | Hardware-in-Loop Simulation | docker | Add PHD2 simulator service | 507 | 3 | 2 | Not Started | Guiding sim |
-| 509 | Hardware-in-Loop Simulation | docker | Configure PHD2 simulator JSON-RPC | 508 | 2 | 1 | Not Started | Port 4400 |
+| 506 | Hardware-in-Loop Simulation | docker | Add cloud sensor simulator service | 505 | 3 | 2 | Complete | cloud_simulator.py with AAG CloudWatcher protocol |
+| 507 | Hardware-in-Loop Simulation | docker | Configure cloud simulator with serial protocol | 506 | 2 | 1 | Complete | A/C/E/K/Q commands, diurnal cycles, docker-compose service |
+| 508 | Hardware-in-Loop Simulation | docker | Add PHD2 simulator service | 507 | 3 | 2 | Complete | phd2_simulator.py with JSON-RPC interface |
+| 509 | Hardware-in-Loop Simulation | docker | Configure PHD2 simulator JSON-RPC | 508 | 2 | 1 | Complete | guide/dither/find_star methods, docker-compose service |
 | 510 | Hardware-in-Loop Simulation | docker | Add INDI simulator configuration | 509 | 2 | 1 | Complete | GPS driver added, INDICONFIG volume |
 | 511 | Hardware-in-Loop Simulation | docker | Add Alpaca simulator configuration | 510 | 2 | 1 | Complete | Location/discovery config, server name |
 | 512 | Hardware-in-Loop Simulation | docker | Create docker-compose.test.yml for CI | 511 | 2 | 2 | Complete | Lightweight |

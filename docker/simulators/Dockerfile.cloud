@@ -1,0 +1,28 @@
+# AAG CloudWatcher Simulator Dockerfile (Steps 506-507)
+#
+# Simulates AAG CloudWatcher Solo cloud sensor
+# TCP-based serial protocol on configurable port
+#
+# Build: docker build -f Dockerfile.cloud -t nightwatch-cloud-sim .
+# Run:   docker run -p 8081:8081 nightwatch-cloud-sim
+
+FROM python:3.11-slim
+
+LABEL maintainer="NIGHTWATCH Project"
+LABEL description="AAG CloudWatcher cloud sensor simulator"
+LABEL version="1.0"
+
+WORKDIR /app
+
+# Copy simulator script
+COPY cloud_simulator.py .
+
+# Default configuration
+ENV CLOUD_SIM_PORT=8081
+ENV CLOUD_SIM_TEMP_F=55.0
+ENV CLOUD_SIM_SKY_TEMP=-25.0
+ENV CLOUD_SIM_EVENTS_ENABLED=false
+
+EXPOSE 8081
+
+CMD ["python", "-u", "cloud_simulator.py"]

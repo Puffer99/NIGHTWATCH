@@ -149,21 +149,56 @@ services:
       - nightwatch-dev
 
   # ==========================================================================
-  # PHD2 Guiding Simulator (optional)
+  # Cloud Sensor Simulator - AAG CloudWatcher Protocol (Step 506-507)
   # ==========================================================================
-  # Uncomment to enable PHD2 server simulation for guiding tests
-  # JSON-RPC interface on port 4400
-  # phd2-simulator:
-  #   build:
-  #     context: ./simulators
-  #     dockerfile: Dockerfile.phd2
-  #   container_name: nightwatch-phd2-sim
-  #   ports:
-  #     - "4400:4400"
-  #   environment:
-  #     - PHD2_SIM_PORT=4400
-  #   networks:
-  #     - nightwatch-dev
+  # Simulates AAG CloudWatcher Solo cloud sensor serial protocol over TCP
+  # Commands: A (ambient), C (sky temp), E (rain), K (switch), Q (all)
+  cloud-simulator:
+    build:
+      context: ./simulators
+      dockerfile: Dockerfile.cloud
+    container_name: nightwatch-cloud-sim
+    ports:
+      - "8081:8081"
+    environment:
+      # Cloud sensor simulator configuration
+      - CLOUD_SIM_PORT=8081
+      # Base conditions
+      - CLOUD_SIM_TEMP_F=55.0
+      - CLOUD_SIM_SKY_TEMP=-25.0
+      # Enable random weather events for testing
+      - CLOUD_SIM_EVENTS_ENABLED=false
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8081 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - nightwatch-dev
+
+  # ==========================================================================
+  # PHD2 Guiding Simulator (Steps 508-509)
+  # ==========================================================================
+  # Simulates PHD2 autoguiding JSON-RPC interface
+  # Methods: get_app_state, guide, dither, find_star, etc.
+  phd2-simulator:
+    build:
+      context: ./simulators
+      dockerfile: Dockerfile.phd2
+    container_name: nightwatch-phd2-sim
+    ports:
+      - "4400:4400"
+    environment:
+      - PHD2_SIM_PORT=4400
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4400 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - nightwatch-dev
 
 networks:
   nightwatch-dev:

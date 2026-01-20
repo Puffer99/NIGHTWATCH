@@ -1,0 +1,25 @@
+# PHD2 Guiding Simulator Dockerfile (Steps 508-509)
+#
+# Simulates PHD2 autoguiding software JSON-RPC interface
+# TCP port 4400 (standard PHD2 server port)
+#
+# Build: docker build -f Dockerfile.phd2 -t nightwatch-phd2-sim .
+# Run:   docker run -p 4400:4400 nightwatch-phd2-sim
+
+FROM python:3.11-slim
+
+LABEL maintainer="NIGHTWATCH Project"
+LABEL description="PHD2 autoguiding JSON-RPC simulator"
+LABEL version="1.0"
+
+WORKDIR /app
+
+# Copy simulator script
+COPY phd2_simulator.py .
+
+# Default configuration
+ENV PHD2_SIM_PORT=4400
+
+EXPOSE 4400
+
+CMD ["python", "-u", "phd2_simulator.py"]

@@ -4531,6 +4531,87 @@ def create_default_handlers(
 
     handlers["get_guiding_status"] = get_guiding_status
 
+    async def dither(
+        pixels: float = 5.0,
+        ra_only: bool = False,
+        wait_settle: bool = True,
+        settle_pixels: float = 1.5,
+        settle_time: float = 10.0,
+        settle_timeout: float = 40.0
+    ) -> str:
+        """Execute dither command for imaging workflow (Step 398).
+
+        Dithering moves the guide star by a small amount between frames
+        to help with noise reduction and hot pixel removal during stacking.
+
+        Args:
+            pixels: Dither amount in pixels (default 5.0)
+            ra_only: Only dither in RA direction (default False)
+            wait_settle: Wait for guiding to settle (default True)
+            settle_pixels: Settling threshold in pixels (default 1.5)
+            settle_time: Minimum time at settle threshold (default 10s)
+            settle_timeout: Maximum wait time for settling (default 40s)
+        """
+        # Check for guider service
+        guider = None
+        if 'guider_client' in dir() and guider_client:
+            guider = guider_client
+        elif 'phd2_client' in dir():
+            guider = phd2_client if phd2_client else None
+
+        if not guider:
+            return "Guiding service not available - cannot dither"
+
+        # Verify guiding is active
+        try:
+            is_guiding = False
+            if hasattr(guider, 'is_guiding'):
+                is_guiding = guider.is_guiding()
+            elif hasattr(guider, 'get_app_state'):
+                state = guider.get_app_state()
+                is_guiding = state == "Guiding"
+
+            if not is_guiding:
+                return "Cannot dither - guiding is not active"
+
+        except Exception as e:
+            return f"Error checking guiding state: {e}"
+
+        # Execute dither
+        try:
+            if hasattr(guider, 'dither'):
+                # PHD2-style dither with settle parameters
+                result = await guider.dither(
+                    amount=pixels,
+                    ra_only=ra_only,
+                    settle={
+                        'pixels': settle_pixels,
+                        'time': settle_time,
+                        'timeout': settle_timeout
+                    } if wait_settle else None
+                )
+
+                if wait_settle:
+                    return f"Dither complete ({pixels:.1f}px). Guiding settled."
+                return f"Dither started ({pixels:.1f}px)."
+
+            elif hasattr(guider, 'move_guide_star'):
+                # Alternative: direct guide star offset
+                import random
+                dx = random.uniform(-pixels, pixels)
+                dy = 0 if ra_only else random.uniform(-pixels, pixels)
+                guider.move_guide_star(dx, dy)
+                return f"Dither applied: ({dx:.1f}, {dy:.1f}) pixels"
+
+            return "Dither method not available on guider"
+
+        except asyncio.TimeoutError:
+            return f"Dither settle timeout ({settle_timeout}s) - check guiding quality"
+        except Exception as e:
+            return f"Error during dither: {e}"
+
+    handlers["dither"] = dither
+
     # Device discovery handlers (Steps 441, 446)
     async def indi_discover_devices() -> str:
         """Discover INDI devices on the server (Step 441).
