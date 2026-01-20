@@ -4396,6 +4396,291 @@ def create_default_handlers(
 
     handlers["get_pointing_error"] = get_pointing_error
 
+    # Guiding handlers (Step 393)
+    async def start_guiding(
+        settle_time: float = 10.0,
+        settle_tolerance: float = 1.5
+    ) -> str:
+        """Start autoguiding with PHD2 (Step 393).
+
+        Initiates guide star selection and begins autoguiding.
+
+        Args:
+            settle_time: Time to wait for guiding to settle (seconds)
+            settle_tolerance: RMS threshold to consider settled (arcsec)
+        """
+        # Check if guider service is available
+        guider = None
+        if 'guider_client' in dir() and guider_client:
+            guider = guider_client
+        elif 'phd2_client' in dir():
+            guider = phd2_client if phd2_client else None
+
+        if not guider:
+            return "Guiding service (PHD2) not available"
+
+        # Safety check - ensure mount is tracking
+        if mount_client:
+            try:
+                status = mount_client.get_status()
+                if status and hasattr(status, 'is_tracking') and not status.is_tracking:
+                    return "Cannot start guiding - mount is not tracking"
+                if status and hasattr(status, 'is_parked') and status.is_parked:
+                    return "Cannot start guiding - mount is parked"
+            except Exception:
+                pass
+
+        try:
+            # Check current guiding state
+            if hasattr(guider, 'is_guiding') and guider.is_guiding():
+                return "Guiding is already active"
+
+            # Start guide star selection and guiding
+            if hasattr(guider, 'start_guiding'):
+                result = await guider.start_guiding(
+                    settle_time=settle_time,
+                    settle_tolerance=settle_tolerance
+                )
+                if result:
+                    return f"Guiding started. Settling with {settle_tolerance}\" tolerance."
+                return "Failed to start guiding - check guide camera"
+
+            elif hasattr(guider, 'guide'):
+                # Alternative method name
+                success = guider.guide()
+                if success:
+                    return "Guiding started"
+                return "Failed to start guiding"
+
+            return "Guiding start method not available"
+
+        except Exception as e:
+            return f"Error starting guiding: {e}"
+
+    handlers["start_guiding"] = start_guiding
+
+    async def stop_guiding() -> str:
+        """Stop autoguiding (Step 394)."""
+        guider = None
+        if 'guider_client' in dir() and guider_client:
+            guider = guider_client
+        elif 'phd2_client' in dir():
+            guider = phd2_client if phd2_client else None
+
+        if not guider:
+            return "Guiding service not available"
+
+        try:
+            if hasattr(guider, 'stop_guiding'):
+                guider.stop_guiding()
+                return "Guiding stopped"
+            elif hasattr(guider, 'stop'):
+                guider.stop()
+                return "Guiding stopped"
+            return "Stop method not available"
+        except Exception as e:
+            return f"Error stopping guiding: {e}"
+
+    handlers["stop_guiding"] = stop_guiding
+
+    async def get_guiding_status() -> str:
+        """Get current guiding status and RMS (Step 395)."""
+        guider = None
+        if 'guider_client' in dir() and guider_client:
+            guider = guider_client
+        elif 'phd2_client' in dir():
+            guider = phd2_client if phd2_client else None
+
+        if not guider:
+            return "Guiding service not available"
+
+        try:
+            parts = []
+
+            # Check if guiding
+            is_guiding = False
+            if hasattr(guider, 'is_guiding'):
+                is_guiding = guider.is_guiding()
+                parts.append(f"Guiding: {'Active' if is_guiding else 'Inactive'}")
+
+            # Get RMS if guiding
+            if is_guiding:
+                if hasattr(guider, 'get_rms'):
+                    rms = guider.get_rms()
+                    if rms:
+                        parts.append(f"RMS: {rms.total:.2f}\" (RA: {rms.ra:.2f}\", Dec: {rms.dec:.2f}\")")
+                        if rms.total < 1.0:
+                            parts.append("Guiding quality: Excellent")
+                        elif rms.total < 1.5:
+                            parts.append("Guiding quality: Good")
+                        elif rms.total < 2.5:
+                            parts.append("Guiding quality: Fair")
+                        else:
+                            parts.append("Guiding quality: Poor - consider recalibration")
+
+            # Get guide star info
+            if hasattr(guider, 'get_star_info'):
+                star = guider.get_star_info()
+                if star:
+                    parts.append(f"Guide star SNR: {star.snr:.1f}")
+
+            return ". ".join(parts) if parts else "No guiding information available"
+
+        except Exception as e:
+            return f"Error getting guiding status: {e}"
+
+    handlers["get_guiding_status"] = get_guiding_status
+
+    # Device discovery handlers (Steps 441, 446)
+    async def indi_discover_devices() -> str:
+        """Discover INDI devices on the server (Step 441).
+
+        Scans the INDI server for available devices and returns
+        their names, types, and connection status.
+        """
+        # Check for INDI client
+        indi = None
+        if 'indi_client' in dir() and indi_client:
+            indi = indi_client
+
+        if not indi:
+            return "INDI client not available. Check INDI server connection."
+
+        try:
+            devices = []
+
+            # Get device list
+            if hasattr(indi, 'get_devices'):
+                device_list = indi.get_devices()
+                for device in device_list:
+                    name = device.name if hasattr(device, 'name') else str(device)
+                    dev_type = device.device_type if hasattr(device, 'device_type') else 'unknown'
+                    connected = device.connected if hasattr(device, 'connected') else False
+                    devices.append({
+                        'name': name,
+                        'type': dev_type,
+                        'connected': connected
+                    })
+
+            elif hasattr(indi, 'devices'):
+                # Alternative attribute
+                for name, device in indi.devices.items():
+                    dev_type = getattr(device, 'device_type', 'unknown')
+                    connected = getattr(device, 'connected', False)
+                    devices.append({
+                        'name': name,
+                        'type': dev_type,
+                        'connected': connected
+                    })
+
+            if not devices:
+                return "No INDI devices found. Ensure INDI server is running with device drivers."
+
+            # Format response
+            parts = [f"Found {len(devices)} INDI device(s):"]
+            for dev in devices:
+                status = "connected" if dev['connected'] else "available"
+                parts.append(f"  • {dev['name']} ({dev['type']}) - {status}")
+
+            return "\n".join(parts)
+
+        except Exception as e:
+            return f"Error discovering INDI devices: {e}"
+
+    handlers["indi_discover_devices"] = indi_discover_devices
+
+    async def alpaca_discover_devices(timeout: float = 5.0) -> str:
+        """Discover Alpaca devices via broadcast (Step 446).
+
+        Performs Alpaca device discovery using UDP broadcast
+        to find ASCOM Alpaca servers on the local network.
+
+        Args:
+            timeout: Discovery timeout in seconds
+        """
+        # Check for Alpaca client
+        alpaca = None
+        if 'alpaca_client' in dir() and alpaca_client:
+            alpaca = alpaca_client
+
+        try:
+            devices = []
+
+            # Try using alpaca client discovery
+            if alpaca and hasattr(alpaca, 'discover'):
+                discovered = await alpaca.discover(timeout=timeout)
+                for server in discovered:
+                    devices.append({
+                        'server': server.get('address', 'unknown'),
+                        'port': server.get('port', 11111),
+                        'name': server.get('name', 'Alpaca Server')
+                    })
+
+            # Fallback: try direct UDP broadcast discovery
+            if not devices:
+                import asyncio
+                import socket
+                import json
+
+                # Alpaca discovery port
+                DISCOVERY_PORT = 32227
+
+                try:
+                    # Create UDP socket
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                    sock.settimeout(timeout)
+
+                    # Send discovery request
+                    discovery_msg = json.dumps({"alpacaport": 0}).encode()
+                    sock.sendto(discovery_msg, ('255.255.255.255', DISCOVERY_PORT))
+
+                    # Collect responses
+                    start = asyncio.get_event_loop().time()
+                    while asyncio.get_event_loop().time() - start < timeout:
+                        try:
+                            data, addr = sock.recvfrom(1024)
+                            response = json.loads(data.decode())
+                            devices.append({
+                                'server': addr[0],
+                                'port': response.get('AlpacaPort', 11111),
+                                'name': response.get('ServerName', 'Alpaca Server')
+                            })
+                        except socket.timeout:
+                            break
+                        except Exception:
+                            continue
+
+                    sock.close()
+                except Exception:
+                    pass
+
+            if not devices:
+                return "No Alpaca devices found. Ensure Alpaca server is running on the network."
+
+            # Get device details from each server
+            parts = [f"Found {len(devices)} Alpaca server(s):"]
+            for server in devices:
+                parts.append(f"  • {server['name']} at {server['server']}:{server['port']}")
+
+                # Try to get device list from server
+                if alpaca and hasattr(alpaca, 'get_configured_devices'):
+                    try:
+                        server_devices = await alpaca.get_configured_devices(
+                            server['server'], server['port']
+                        )
+                        for dev in server_devices:
+                            parts.append(f"      - {dev['DeviceType']}/{dev['DeviceNumber']}: {dev.get('DeviceName', 'unnamed')}")
+                    except Exception:
+                        pass
+
+            return "\n".join(parts)
+
+        except Exception as e:
+            return f"Error discovering Alpaca devices: {e}"
+
+    handlers["alpaca_discover_devices"] = alpaca_discover_devices
+
     # Observing suggestions handler
     async def whats_up_tonight(
         object_type: str = None,

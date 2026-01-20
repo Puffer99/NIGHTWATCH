@@ -478,7 +478,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 390 | Tool Handler Implementation | session_tools | Implement set_voice_style handler | 389 | 2 | 1 | Complete | set_voice_style() with _voice_state tracking |
 | 391 | Tool Handler Implementation | session_tools | Add style options (normal, alert, calm, technical) | 390 | 2 | 1 | Complete | normal, alert, calm, technical with rate adjustments |
 | 392 | Tool Handler Implementation | session_tools | Write unit tests for session tool handlers | 391 | 2 | 2 | Complete | TestSessionToolHandlers in test_telescope_tools.py (4 tests) |
-| 393 | Tool Handler Implementation | guiding_tools | Implement start_guiding handler | 257 | 3 | 2 | Not Started | Begin guiding |
+| 393 | Tool Handler Implementation | guiding_tools | Implement start_guiding handler | 257 | 3 | 2 | Complete | start_guiding() with settle_time, settle_tolerance params in telescope_tools.py |
 | 394 | Tool Handler Implementation | guiding_tools | Add auto star selection option | 393 | 2 | 1 | Complete | auto_select, settle_pixels, settle_time params for start_guiding in telescope_tools.py |
 | 395 | Tool Handler Implementation | guiding_tools | Implement stop_guiding handler | 394 | 2 | 1 | Complete | stop_guiding() with stop/stop_guiding fallback |
 | 396 | Tool Handler Implementation | guiding_tools | Implement get_guiding_status handler | 395 | 2 | 1 | Complete | get_guiding_status() with state and RMS |
@@ -602,16 +602,16 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 514 | Hardware-in-Loop Simulation | docker | Create docker-compose.prod.yml template | 513 | 2 | 2 | Complete | Production config |
 | 515 | Hardware-in-Loop Simulation | docker | Write docker-compose validation test | 514 | 2 | 1 | Complete | Syntax check |
 | 516 | Hardware-in-Loop Simulation | simulators | Create services/simulators/__init__.py | 501 | 1 | 1 | Complete | BaseSimulator, SimulatorConfig, SimulatorStats, FaultConfig classes |
-| 517 | Hardware-in-Loop Simulation | simulators | Create mount_simulator.py | 516 | 4 | 3 | Not Started | LX200 simulator |
-| 518 | Hardware-in-Loop Simulation | simulators | Implement LX200 command parsing | 517 | 3 | 2 | Not Started | Protocol handling |
-| 519 | Hardware-in-Loop Simulation | simulators | Add simulated position tracking | 518 | 3 | 2 | Not Started | Virtual mount |
-| 520 | Hardware-in-Loop Simulation | simulators | Add simulated slew behavior | 519 | 3 | 2 | Not Started | Movement timing |
+| 517 | Hardware-in-Loop Simulation | simulators | Create mount_simulator.py | 516 | 4 | 3 | Complete | docker/simulators/mount_simulator.py - full LX200 protocol |
+| 518 | Hardware-in-Loop Simulation | simulators | Implement LX200 command parsing | 517 | 3 | 2 | Complete | :GR#/:GD#/:MS#/:Q#/:hP#/:hR# and more |
+| 519 | Hardware-in-Loop Simulation | simulators | Add simulated position tracking | 518 | 3 | 2 | Complete | RA/Dec tracking with LST calculation |
+| 520 | Hardware-in-Loop Simulation | simulators | Add simulated slew behavior | 519 | 3 | 2 | Complete | Async slew with configurable rate |
 | 521 | Hardware-in-Loop Simulation | simulators | Add simulated tracking rate | 520 | 2 | 1 | Complete | TrackingRate enum (sidereal/lunar/solar/king) in mount_simulator.py |
 | 522 | Hardware-in-Loop Simulation | simulators | Implement park/unpark simulation | 521 | 2 | 1 | Complete | MountState enum, park/unpark methods in mount_simulator.py |
 | 523 | Hardware-in-Loop Simulation | simulators | Add configurable fault injection | 522 | 3 | 2 | Not Started | Error testing |
-| 524 | Hardware-in-Loop Simulation | simulators | Create weather_simulator.py | 523 | 3 | 2 | Not Started | Weather sim |
-| 525 | Hardware-in-Loop Simulation | simulators | Implement Ecowitt API simulation | 524 | 3 | 2 | Not Started | HTTP responses |
-| 526 | Hardware-in-Loop Simulation | simulators | Add weather pattern generation | 525 | 3 | 2 | Not Started | Varying conditions |
+| 524 | Hardware-in-Loop Simulation | simulators | Create weather_simulator.py | 523 | 3 | 2 | Complete | docker/simulators/weather_simulator.py - aiohttp server |
+| 525 | Hardware-in-Loop Simulation | simulators | Implement Ecowitt API simulation | 524 | 3 | 2 | Complete | /get_livedata_info endpoint with JSON response |
+| 526 | Hardware-in-Loop Simulation | simulators | Add weather pattern generation | 525 | 3 | 2 | Complete | Diurnal temp cycles, wind variability, rain events |
 | 527 | Hardware-in-Loop Simulation | simulators | Add configurable weather scenarios | 526 | 2 | 1 | Complete | WeatherScenario enum, SCENARIO_PRESETS in weather_simulator.py |
 | 528 | Hardware-in-Loop Simulation | simulators | Create camera_simulator.py | 527 | 3 | 2 | Not Started | Camera sim |
 | 529 | Hardware-in-Loop Simulation | simulators | Implement simulated image generation | 528 | 4 | 3 | Not Started | Synthetic stars |
