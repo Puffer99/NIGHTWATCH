@@ -1,6 +1,7 @@
 # NIGHTWATCH
 
-[![Status: Design Phase](https://img.shields.io/badge/Status-Design%20Phase-yellow)](https://github.com/THOClabs/NIGHTWATCH)
+[![Status: v0.1 Development](https://img.shields.io/badge/Status-v0.1%20Development-blue)](https://github.com/THOClabs/NIGHTWATCH)
+[![CI](https://github.com/THOClabs/NIGHTWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/THOClabs/NIGHTWATCH/actions/workflows/ci.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![OnStepX](https://img.shields.io/badge/Controller-OnStepX-green.svg)](https://onstep.groups.io/)
@@ -9,7 +10,35 @@
 
 Voice-controlled telescope observatory designed for central Nevada dark sky installation. Combines optics excellence with modern automation and local AI inference — no cloud dependency, full local control.
 
-> **Project Status:** Early design phase — hardware build in progress. See the [Full Build Specification](NIGHTWATCH_Build_Package.md) for complete details.
+> **Project Status:** v0.1 development in progress — core services implemented. See the [Full Build Specification](NIGHTWATCH_Build_Package.md) for hardware details.
+
+---
+
+## v0.1 Quickstart
+
+Get started with NIGHTWATCH in under 5 minutes:
+
+```bash
+# Clone and setup
+git clone https://github.com/THOClabs/NIGHTWATCH.git
+cd NIGHTWATCH
+python -m venv .venv && source .venv/bin/activate
+pip install -r services/requirements.txt
+
+# Run tests to verify installation
+pytest tests/unit/ -v
+
+# Start with simulators (no hardware required)
+python -m nightwatch.cli --simulate
+```
+
+**Voice Commands** (examples):
+- "Slew to Andromeda"
+- "What's the current position?"
+- "Park the telescope"
+- "What's the weather like?"
+
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) for detailed setup instructions.
 
 ---
 
@@ -161,10 +190,13 @@ mypy nightwatch/
 
 | Document | Description |
 |----------|-------------|
-| [**NIGHTWATCH_Build_Package.md**](NIGHTWATCH_Build_Package.md) | Complete build specification — optics, mount, electronics, budget |
-| [**Panel of Specialists**](pos/README.md) | Design methodology and expert panel overview |
-| [POS Retreat Simulation](pos/POS_RETREAT_SIMULATION.md) | Full 30-day design deliberation transcript |
-| [Sourcing Research](docs/research/SOURCING_RESEARCH.md) | Component sourcing and vendor research |
+| [**Quickstart Guide**](docs/QUICKSTART.md) | Get up and running quickly |
+| [**Installation**](docs/INSTALLATION.md) | Full installation instructions |
+| [**Configuration**](docs/CONFIGURATION.md) | System configuration reference |
+| [**Voice Commands**](docs/VOICE_COMMANDS.md) | Complete voice command reference |
+| [**Hardware Setup**](docs/HARDWARE_SETUP.md) | Hardware connection guide |
+| [**Build Specification**](NIGHTWATCH_Build_Package.md) | Complete build spec — optics, mount, electronics |
+| [**Panel of Specialists**](pos/README.md) | Design methodology and expert panel |
 
 ## Roadmap
 

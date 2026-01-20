@@ -670,20 +670,20 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 582 | Testing & Quality Assurance | ci_cd | Add unit test job with coverage | 581 | 2 | 1 | Complete | pytest --cov with XML/HTML reports in ci.yml |
 | 583 | Testing & Quality Assurance | ci_cd | Add coverage threshold check (80%) | 582 | 2 | 1 | Complete | Coverage threshold check step in ci.yml with warning on <80% |
 | 584 | Testing & Quality Assurance | ci_cd | Add integration test job with simulators | 583 | 3 | 2 | Complete | integration-tests-simulators job in ci.yml with docker compose |
-| 585 | Testing & Quality Assurance | ci_cd | Add e2e test job | 584 | 3 | 2 | Not Started | Full tests |
+| 585 | Testing & Quality Assurance | ci_cd | Add e2e test job | 584 | 3 | 2 | Complete | e2e-tests job in ci.yml running tests/e2e/ with pytest |
 | 586 | Testing & Quality Assurance | ci_cd | Add type checking job (mypy) | 585 | 2 | 1 | Complete | type-check job in ci.yml with mypy on nightwatch/services/voice |
 | 587 | Testing & Quality Assurance | ci_cd | Add linting job (ruff) | 586 | 2 | 1 | Complete | Enhanced lint job with ruff check and format in ci.yml |
 | 588 | Testing & Quality Assurance | ci_cd | Add security scanning job | 587 | 3 | 2 | Complete | security-scan job with bandit, pip-audit, secret detection |
 | 589 | Testing & Quality Assurance | ci_cd | Add documentation build job | 588 | 2 | 1 | Complete | docs-validation job in ci.yml |
-| 590 | Testing & Quality Assurance | ci_cd | Add release automation | 589 | 3 | 2 | Not Started | Version tagging |
+| 590 | Testing & Quality Assurance | ci_cd | Add release automation | 589 | 3 | 2 | Complete | release.yml workflow with version tagging, changelog, artifacts |
 | 591 | Testing & Quality Assurance | ci_cd | Create GitHub issue templates | 590 | 2 | 1 | Complete | Bug report, feature request |
 | 592 | Testing & Quality Assurance | ci_cd | Create pull request template | 591 | 2 | 1 | Complete | Safety checklist included |
 | 593 | Testing & Quality Assurance | ci_cd | Add branch protection rules documentation | 592 | 2 | 1 | Complete | In CONTRIBUTING.md |
-| 594 | Documentation & POS | docs | Update README.md with v0.1 quickstart | None | 3 | 2 | Not Started | Entry point |
+| 594 | Documentation & POS | docs | Update README.md with v0.1 quickstart | None | 3 | 2 | Complete | Added v0.1 quickstart section, updated badges and docs links |
 | 595 | Documentation & POS | docs | Add installation section | 594 | 2 | 1 | Complete | INSTALLATION.md comprehensive guide exists |
 | 596 | Documentation & POS | docs | Add configuration section | 595 | 2 | 1 | Complete | Created docs/CONFIGURATION.md with full config reference |
 | 597 | Documentation & POS | docs | Add voice command examples | 596 | 2 | 1 | Complete | VOICE_COMMANDS.md already has comprehensive examples |
-| 598 | Documentation & POS | docs | Create docs/QUICKSTART.md | 597 | 3 | 2 | Not Started | Fast setup |
+| 598 | Documentation & POS | docs | Create docs/QUICKSTART.md | 597 | 3 | 2 | Complete | Quickstart guide with install, config, voice commands, Docker |
 | 599 | Documentation & POS | docs | Create docs/CONFIGURATION.md | 598 | 3 | 2 | Complete | Created in step 596 |
 | 600 | Documentation & POS | docs | Create docs/VOICE_COMMANDS.md | 599 | 2 | 2 | Complete | Already exists, comprehensive |
 | 601 | Documentation & POS | docs | Create docs/API_REFERENCE.md | 600 | 4 | 3 | Not Started | Service APIs |
