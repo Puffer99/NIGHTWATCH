@@ -491,18 +491,18 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 403 | Tool Handler Implementation | camera_tools | Implement stop_capture handler | 402 | 2 | 1 | Complete | stop_capture() with abort_exposure fallback |
 | 404 | Tool Handler Implementation | camera_tools | Implement get_camera_status handler | 403 | 2 | 1 | Complete | get_camera_status() with settings and progress |
 | 405 | Tool Handler Implementation | camera_tools | Add temperature and cooling status | 404 | 2 | 1 | Complete | Temperature, cooler power, target temp in status |
-| 406 | Tool Handler Implementation | camera_tools | Implement set_camera_gain handler | 405 | 2 | 1 | Not Started | Gain control |
-| 407 | Tool Handler Implementation | camera_tools | Add gain range validation | 406 | 2 | 1 | Not Started | Bounds check |
-| 408 | Tool Handler Implementation | camera_tools | Implement set_camera_exposure handler | 407 | 2 | 1 | Not Started | Exposure control |
-| 409 | Tool Handler Implementation | camera_tools | Add exposure range validation | 408 | 2 | 1 | Not Started | Bounds check |
+| 406 | Tool Handler Implementation | camera_tools | Implement set_camera_gain handler | 405 | 2 | 1 | Complete | set_camera_gain() with context feedback |
+| 407 | Tool Handler Implementation | camera_tools | Add gain range validation | 406 | 2 | 1 | Complete | Dynamic range check via get_gain_range |
+| 408 | Tool Handler Implementation | camera_tools | Implement set_camera_exposure handler | 407 | 2 | 1 | Complete | set_camera_exposure() with smart formatting |
+| 409 | Tool Handler Implementation | camera_tools | Add exposure range validation | 408 | 2 | 1 | Complete | Dynamic range check via get_exposure_range |
 | 410 | Tool Handler Implementation | camera_tools | Write unit tests for camera tool handlers | 409 | 2 | 2 | Not Started | Test coverage |
 | 411 | Tool Handler Implementation | focus_tools | Implement auto_focus handler | 257 | 3 | 2 | Not Started | Begin focus |
 | 412 | Tool Handler Implementation | focus_tools | Add algorithm selection parameter | 411 | 2 | 1 | Not Started | V-curve, HFD |
 | 413 | Tool Handler Implementation | focus_tools | Implement get_focus_status handler | 412 | 2 | 1 | Complete | get_focus_status() with position, temp, HFD |
 | 414 | Tool Handler Implementation | focus_tools | Add current position and temperature | 413 | 2 | 1 | Complete | Position, temp, temp_comp, HFD/FWHM in status |
-| 415 | Tool Handler Implementation | focus_tools | Implement move_focus handler | 414 | 2 | 1 | Not Started | Manual focus |
-| 416 | Tool Handler Implementation | focus_tools | Add direction and step parameters | 415 | 2 | 1 | Not Started | Control options |
-| 417 | Tool Handler Implementation | focus_tools | Implement enable_temp_compensation handler | 416 | 2 | 1 | Not Started | Auto-adjust |
+| 415 | Tool Handler Implementation | focus_tools | Implement move_focus handler | 414 | 2 | 1 | Complete | move_focus() relative/absolute with validation |
+| 416 | Tool Handler Implementation | focus_tools | Add direction and step parameters | 415 | 2 | 1 | Complete | steps, direction (in/out), position params |
+| 417 | Tool Handler Implementation | focus_tools | Implement enable_temp_compensation handler | 416 | 2 | 1 | Complete | enable_temp_compensation() toggle with feedback |
 | 418 | Tool Handler Implementation | focus_tools | Write unit tests for focus tool handlers | 417 | 2 | 2 | Not Started | Test coverage |
 | 419 | Tool Handler Implementation | astrometry_tools | Implement plate_solve handler | 257 | 3 | 2 | Not Started | Solve current |
 | 420 | Tool Handler Implementation | astrometry_tools | Add timeout parameter | 419 | 2 | 1 | Not Started | Limit wait |

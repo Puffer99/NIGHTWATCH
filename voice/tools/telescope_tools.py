@@ -3251,6 +3251,121 @@ def create_default_handlers(
 
     handlers["get_camera_status"] = get_camera_status
 
+    async def set_camera_gain(gain: int) -> str:
+        """Set camera gain with validation (Steps 406-407)."""
+        if not camera_client:
+            return "Camera not available"
+
+        try:
+            # Step 407: Validate gain range
+            min_gain = 0
+            max_gain = 500  # Default max
+
+            if hasattr(camera_client, 'get_gain_range'):
+                gain_range = camera_client.get_gain_range()
+                if gain_range:
+                    min_gain = gain_range.get('min', 0)
+                    max_gain = gain_range.get('max', 500)
+            elif hasattr(camera_client, 'gain_min') and hasattr(camera_client, 'gain_max'):
+                min_gain = camera_client.gain_min
+                max_gain = camera_client.gain_max
+
+            if gain < min_gain or gain > max_gain:
+                return f"Gain {gain} out of range. Valid range: {min_gain} - {max_gain}"
+
+            # Set the gain
+            if hasattr(camera_client, 'set_gain'):
+                success = camera_client.set_gain(gain)
+            elif hasattr(camera_client, 'gain'):
+                camera_client.gain = gain
+                success = True
+            else:
+                return "Camera does not support gain control"
+
+            if success:
+                # Provide context for typical use cases
+                if gain < 100:
+                    context = "(low - good for bright targets)"
+                elif gain < 250:
+                    context = "(medium - balanced)"
+                else:
+                    context = "(high - sensitive but noisy)"
+                return f"Camera gain set to {gain} {context}"
+            return f"Failed to set gain to {gain}"
+
+        except Exception as e:
+            return f"Error setting gain: {e}"
+
+    handlers["set_camera_gain"] = set_camera_gain
+
+    async def set_camera_exposure(exposure_ms: float) -> str:
+        """Set camera exposure time with validation (Steps 408-409)."""
+        if not camera_client:
+            return "Camera not available"
+
+        try:
+            # Step 409: Validate exposure range
+            min_exp_ms = 0.001  # 1 microsecond
+            max_exp_ms = 3600000  # 1 hour
+
+            if hasattr(camera_client, 'get_exposure_range'):
+                exp_range = camera_client.get_exposure_range()
+                if exp_range:
+                    min_exp_ms = exp_range.get('min_ms', 0.001)
+                    max_exp_ms = exp_range.get('max_ms', 3600000)
+            elif hasattr(camera_client, 'exposure_min') and hasattr(camera_client, 'exposure_max'):
+                min_exp_ms = camera_client.exposure_min * 1000
+                max_exp_ms = camera_client.exposure_max * 1000
+
+            if exposure_ms < min_exp_ms or exposure_ms > max_exp_ms:
+                if max_exp_ms >= 60000:
+                    max_str = f"{max_exp_ms/60000:.0f} minutes"
+                elif max_exp_ms >= 1000:
+                    max_str = f"{max_exp_ms/1000:.0f} seconds"
+                else:
+                    max_str = f"{max_exp_ms:.1f} ms"
+                return f"Exposure {exposure_ms}ms out of range. Valid: {min_exp_ms:.3f}ms - {max_str}"
+
+            # Convert to seconds for API if needed
+            exposure_sec = exposure_ms / 1000.0
+
+            # Set the exposure
+            if hasattr(camera_client, 'set_exposure'):
+                success = camera_client.set_exposure(exposure_sec)
+            elif hasattr(camera_client, 'set_exposure_ms'):
+                success = camera_client.set_exposure_ms(exposure_ms)
+            elif hasattr(camera_client, 'exposure'):
+                camera_client.exposure = exposure_sec
+                success = True
+            else:
+                return "Camera does not support exposure control"
+
+            if success:
+                # Format for display
+                if exposure_ms < 1:
+                    exp_str = f"{exposure_ms*1000:.0f}µs"
+                elif exposure_ms < 1000:
+                    exp_str = f"{exposure_ms:.1f}ms"
+                else:
+                    exp_str = f"{exposure_ms/1000:.2f}s"
+
+                # Provide context
+                if exposure_ms < 10:
+                    context = "(fast - planetary imaging)"
+                elif exposure_ms < 1000:
+                    context = "(short - lucky imaging)"
+                elif exposure_ms < 60000:
+                    context = "(medium - deep sky)"
+                else:
+                    context = "(long - faint targets)"
+                return f"Camera exposure set to {exp_str} {context}"
+            return f"Failed to set exposure to {exposure_ms}ms"
+
+        except Exception as e:
+            return f"Error setting exposure: {e}"
+
+    handlers["set_camera_exposure"] = set_camera_exposure
+
     # -------------------------------------------------------------------------
     # FOCUS HANDLERS (Step 413)
     # -------------------------------------------------------------------------
@@ -3314,6 +3429,89 @@ def create_default_handlers(
             return f"Error getting focus status: {e}"
 
     handlers["get_focus_status"] = get_focus_status
+
+    async def move_focus(steps: int = None, direction: str = None, position: int = None) -> str:
+        """Move focuser by steps or to absolute position (Steps 415-416)."""
+        if not focuser_service:
+            return "Focuser not available"
+
+        try:
+            # Step 416: Handle direction and step parameters
+            if position is not None:
+                # Absolute move
+                if hasattr(focuser_service, 'get_max_position'):
+                    max_pos = focuser_service.get_max_position()
+                    if position < 0 or position > max_pos:
+                        return f"Position {position} out of range. Valid: 0 - {max_pos}"
+
+                if hasattr(focuser_service, 'move_to'):
+                    success = focuser_service.move_to(position)
+                elif hasattr(focuser_service, 'move_absolute'):
+                    success = focuser_service.move_absolute(position)
+                else:
+                    return "Focuser does not support absolute positioning"
+
+                if success:
+                    return f"Moving focuser to position {position}"
+                return f"Failed to move focuser to position {position}"
+
+            elif steps is not None:
+                # Relative move
+                actual_steps = steps
+                if direction:
+                    dir_lower = direction.lower()
+                    if dir_lower in ['in', 'inward', '-']:
+                        actual_steps = -abs(steps)
+                    elif dir_lower in ['out', 'outward', '+']:
+                        actual_steps = abs(steps)
+
+                if hasattr(focuser_service, 'move_relative'):
+                    success = focuser_service.move_relative(actual_steps)
+                elif hasattr(focuser_service, 'move'):
+                    success = focuser_service.move(actual_steps)
+                else:
+                    return "Focuser does not support relative movement"
+
+                dir_str = "inward" if actual_steps < 0 else "outward"
+                if success:
+                    return f"Moving focuser {abs(actual_steps)} steps {dir_str}"
+                return f"Failed to move focuser {abs(actual_steps)} steps"
+
+            else:
+                return "Specify either 'steps' (with optional 'direction') or 'position'"
+
+        except Exception as e:
+            return f"Error moving focuser: {e}"
+
+    handlers["move_focus"] = move_focus
+
+    async def enable_temp_compensation(enabled: bool = True) -> str:
+        """Enable or disable temperature compensation (Step 417)."""
+        if not focuser_service:
+            return "Focuser not available"
+
+        try:
+            if hasattr(focuser_service, 'set_temp_compensation'):
+                success = focuser_service.set_temp_compensation(enabled)
+            elif hasattr(focuser_service, 'temp_compensation'):
+                focuser_service.temp_compensation = enabled
+                success = True
+            elif hasattr(focuser_service, 'enable_temp_comp'):
+                success = focuser_service.enable_temp_comp(enabled)
+            else:
+                return "Focuser does not support temperature compensation"
+
+            if success:
+                status = "enabled" if enabled else "disabled"
+                if enabled:
+                    return f"Temperature compensation {status}. Focus will auto-adjust with temperature changes."
+                return f"Temperature compensation {status}. Focus position is now fixed."
+            return f"Failed to {'enable' if enabled else 'disable'} temperature compensation"
+
+        except Exception as e:
+            return f"Error setting temperature compensation: {e}"
+
+    handlers["enable_temp_compensation"] = enable_temp_compensation
 
     return handlers
 
