@@ -553,7 +553,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 465 | Safety System Hardening | safety_monitor | Implement 30-minute rain holdoff | 464 | 2 | 1 | Complete | _evaluate_rain_holdoff(), configurable holdoff_minutes |
 | 466 | Safety System Hardening | safety_monitor | Add sun altitude safety check | 465 | 2 | 1 | Complete | _evaluate_daylight with hysteresis |
 | 467 | Safety System Hardening | safety_monitor | Implement horizon altitude limit check | 466 | 2 | 1 | Complete | _evaluate_altitude_limit(), min_altitude_deg, buffer |
-| 468 | Safety System Hardening | safety_monitor | Add meridian safety zone | 467 | 3 | 2 | Not Started | Prevent collision |
+| 468 | Safety System Hardening | safety_monitor | Add meridian safety zone | 467 | 3 | 2 | Complete | _evaluate_meridian(), meridian_safety_zone_deg, meridian_flip_zone_deg |
 | 469 | Safety System Hardening | safety_monitor | Implement power level safety check | 468 | 2 | 1 | Complete | _evaluate_power(), warning/critical/emergency levels |
 | 470 | Safety System Hardening | safety_monitor | Add enclosure safety integration | 469 | 2 | 1 | Complete | _evaluate_enclosure(), require_enclosure_open |
 | 471 | Safety System Hardening | safety_monitor | Write unit tests for safety thresholds | 470 | 2 | 2 | Complete | 37 tests in test_safety_monitor.py |
@@ -569,10 +569,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 481 | Safety System Hardening | emergency_response | Create nightwatch/emergency_response.py module | 457 | 3 | 2 | Complete | EmergencyResponse class with full infrastructure |
 | 482 | Safety System Hardening | emergency_response | Implement emergency park sequence | 481 | 3 | 2 | Complete | emergency_park() with retries and timeout |
 | 483 | Safety System Hardening | emergency_response | Implement emergency close sequence | 482 | 3 | 2 | Complete | emergency_close() with retries and timeout |
-| 484 | Safety System Hardening | emergency_response | Add mount safety position for enclosure close | 483 | 3 | 2 | Not Started | Clear path |
+| 484 | Safety System Hardening | emergency_response | Add mount safety position for enclosure close | 483 | 3 | 2 | Complete | move_to_safety_position() checks altitude and parks if needed |
 | 485 | Safety System Hardening | emergency_response | Implement power failure response | 484 | 4 | 3 | Not Started | UPS detected |
 | 486 | Safety System Hardening | emergency_response | Add staged shutdown on low battery | 485 | 3 | 2 | Not Started | Graceful degradation |
-| 487 | Safety System Hardening | emergency_response | Implement weather emergency response | 486 | 3 | 2 | Not Started | Storm detected |
+| 487 | Safety System Hardening | emergency_response | Implement weather emergency response | 486 | 3 | 2 | Complete | respond_to_weather() handles storm/high_wind with safety position |
 | 488 | Safety System Hardening | emergency_response | Add rain emergency response | 487 | 3 | 2 | Complete | respond_to_rain() with park+close+alerts |
 | 489 | Safety System Hardening | emergency_response | Implement network failure response | 488 | 3 | 2 | Not Started | Lose connectivity |
 | 490 | Safety System Hardening | emergency_response | Add alert escalation during emergency | 489 | 2 | 1 | Complete | _send_alert() and escalate_alert() |
@@ -584,7 +584,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 496 | Safety System Hardening | watchdog | Add camera communication watchdog | 495 | 2 | 1 | Complete | Camera health |
 | 497 | Safety System Hardening | watchdog | Implement automatic service restart | 496 | 3 | 2 | Complete | Auto-recovery |
 | 498 | Safety System Hardening | watchdog | Add restart attempt limit | 497 | 2 | 1 | Complete | Prevent loop |
-| 499 | Safety System Hardening | watchdog | Implement safe state on persistent failure | 498 | 3 | 2 | Not Started | Park and alert |
+| 499 | Safety System Hardening | watchdog | Implement safe state on persistent failure | 498 | 3 | 2 | Complete | SafeStateHandler.enter_safe_state() parks, closes, alerts |
 | 500 | Safety System Hardening | watchdog | Write unit tests for watchdog | 499 | 2 | 2 | Complete | Test coverage |
 | 501 | Hardware-in-Loop Simulation | docker | Review docker-compose.dev.yml current state | None | 2 | 1 | Not Started | Understand setup |
 | 502 | Hardware-in-Loop Simulation | docker | Add mount simulator service | 501 | 3 | 2 | Not Started | OnStepX sim |

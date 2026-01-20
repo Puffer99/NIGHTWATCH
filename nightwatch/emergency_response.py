@@ -282,6 +282,145 @@ class EmergencyResponse:
         return False
 
     # =========================================================================
+    # Mount Safety Position (Step 484)
+    # =========================================================================
+
+    async def move_to_safety_position(self) -> bool:
+        """
+        Move mount to safety position for enclosure close (Step 484).
+
+        The safety position ensures the telescope is clear of the
+        roof path before closing. This is typically a low position
+        pointing away from the roof opening path.
+
+        Returns:
+            True if mount is in safe position, False otherwise
+        """
+        logger.info("Moving mount to safety position for enclosure close")
+
+        if not self._mount:
+            logger.warning("Cannot move to safety - mount not available")
+            return True  # Assume safe if no mount
+
+        try:
+            # Stop any current motion
+            self._mount.stop()
+            await asyncio.sleep(0.5)
+
+            # Check if already parked (parked = safe)
+            status = self._mount.get_status()
+            if status and status.is_parked:
+                logger.info("Mount already parked - in safety position")
+                if self._current_event:
+                    self._current_event.actions_taken.append("Mount verified parked")
+                return True
+
+            # Check current altitude if available
+            # For roll-off roofs, we need telescope below certain altitude
+            # to clear the roof path (typically < 60 degrees)
+            if hasattr(status, 'altitude_degrees'):
+                if status.altitude_degrees < 60:
+                    logger.info(f"Mount at safe altitude ({status.altitude_degrees}°)")
+                    if self._current_event:
+                        self._current_event.actions_taken.append(
+                            f"Mount at safe altitude {status.altitude_degrees}°"
+                        )
+                    return True
+
+            # If not parked and not at safe altitude, park it
+            logger.info("Mount not in safety position - initiating park")
+            return await self.emergency_park()
+
+        except Exception as e:
+            logger.error(f"Error checking/moving to safety position: {e}")
+            if self._current_event:
+                self._current_event.errors.append(f"Safety position error: {e}")
+            return False
+
+    # =========================================================================
+    # Weather Emergency Response (Step 487)
+    # =========================================================================
+
+    async def respond_to_weather(self, condition: str = "storm") -> bool:
+        """
+        Execute weather emergency response (Step 487).
+
+        Handles various weather emergencies (storm, high wind, etc.)
+        with appropriate response based on severity.
+
+        Args:
+            condition: Weather condition (storm, high_wind, etc.)
+
+        Returns:
+            True if response successful, False otherwise
+        """
+        logger.critical(f"WEATHER EMERGENCY ({condition}) - Initiating response")
+
+        async with self._response_lock:
+            emergency_type = EmergencyType.HIGH_WIND if "wind" in condition.lower() else EmergencyType.WEATHER_UNSAFE
+
+            self._current_event = EmergencyEvent(
+                emergency_type=emergency_type,
+                timestamp=datetime.now(),
+                description=f"Weather emergency: {condition}",
+                state=EmergencyState.RESPONDING,
+                response_started=datetime.now(),
+            )
+            self._state = EmergencyState.RESPONDING
+
+            await self._send_alert(
+                AlertLevel.EMERGENCY,
+                f"WEATHER ALERT: {condition.upper()} - Securing observatory",
+                emergency_type,
+            )
+
+            success = True
+
+            # Step 1: Move to safety position
+            if self._mount:
+                safety_ok = await self.move_to_safety_position()
+                if not safety_ok:
+                    # Try direct park as fallback
+                    park_ok = await self.emergency_park()
+                    if not park_ok:
+                        success = False
+                        await self._send_alert(
+                            AlertLevel.CRITICAL,
+                            f"WARNING: Could not secure mount during {condition}",
+                            emergency_type,
+                        )
+
+            # Step 2: Close enclosure
+            if self._roof:
+                close_ok = await self.emergency_close()
+                if not close_ok:
+                    success = False
+                    await self._send_alert(
+                        AlertLevel.CRITICAL,
+                        f"CRITICAL: Enclosure close failed during {condition}",
+                        emergency_type,
+                    )
+
+            # Complete event
+            self._current_event.response_completed = datetime.now()
+            if success:
+                self._current_event.state = EmergencyState.COMPLETED
+                self._state = EmergencyState.COMPLETED
+                logger.info(f"Weather emergency ({condition}) response completed")
+                await self._send_alert(
+                    AlertLevel.INFO,
+                    f"Observatory secured. Weather emergency ({condition}) response complete.",
+                    emergency_type,
+                )
+            else:
+                self._current_event.state = EmergencyState.FAILED
+                self._state = EmergencyState.FAILED
+                logger.error(f"Weather emergency ({condition}) response completed with errors")
+
+            self._event_history.append(self._current_event)
+            return success
+
+    # =========================================================================
     # Rain Emergency Response (Step 488)
     # =========================================================================
 

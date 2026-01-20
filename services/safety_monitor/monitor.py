@@ -73,6 +73,7 @@ class SafetyStatus:
     power_ok: bool = True          # Step 469
     enclosure_ok: bool = True      # Step 470
     altitude_ok: bool = True       # Step 467
+    meridian_ok: bool = True       # Step 468
 
     # Environmental readings
     temperature_f: Optional[float] = None
@@ -150,6 +151,10 @@ class SafetyThresholds:
 
     # Step 470: Enclosure safety
     require_enclosure_open: bool = True   # Require enclosure open to observe
+
+    # Step 468: Meridian safety zone (prevent collision during flip)
+    meridian_safety_zone_deg: float = 5.0  # Degrees from meridian to warn
+    meridian_flip_zone_deg: float = 2.0    # Degrees from meridian (must flip)
 
 
 @dataclass
@@ -572,6 +577,68 @@ class SafetyMonitor:
 
         return True, []
 
+    def _evaluate_meridian(self) -> tuple[bool, List[str]]:
+        """
+        Evaluate meridian safety zone (Step 468).
+
+        Checks if telescope is approaching meridian (hour angle near 0)
+        where a meridian flip may be required to avoid collision.
+
+        Returns:
+            (is_ok, reasons)
+        """
+        reasons = []
+
+        # Need mount data to check hour angle
+        if not self.mount:
+            return True, []
+
+        try:
+            status = self.mount.get_status()
+            if not status:
+                return True, []
+
+            # Calculate hour angle if available
+            # Hour angle = Local Sidereal Time - Right Ascension
+            hour_angle = None
+
+            if hasattr(status, 'hour_angle'):
+                hour_angle = status.hour_angle
+            elif hasattr(status, 'ha_degrees'):
+                hour_angle = status.ha_degrees
+
+            if hour_angle is None:
+                # Cannot determine hour angle
+                return True, []
+
+            # Normalize hour angle to -180 to +180 range
+            while hour_angle > 180:
+                hour_angle -= 360
+            while hour_angle < -180:
+                hour_angle += 360
+
+            abs_ha = abs(hour_angle)
+
+            # Check if in meridian flip zone (critical)
+            if abs_ha < self.thresholds.meridian_flip_zone_deg:
+                reasons.append(
+                    f"CRITICAL: At meridian (HA={hour_angle:.1f}°) - flip required"
+                )
+                return False, reasons
+
+            # Check if approaching meridian (warning zone)
+            if abs_ha < self.thresholds.meridian_safety_zone_deg:
+                reasons.append(
+                    f"Approaching meridian (HA={hour_angle:.1f}°) - flip soon"
+                )
+                # Warning but still safe
+                return True, reasons
+
+        except Exception as e:
+            logger.error(f"Meridian check error: {e}")
+
+        return True, reasons
+
     def evaluate(self) -> SafetyStatus:
         """
         Perform comprehensive safety evaluation.
@@ -598,6 +665,9 @@ class SafetyMonitor:
         # Step 470: Enclosure status
         enclosure_ok, enclosure_reasons = self._evaluate_enclosure()
 
+        # Step 468: Meridian safety
+        meridian_ok, meridian_reasons = self._evaluate_meridian()
+
         reasons.extend(weather_reasons)
         reasons.extend(cloud_reasons)
         reasons.extend(daylight_reasons)
@@ -605,10 +675,12 @@ class SafetyMonitor:
         reasons.extend(altitude_reasons)
         reasons.extend(power_reasons)
         reasons.extend(enclosure_reasons)
+        reasons.extend(meridian_reasons)
 
         # Determine overall safety and action
         is_safe = (weather_ok and clouds_ok and daylight_ok and
-                   rain_holdoff_ok and altitude_ok and power_ok and enclosure_ok)
+                   rain_holdoff_ok and altitude_ok and power_ok and enclosure_ok and
+                   meridian_ok)
 
         # Check for emergency conditions (rain or power)
         is_emergency = power_emergency  # Step 469: Include power emergency
@@ -676,6 +748,7 @@ class SafetyMonitor:
             power_ok=power_ok,
             enclosure_ok=enclosure_ok,
             altitude_ok=altitude_ok,
+            meridian_ok=meridian_ok,
             temperature_f=temp,
             humidity_percent=humidity,
             wind_speed_mph=wind,

@@ -559,6 +559,156 @@ class CameraWatchdog(ServiceWatchdog):
 
 
 # =============================================================================
+# Safe State Handler (Step 499)
+# =============================================================================
+
+class SafeStateHandler:
+    """
+    Handles transition to safe state on persistent service failure (Step 499).
+
+    When critical services fail and cannot be recovered, this handler
+    ensures the observatory is secured by:
+    1. Parking the telescope
+    2. Closing the enclosure
+    3. Sending alerts to the operator
+    """
+
+    def __init__(
+        self,
+        mount_client=None,
+        roof_controller=None,
+        alert_callback: Optional[Callable[[str], None]] = None,
+    ):
+        """
+        Initialize safe state handler.
+
+        Args:
+            mount_client: LX200Client for telescope control
+            roof_controller: RoofController for enclosure
+            alert_callback: Callback for sending alerts
+        """
+        self._mount = mount_client
+        self._roof = roof_controller
+        self._alert_callback = alert_callback
+        self._in_safe_state = False
+        self._safe_state_time: Optional[datetime] = None
+
+    @property
+    def in_safe_state(self) -> bool:
+        """Check if system is in safe state."""
+        return self._in_safe_state
+
+    async def enter_safe_state(self, failed_services: List[ServiceType]) -> bool:
+        """
+        Enter safe state due to persistent service failure.
+
+        This is the callback for WatchdogManager.set_safe_state_callback().
+
+        Args:
+            failed_services: List of services that failed
+
+        Returns:
+            True if safe state achieved, False otherwise
+        """
+        if self._in_safe_state:
+            logger.warning("Already in safe state")
+            return True
+
+        logger.critical(f"ENTERING SAFE STATE - Failed services: {[s.value for s in failed_services]}")
+
+        # Send alert
+        alert_msg = f"CRITICAL: Entering safe state. Failed services: {', '.join(s.value for s in failed_services)}"
+        if self._alert_callback:
+            try:
+                if asyncio.iscoroutinefunction(self._alert_callback):
+                    await self._alert_callback(alert_msg)
+                else:
+                    self._alert_callback(alert_msg)
+            except Exception as e:
+                logger.error(f"Alert callback failed: {e}")
+
+        success = True
+
+        # Step 1: Park telescope
+        if self._mount:
+            try:
+                logger.info("Safe state: Parking telescope")
+                self._mount.stop()
+                await asyncio.sleep(0.5)
+                park_result = self._mount.park()
+                if park_result:
+                    # Wait for park with timeout
+                    for _ in range(30):  # 30 seconds timeout
+                        await asyncio.sleep(1.0)
+                        status = self._mount.get_status()
+                        if status and status.is_parked:
+                            logger.info("Safe state: Telescope parked")
+                            break
+                    else:
+                        logger.error("Safe state: Park timeout")
+                        success = False
+                else:
+                    logger.error("Safe state: Park command failed")
+                    success = False
+            except Exception as e:
+                logger.error(f"Safe state: Park error - {e}")
+                success = False
+
+        # Step 2: Close enclosure
+        if self._roof:
+            try:
+                logger.info("Safe state: Closing enclosure")
+                close_result = await self._roof.close()
+                if close_result:
+                    # Wait for close with timeout
+                    for _ in range(45):  # 45 seconds timeout
+                        await asyncio.sleep(1.0)
+                        state = self._roof.get_state()
+                        state_str = state.value if hasattr(state, 'value') else str(state)
+                        if state_str == "closed":
+                            logger.info("Safe state: Enclosure closed")
+                            break
+                    else:
+                        logger.error("Safe state: Close timeout")
+                        success = False
+                else:
+                    logger.error("Safe state: Close command failed")
+                    success = False
+            except Exception as e:
+                logger.error(f"Safe state: Close error - {e}")
+                success = False
+
+        self._in_safe_state = True
+        self._safe_state_time = datetime.now()
+
+        # Final alert
+        if success:
+            final_msg = "Safe state achieved - telescope parked, enclosure closed"
+            logger.info(final_msg)
+        else:
+            final_msg = "ALERT: Safe state incomplete - manual intervention required"
+            logger.error(final_msg)
+
+        if self._alert_callback:
+            try:
+                if asyncio.iscoroutinefunction(self._alert_callback):
+                    await self._alert_callback(final_msg)
+                else:
+                    self._alert_callback(final_msg)
+            except Exception:
+                pass
+
+        return success
+
+    def reset_safe_state(self) -> None:
+        """Reset safe state flag (after manual intervention)."""
+        if self._in_safe_state:
+            logger.info("Safe state reset by operator")
+            self._in_safe_state = False
+            self._safe_state_time = None
+
+
+# =============================================================================
 # Factory Function
 # =============================================================================
 
@@ -570,3 +720,26 @@ def create_watchdog_manager() -> WatchdogManager:
         Configured WatchdogManager instance
     """
     return WatchdogManager()
+
+
+def create_safe_state_handler(
+    mount_client=None,
+    roof_controller=None,
+    alert_callback: Optional[Callable[[str], None]] = None,
+) -> SafeStateHandler:
+    """
+    Create a safe state handler.
+
+    Args:
+        mount_client: LX200Client instance
+        roof_controller: RoofController instance
+        alert_callback: Callback for alerts
+
+    Returns:
+        Configured SafeStateHandler instance
+    """
+    return SafeStateHandler(
+        mount_client=mount_client,
+        roof_controller=roof_controller,
+        alert_callback=alert_callback,
+    )
