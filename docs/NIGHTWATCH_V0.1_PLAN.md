@@ -169,17 +169,17 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 81 | Core Service Completion | catalog | Write unit tests for coordinate resolution | 80 | 2 | 1 | Complete | Test coverage |
 | 82 | Core Service Completion | camera | Review asi_camera.py current implementation | None | 2 | 1 | Complete | Full ZWO ASI integration, presets, video capture |
 | 83 | Core Service Completion | camera | Add ZWO ASI SDK wrapper import handling | 82 | 3 | 2 | Complete | ASISDKWrapper class with graceful degradation |
-| 84 | Core Service Completion | camera | Implement camera detection and enumeration | 83 | 3 | 2 | Not Started | List connected cameras |
-| 85 | Core Service Completion | camera | Implement camera connection with settings | 84 | 3 | 2 | Not Started | Connect by ID |
+| 84 | Core Service Completion | camera | Implement camera detection and enumeration | 83 | 3 | 2 | Complete | detect_cameras(), find_camera_by_name(), get_camera_count() |
+| 85 | Core Service Completion | camera | Implement camera connection with settings | 84 | 3 | 2 | Complete | connect_camera(), connect_camera_by_name(), apply_settings() |
 | 86 | Core Service Completion | camera | Implement gain control (set/get) | 85 | 2 | 1 | Complete | set_gain(), get_gain(), get_gain_range() in asi_camera.py |
 | 87 | Core Service Completion | camera | Implement exposure time control (set/get) | 86 | 2 | 1 | Complete | set_exposure(), get_exposure(), get_exposure_range() in asi_camera.py |
 | 88 | Core Service Completion | camera | Implement binning control (1x1, 2x2, 4x4) | 87 | 2 | 1 | Complete | set_binning(), get_binning(), get_supported_binning() in asi_camera.py |
-| 89 | Core Service Completion | camera | Implement ROI (region of interest) control | 88 | 3 | 2 | Not Started | Subframe capture |
+| 89 | Core Service Completion | camera | Implement ROI (region of interest) control | 88 | 3 | 2 | Complete | set_roi(), get_roi(), set_roi_centered(), get_roi_presets() |
 | 90 | Core Service Completion | camera | Implement single frame capture | 89 | 3 | 2 | Not Started | Still image capture |
 | 91 | Core Service Completion | camera | Implement video/streaming capture mode | 90 | 4 | 3 | Not Started | Planetary imaging |
 | 92 | Core Service Completion | camera | Implement image download and format conversion | 91 | 3 | 2 | Not Started | RAW to usable format |
 | 93 | Core Service Completion | camera | Add FITS header writing | 92 | 3 | 2 | Not Started | Metadata for astrometry |
-| 94 | Core Service Completion | camera | Implement cooling control (setpoint, power) | 93 | 3 | 2 | Not Started | Temperature regulation |
+| 94 | Core Service Completion | camera | Implement cooling control (setpoint, power) | 93 | 3 | 2 | Complete | set_target_temperature(), wait_for_temperature(), get_cooling_recommendation() |
 | 95 | Core Service Completion | camera | Implement temperature monitoring | 94 | 2 | 1 | Complete | get_temperature_status(), set_cooler() in asi_camera.py |
 | 96 | Core Service Completion | camera | Add capture abort functionality | 95 | 2 | 1 | Complete | abort_capture(), get_capture_progress() in asi_camera.py |
 | 97 | Core Service Completion | camera | Implement capture progress callbacks | 96 | 3 | 2 | Not Started | Status updates |

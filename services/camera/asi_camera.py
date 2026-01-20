@@ -175,6 +175,158 @@ class ASISDKWrapper:
 ASISDKWrapper.initialize()
 
 
+# =============================================================================
+# Camera Detection and Enumeration (Step 84)
+# =============================================================================
+
+def detect_cameras() -> List[dict]:
+    """
+    Detect and enumerate all connected ZWO ASI cameras (Step 84).
+
+    Returns a list of camera info dictionaries with details about each
+    connected camera, suitable for display and selection.
+
+    Returns:
+        List of camera dictionaries with keys:
+        - index: Camera index for connection
+        - name: Camera model name
+        - id: Unique camera ID
+        - max_width/max_height: Sensor resolution
+        - pixel_size_um: Pixel size in microns
+        - is_color: True if color camera
+        - has_cooler: True if cooled camera
+        - usb_host: USB host controller info
+    """
+    if not ASISDKWrapper.is_available():
+        logger.warning("ZWO ASI SDK not available - cannot detect cameras")
+        return []
+
+    cameras = []
+    sdk = ASISDKWrapper.get_sdk()
+
+    try:
+        num_cameras = sdk.get_num_cameras()
+        logger.info(f"Detected {num_cameras} ZWO camera(s)")
+
+        for i in range(num_cameras):
+            try:
+                cam = sdk.Camera(i)
+                props = cam.get_camera_property()
+
+                camera_info = {
+                    "index": i,
+                    "name": props.get("Name", f"Camera {i}"),
+                    "id": props.get("CameraID", i),
+                    "max_width": props.get("MaxWidth", 0),
+                    "max_height": props.get("MaxHeight", 0),
+                    "pixel_size_um": props.get("PixelSize", 0.0),
+                    "is_color": props.get("IsColorCam", False),
+                    "has_cooler": props.get("IsCoolerCam", False),
+                    "bit_depth": props.get("BitDepth", 8),
+                    "supported_bins": list(props.get("SupportedBins", [1])),
+                    "usb_host": props.get("USB3Host", "Unknown"),
+                    "is_usb3": props.get("IsUSB3Camera", False),
+                }
+
+                cameras.append(camera_info)
+                cam.close()
+
+                logger.debug(f"  Camera {i}: {camera_info['name']}")
+
+            except Exception as e:
+                logger.warning(f"Failed to query camera {i}: {e}")
+
+    except Exception as e:
+        logger.error(f"Camera detection failed: {e}")
+
+    return cameras
+
+
+def get_camera_count() -> int:
+    """Get number of connected ZWO cameras."""
+    return ASISDKWrapper.get_num_cameras()
+
+
+def find_camera_by_name(name_pattern: str) -> Optional[dict]:
+    """
+    Find a camera by name pattern.
+
+    Args:
+        name_pattern: Partial name to match (case-insensitive)
+
+    Returns:
+        Camera info dict or None if not found
+    """
+    cameras = detect_cameras()
+    name_lower = name_pattern.lower()
+
+    for cam in cameras:
+        if name_lower in cam["name"].lower():
+            return cam
+
+    return None
+
+
+# =============================================================================
+# Camera Connection Helper (Step 85)
+# =============================================================================
+
+def connect_camera(
+    camera_index: int = 0,
+    settings: Optional["CameraSettings"] = None,
+    data_dir: Optional[Path] = None
+) -> Optional["ASICamera"]:
+    """
+    Connect to a camera with optional initial settings (Step 85).
+
+    Convenience function for connecting to a camera by index with
+    initial configuration applied.
+
+    Args:
+        camera_index: Camera index from detect_cameras()
+        settings: Initial camera settings to apply
+        data_dir: Directory for saving captures
+
+    Returns:
+        Connected ASICamera instance or None on failure
+    """
+    camera = ASICamera(camera_index=camera_index, data_dir=data_dir)
+
+    if not camera.initialize():
+        logger.error(f"Failed to connect to camera {camera_index}")
+        return None
+
+    if settings:
+        camera.apply_settings(settings)
+
+    logger.info(f"Connected to camera: {camera.info.name if camera.info else 'Unknown'}")
+    return camera
+
+
+def connect_camera_by_name(
+    name_pattern: str,
+    settings: Optional["CameraSettings"] = None,
+    data_dir: Optional[Path] = None
+) -> Optional["ASICamera"]:
+    """
+    Connect to a camera by name pattern (Step 85).
+
+    Args:
+        name_pattern: Partial name to match
+        settings: Initial camera settings
+        data_dir: Directory for captures
+
+    Returns:
+        Connected ASICamera or None
+    """
+    cam_info = find_camera_by_name(name_pattern)
+    if not cam_info:
+        logger.error(f"No camera found matching '{name_pattern}'")
+        return None
+
+    return connect_camera(cam_info["index"], settings, data_dir)
+
+
 class ImageFormat(Enum):
     """Supported image formats."""
     RAW8 = "RAW8"
@@ -823,6 +975,194 @@ class ASICamera:
             return [1, 2, 4]
 
     # =========================================================================
+    # ROI CONTROL (Step 89)
+    # =========================================================================
+
+    def set_roi(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        binning: Optional[int] = None
+    ) -> bool:
+        """
+        Set region of interest for capture (Step 89).
+
+        Args:
+            x: ROI start X position
+            y: ROI start Y position
+            width: ROI width in pixels
+            height: ROI height in pixels
+            binning: Optional binning factor (keeps current if None)
+
+        Returns:
+            True if successful
+        """
+        if not self._camera:
+            logger.warning("Cannot set ROI: camera not initialized")
+            return False
+
+        try:
+            # Get current binning if not specified
+            if binning is None:
+                binning = self._settings.binning
+
+            # Validate binning
+            supported = self.get_supported_binning()
+            if binning not in supported:
+                logger.warning(f"Binning {binning} not supported")
+                binning = 1
+
+            # Calculate max dimensions accounting for binning
+            max_width = self._info.max_width // binning if self._info else 4096
+            max_height = self._info.max_height // binning if self._info else 4096
+
+            # Clamp values to valid range
+            x = max(0, min(x, max_width - 64))
+            y = max(0, min(y, max_height - 64))
+            width = max(64, min(width, max_width - x))
+            height = max(64, min(height, max_height - y))
+
+            # ZWO cameras require width/height to be multiples of 8
+            width = (width // 8) * 8
+            height = (height // 8) * 8
+
+            self._camera.set_roi(x, y, width, height, binning)
+
+            self._settings.roi = (x, y, width, height)
+            self._settings.binning = binning
+
+            logger.info(f"Set ROI: ({x}, {y}) {width}x{height} bin{binning}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to set ROI: {e}")
+            return False
+
+    def get_roi(self) -> Tuple[int, int, int, int]:
+        """
+        Get current region of interest.
+
+        Returns:
+            Tuple of (x, y, width, height)
+        """
+        if not self._camera:
+            return self._settings.roi or (0, 0, 4096, 4096)
+
+        try:
+            roi_info = self._camera.get_roi()
+            return (roi_info[0], roi_info[1], roi_info[2], roi_info[3])
+        except Exception:
+            return self._settings.roi or (0, 0, 4096, 4096)
+
+    def reset_roi(self) -> bool:
+        """
+        Reset ROI to full frame.
+
+        Returns:
+            True if successful
+        """
+        if not self._info:
+            return False
+
+        return self.set_roi(0, 0, self._info.max_width, self._info.max_height, 1)
+
+    def set_roi_centered(self, width: int, height: int, binning: int = 1) -> bool:
+        """
+        Set a centered ROI of specified size.
+
+        Useful for planetary imaging where target is centered.
+
+        Args:
+            width: ROI width
+            height: ROI height
+            binning: Binning factor
+
+        Returns:
+            True if successful
+        """
+        if not self._info:
+            return False
+
+        max_w = self._info.max_width // binning
+        max_h = self._info.max_height // binning
+
+        # Center the ROI
+        x = (max_w - width) // 2
+        y = (max_h - height) // 2
+
+        return self.set_roi(x, y, width, height, binning)
+
+    def get_roi_presets(self) -> dict:
+        """
+        Get common ROI presets for this camera.
+
+        Returns:
+            Dictionary of preset name -> (width, height) tuples
+        """
+        if not self._info:
+            return {}
+
+        max_w = self._info.max_width
+        max_h = self._info.max_height
+
+        return {
+            "full_frame": (max_w, max_h),
+            "half": (max_w // 2, max_h // 2),
+            "quarter": (max_w // 4, max_h // 4),
+            "planetary_640": (640, 480),
+            "planetary_800": (800, 600),
+            "planetary_1024": (1024, 768),
+            "1080p": (1920, 1080),
+            "720p": (1280, 720),
+        }
+
+    # =========================================================================
+    # APPLY SETTINGS (Step 85 helper)
+    # =========================================================================
+
+    def apply_settings(self, settings: CameraSettings) -> bool:
+        """
+        Apply a complete settings object to camera.
+
+        Args:
+            settings: CameraSettings to apply
+
+        Returns:
+            True if all settings applied successfully
+        """
+        if not self._camera:
+            logger.warning("Cannot apply settings: camera not initialized")
+            return False
+
+        success = True
+
+        # Apply gain
+        if not self.set_gain(settings.gain):
+            success = False
+
+        # Apply exposure
+        if not self.set_exposure(settings.exposure_ms):
+            success = False
+
+        # Apply ROI if specified
+        if settings.roi:
+            x, y, w, h = settings.roi
+            if not self.set_roi(x, y, w, h, settings.binning):
+                success = False
+        elif settings.binning != self._settings.binning:
+            if not self.set_binning(settings.binning):
+                success = False
+
+        # Apply cooling if specified
+        if settings.cooler_on and self._info and self._info.has_cooler:
+            self.set_cooler(True, settings.target_temp_c)
+
+        self._settings = settings
+        return success
+
+    # =========================================================================
     # TEMPERATURE MONITORING (Step 95)
     # =========================================================================
 
@@ -904,6 +1244,166 @@ class ASICamera:
         except Exception as e:
             logger.error(f"Failed to control cooler: {e}")
             return False
+
+    # =========================================================================
+    # COOLING CONTROL (Step 94)
+    # =========================================================================
+
+    def set_target_temperature(self, temp_c: float) -> bool:
+        """
+        Set cooler target temperature (Step 94).
+
+        Args:
+            temp_c: Target temperature in Celsius
+
+        Returns:
+            True if successful
+        """
+        if not self._camera or not self._info or not self._info.has_cooler:
+            logger.warning("Camera does not have a cooler")
+            return False
+
+        try:
+            self._camera.set_control_value(self._asi.ASI_TARGET_TEMP, int(temp_c))
+            self._settings.target_temp_c = temp_c
+            logger.info(f"Set target temperature to {temp_c}°C")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set target temperature: {e}")
+            return False
+
+    def get_target_temperature(self) -> Optional[float]:
+        """Get current target temperature."""
+        return self._settings.target_temp_c
+
+    def is_cooler_at_target(self, tolerance_c: float = 1.0) -> bool:
+        """
+        Check if cooler has reached target temperature (Step 94).
+
+        Args:
+            tolerance_c: Acceptable temperature difference
+
+        Returns:
+            True if within tolerance of target
+        """
+        if not self._info or not self._info.has_cooler:
+            return True  # No cooler = always "at target"
+
+        current = self.get_temperature()
+        target = self._settings.target_temp_c
+
+        if current is None or target is None:
+            return False
+
+        return abs(current - target) <= tolerance_c
+
+    async def wait_for_temperature(
+        self,
+        timeout_sec: float = 300.0,
+        tolerance_c: float = 1.0,
+        poll_interval_sec: float = 5.0
+    ) -> bool:
+        """
+        Wait for cooler to reach target temperature (Step 94).
+
+        Args:
+            timeout_sec: Maximum wait time
+            tolerance_c: Temperature tolerance
+            poll_interval_sec: Time between checks
+
+        Returns:
+            True if target reached within timeout
+        """
+        if not self._info or not self._info.has_cooler:
+            return True
+
+        start = datetime.now()
+        target = self._settings.target_temp_c
+
+        while (datetime.now() - start).total_seconds() < timeout_sec:
+            current = self.get_temperature()
+            if current is not None and target is not None:
+                diff = abs(current - target)
+                logger.debug(f"Cooling: {current:.1f}°C (target {target}°C, diff {diff:.1f}°C)")
+
+                if diff <= tolerance_c:
+                    logger.info(f"Cooler reached target temperature: {current:.1f}°C")
+                    return True
+
+            await asyncio.sleep(poll_interval_sec)
+
+        logger.warning(f"Cooler did not reach target within {timeout_sec}s")
+        return False
+
+    def get_cooler_power(self) -> Optional[float]:
+        """
+        Get current cooler power percentage (Step 94).
+
+        Returns:
+            Cooler power 0-100%, or None if unavailable
+        """
+        if not self._camera or not self._info or not self._info.has_cooler:
+            return None
+
+        try:
+            power = self._camera.get_control_value(self._asi.ASI_COOLER_POWER_PERC)[0]
+            return float(power)
+        except Exception:
+            return None
+
+    def is_cooler_overloaded(self, threshold: float = 95.0) -> bool:
+        """
+        Check if cooler is at high power (struggling to cool).
+
+        High cooler power may indicate:
+        - Ambient temperature too high
+        - Poor thermal contact
+        - Target temperature too aggressive
+
+        Args:
+            threshold: Power percentage considered overloaded
+
+        Returns:
+            True if cooler power exceeds threshold
+        """
+        power = self.get_cooler_power()
+        if power is None:
+            return False
+
+        return power >= threshold
+
+    def get_cooling_recommendation(self) -> str:
+        """
+        Get recommendation for cooling settings based on conditions.
+
+        Returns:
+            Recommendation string
+        """
+        if not self._info or not self._info.has_cooler:
+            return "Camera does not have active cooling"
+
+        current = self.get_temperature()
+        power = self.get_cooler_power()
+
+        if current is None:
+            return "Unable to read sensor temperature"
+
+        if not self._settings.cooler_on:
+            # Recommend based on sensor temperature
+            if current > 30:
+                return f"Sensor at {current:.0f}°C - recommend enabling cooler at -10°C"
+            elif current > 20:
+                return f"Sensor at {current:.0f}°C - cooling optional, recommend -5°C to -10°C"
+            else:
+                return f"Sensor at {current:.0f}°C - ambient is cool, cooling optional"
+
+        # Cooler is on
+        if power is not None and power > 90:
+            return f"Cooler at {power:.0f}% power - consider raising target temperature"
+        elif power is not None and power < 20:
+            return f"Cooler at {power:.0f}% power - target easily maintained, could lower further"
+
+        return f"Cooling nominal at {current:.0f}°C with {power:.0f}% power"
 
     # =========================================================================
     # CAPTURE ABORT (Step 96)
