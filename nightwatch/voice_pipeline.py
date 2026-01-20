@@ -44,6 +44,7 @@ __all__ = [
     "TTSInterface",
     "AudioPlayer",
     "AudioCapture",
+    "AudioBuffer",
     "LEDIndicator",
     "ResponsePhraseCache",
     "ASTRONOMY_VOCABULARY",
@@ -334,18 +335,32 @@ class AudioPlayer:
 
     Supports playing synthesized speech and feedback sounds.
     Uses sounddevice for cross-platform audio output.
+
+    Step 324: Includes audio ducking support for lowering background
+    audio volume during speech output.
     """
 
-    def __init__(self, device: Optional[str] = None):
+    def __init__(
+        self,
+        device: Optional[str] = None,
+        ducking_enabled: bool = True,
+        ducking_level: float = 0.2,
+    ):
         """
         Initialize audio player.
 
         Args:
             device: Audio output device name (None for default)
+            ducking_enabled: Enable audio ducking (Step 324)
+            ducking_level: Volume level during ducking (0.0-1.0)
         """
         self.device = device
+        self.ducking_enabled = ducking_enabled
+        self.ducking_level = ducking_level
         self._sd = None
         self._loaded = False
+        self._original_volume: Optional[float] = None
+        self._is_ducked = False
 
     async def _ensure_loaded(self):
         """Lazily load sounddevice."""
@@ -437,10 +452,331 @@ class AudioPlayer:
             except Exception:
                 pass
 
+    # =========================================================================
+    # Audio Ducking (Step 324)
+    # =========================================================================
+
+    async def duck_audio(self) -> bool:
+        """
+        Lower system audio volume for speech playback (Step 324).
+
+        Returns:
+            True if ducking was applied
+        """
+        if not self.ducking_enabled or self._is_ducked:
+            return False
+
+        try:
+            # Try to duck using pulsectl (Linux/PulseAudio)
+            try:
+                import pulsectl
+
+                with pulsectl.Pulse('nightwatch-duck') as pulse:
+                    for sink in pulse.sink_input_list():
+                        # Store and reduce volume
+                        if not hasattr(self, '_ducked_volumes'):
+                            self._ducked_volumes = {}
+                        self._ducked_volumes[sink.index] = sink.volume.value_flat
+                        # Set ducked volume
+                        ducked_volume = sink.volume.value_flat * self.ducking_level
+                        pulse.volume_set_all_chans(sink, ducked_volume)
+
+                self._is_ducked = True
+                logger.debug(f"Audio ducked to {self.ducking_level * 100}%")
+                return True
+
+            except ImportError:
+                pass
+
+            # Try macOS approach
+            try:
+                import subprocess
+                # Get current volume
+                result = subprocess.run(
+                    ['osascript', '-e', 'output volume of (get volume settings)'],
+                    capture_output=True,
+                    text=True,
+                    timeout=2
+                )
+                if result.returncode == 0:
+                    self._original_volume = float(result.stdout.strip())
+                    # Set ducked volume
+                    ducked_vol = int(self._original_volume * self.ducking_level)
+                    subprocess.run(
+                        ['osascript', '-e', f'set volume output volume {ducked_vol}'],
+                        timeout=2
+                    )
+                    self._is_ducked = True
+                    logger.debug(f"Audio ducked to {ducked_vol}%")
+                    return True
+            except (ImportError, FileNotFoundError, subprocess.SubprocessError):
+                pass
+
+            # No ducking available
+            logger.debug("Audio ducking not available on this platform")
+            return False
+
+        except Exception as e:
+            logger.warning(f"Audio ducking failed: {e}")
+            return False
+
+    async def unduck_audio(self) -> bool:
+        """
+        Restore system audio volume after speech (Step 324).
+
+        Returns:
+            True if unducking was applied
+        """
+        if not self._is_ducked:
+            return False
+
+        try:
+            # Try PulseAudio
+            try:
+                import pulsectl
+
+                if hasattr(self, '_ducked_volumes'):
+                    with pulsectl.Pulse('nightwatch-unduck') as pulse:
+                        for sink in pulse.sink_input_list():
+                            if sink.index in self._ducked_volumes:
+                                original = self._ducked_volumes[sink.index]
+                                pulse.volume_set_all_chans(sink, original)
+                    self._ducked_volumes.clear()
+
+                self._is_ducked = False
+                logger.debug("Audio unducked")
+                return True
+
+            except ImportError:
+                pass
+
+            # Try macOS
+            try:
+                import subprocess
+                if self._original_volume is not None:
+                    subprocess.run(
+                        ['osascript', '-e', f'set volume output volume {int(self._original_volume)}'],
+                        timeout=2
+                    )
+                    self._original_volume = None
+                    self._is_ducked = False
+                    logger.debug("Audio unducked")
+                    return True
+            except (ImportError, FileNotFoundError, subprocess.SubprocessError):
+                pass
+
+            self._is_ducked = False
+            return False
+
+        except Exception as e:
+            logger.warning(f"Audio unducking failed: {e}")
+            self._is_ducked = False
+            return False
+
+    async def play_with_ducking(self, audio_data: bytes, blocking: bool = True) -> bool:
+        """
+        Play audio with automatic ducking (Step 324).
+
+        Ducks other audio before playing and restores after.
+
+        Args:
+            audio_data: WAV format audio bytes
+            blocking: Wait for playback to complete
+
+        Returns:
+            True if playback succeeded
+        """
+        await self.duck_audio()
+        try:
+            result = await self.play(audio_data, blocking=blocking)
+            return result
+        finally:
+            if blocking:
+                await self.unduck_audio()
+
 
 # =============================================================================
 # Audio Capture with VAD (Step 295)
 # =============================================================================
+
+
+# =============================================================================
+# Audio Buffering for Continuous Mode (Step 316)
+# =============================================================================
+
+
+class AudioBuffer:
+    """
+    Audio buffer for smooth continuous mode capture (Step 316).
+
+    Implements a ring buffer for continuous audio capture that provides:
+    - Smooth transition between listen cycles
+    - Pre-roll buffer to capture speech start
+    - Post-roll buffer to capture trailing audio
+    - Overlap handling for uninterrupted processing
+
+    Usage:
+        buffer = AudioBuffer(pre_roll_sec=0.5, post_roll_sec=0.3)
+        buffer.write(audio_chunk)
+        audio_data = buffer.read_with_context()
+    """
+
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        pre_roll_sec: float = 0.5,
+        post_roll_sec: float = 0.3,
+        max_buffer_sec: float = 60.0,
+    ):
+        """
+        Initialize audio buffer.
+
+        Args:
+            sample_rate: Audio sample rate
+            channels: Number of audio channels
+            pre_roll_sec: Pre-roll buffer duration (captures before speech detected)
+            post_roll_sec: Post-roll buffer duration (captures after speech ends)
+            max_buffer_sec: Maximum total buffer duration
+        """
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.pre_roll_sec = pre_roll_sec
+        self.post_roll_sec = post_roll_sec
+        self.max_buffer_sec = max_buffer_sec
+
+        # Calculate buffer sizes in samples
+        self.bytes_per_sample = 2 * channels  # 16-bit audio
+        self.pre_roll_bytes = int(pre_roll_sec * sample_rate * self.bytes_per_sample)
+        self.post_roll_bytes = int(post_roll_sec * sample_rate * self.bytes_per_sample)
+        self.max_buffer_bytes = int(max_buffer_sec * sample_rate * self.bytes_per_sample)
+
+        # Ring buffer
+        self._buffer = bytearray(self.max_buffer_bytes)
+        self._write_pos = 0
+        self._read_pos = 0
+        self._data_size = 0
+
+        # State tracking
+        self._speech_start_pos: Optional[int] = None
+        self._speech_end_pos: Optional[int] = None
+
+        logger.debug(f"AudioBuffer initialized: pre_roll={pre_roll_sec}s, post_roll={post_roll_sec}s")
+
+    def write(self, data: bytes) -> int:
+        """
+        Write audio data to buffer.
+
+        Args:
+            data: Audio bytes to write
+
+        Returns:
+            Number of bytes written
+        """
+        data_len = len(data)
+
+        if data_len > self.max_buffer_bytes:
+            # Truncate to max size
+            data = data[-self.max_buffer_bytes:]
+            data_len = len(data)
+
+        # Write data, wrapping around if necessary
+        space_to_end = self.max_buffer_bytes - self._write_pos
+        if data_len <= space_to_end:
+            self._buffer[self._write_pos:self._write_pos + data_len] = data
+        else:
+            # Split write across wrap point
+            self._buffer[self._write_pos:] = data[:space_to_end]
+            self._buffer[:data_len - space_to_end] = data[space_to_end:]
+
+        # Update positions
+        self._write_pos = (self._write_pos + data_len) % self.max_buffer_bytes
+        self._data_size = min(self._data_size + data_len, self.max_buffer_bytes)
+
+        return data_len
+
+    def mark_speech_start(self):
+        """Mark current position as speech start (with pre-roll)."""
+        # Calculate pre-roll position
+        pre_roll_pos = self._write_pos - self.pre_roll_bytes - self._data_size
+        if pre_roll_pos < 0:
+            pre_roll_pos = 0
+        self._speech_start_pos = (self._write_pos - min(self.pre_roll_bytes, self._data_size)) % self.max_buffer_bytes
+
+    def mark_speech_end(self):
+        """Mark current position as speech end (with post-roll)."""
+        # Post-roll will be added when reading
+        self._speech_end_pos = self._write_pos
+
+    def read_speech_segment(self) -> Optional[bytes]:
+        """
+        Read buffered speech segment with pre/post roll.
+
+        Returns:
+            Audio bytes containing speech with context, or None if no speech marked
+        """
+        if self._speech_start_pos is None:
+            return None
+
+        # Calculate end position with post-roll
+        if self._speech_end_pos is not None:
+            end_pos = (self._speech_end_pos + self.post_roll_bytes) % self.max_buffer_bytes
+        else:
+            end_pos = self._write_pos
+
+        # Extract segment
+        start = self._speech_start_pos
+        if end_pos >= start:
+            segment = bytes(self._buffer[start:end_pos])
+        else:
+            # Wrap around
+            segment = bytes(self._buffer[start:]) + bytes(self._buffer[:end_pos])
+
+        # Reset markers
+        self._speech_start_pos = None
+        self._speech_end_pos = None
+
+        return segment
+
+    def read_recent(self, duration_sec: float) -> bytes:
+        """
+        Read recent audio data.
+
+        Args:
+            duration_sec: Duration of recent audio to read
+
+        Returns:
+            Audio bytes
+        """
+        bytes_to_read = min(
+            int(duration_sec * self.sample_rate * self.bytes_per_sample),
+            self._data_size
+        )
+
+        start = (self._write_pos - bytes_to_read) % self.max_buffer_bytes
+
+        if self._write_pos >= start:
+            return bytes(self._buffer[start:self._write_pos])
+        else:
+            return bytes(self._buffer[start:]) + bytes(self._buffer[:self._write_pos])
+
+    def clear(self):
+        """Clear buffer and reset state."""
+        self._write_pos = 0
+        self._read_pos = 0
+        self._data_size = 0
+        self._speech_start_pos = None
+        self._speech_end_pos = None
+
+    @property
+    def available(self) -> int:
+        """Get available data size in bytes."""
+        return self._data_size
+
+    @property
+    def available_sec(self) -> float:
+        """Get available data duration in seconds."""
+        return self._data_size / (self.sample_rate * self.bytes_per_sample)
 
 
 class AudioCapture:

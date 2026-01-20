@@ -401,7 +401,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Complete | STTInterface wraps faster-whisper |
 | 314 | Voice Pipeline Integration | stt_integration | Configure DGX Spark optimized settings | 313 | 2 | 1 | Complete | beam_size, best_of, patience in VoiceConfig |
 | 315 | Voice Pipeline Integration | stt_integration | Add audio preprocessing (noise reduction) | 314 | 3 | 2 | Complete | AudioCapture.preprocess_audio() with high-pass filter, noise gate |
-| 316 | Voice Pipeline Integration | stt_integration | Implement audio buffering for continuous mode | 315 | 3 | 2 | Not Started | Smooth capture |
+| 316 | Voice Pipeline Integration | stt_integration | Implement audio buffering for continuous mode | 315 | 3 | 2 | Complete | AudioBuffer class with ring buffer, pre/post roll |
 | 317 | Voice Pipeline Integration | stt_integration | Add transcription confidence filtering | 316 | 2 | 1 | Complete | confidence_threshold in WyomingSTTServer (default 0.6) |
 | 318 | Voice Pipeline Integration | stt_integration | Implement astronomy vocabulary boost | 317 | 3 | 2 | Complete | ASTRONOMY_VOCABULARY list, initial_prompt for Whisper |
 | 319 | Voice Pipeline Integration | stt_integration | Add multi-language support preparation | 318 | 2 | 1 | Complete | SUPPORTED_LANGUAGES, STT_SUPPORTED_LANGUAGES dicts in tts/stt servers |
@@ -409,11 +409,11 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 321 | Voice Pipeline Integration | tts_integration | Configure DGX Spark CUDA acceleration | 320 | 2 | 1 | Complete | cuda_device, cuda_memory_fraction in TTSConfig |
 | 322 | Voice Pipeline Integration | tts_integration | Add response phrase caching | 321 | 3 | 2 | Complete | ResponsePhraseCache class with LRU eviction, preload_common_phrases() |
 | 323 | Voice Pipeline Integration | tts_integration | Implement dynamic speech rate based on urgency | 322 | 2 | 1 | Complete | detect_urgency(), get_urgency_rate() in tts_server.py |
-| 324 | Voice Pipeline Integration | tts_integration | Add audio ducking (lower volume for background) | 323 | 3 | 2 | Not Started | Audio mix |
+| 324 | Voice Pipeline Integration | tts_integration | Add audio ducking (lower volume for background) | 323 | 3 | 2 | Complete | AudioPlayer.duck_audio/unduck_audio with PulseAudio/macOS |
 | 325 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming STT server startup | 293 | 2 | 1 | Complete | WyomingManager.start_stt_server(), wyoming_* config fields |
 | 326 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming TTS server startup | 325 | 2 | 1 | Complete | WyomingManager.start_tts_server() in startup.py |
-| 327 | Voice Pipeline Integration | wyoming_integration | Add Home Assistant compatibility | 326 | 3 | 2 | Not Started | HA integration |
-| 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Not Started | Auto-detect |
+| 327 | Voice Pipeline Integration | wyoming_integration | Add Home Assistant compatibility | 326 | 3 | 2 | Complete | HomeAssistantEntityInfo class, ha_entity_id/friendly_name in WyomingManager |
+| 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Complete | WyomingServiceDiscovery with mDNS via zeroconf |
 | 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Complete | Protocol test |
 | 330 | Tool Handler Implementation | mount_tools | Implement goto_object handler | 257,78 | 3 | 2 | Complete | Catalog lookup, planet ephemeris, safety check, altitude limit |
 | 331 | Tool Handler Implementation | mount_tools | Add catalog resolution in goto_object | 330 | 2 | 1 | Complete | catalog_service.lookup() in telescope_tools.py |

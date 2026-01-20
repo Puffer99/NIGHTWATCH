@@ -6,14 +6,17 @@ Provides integration with the main NIGHTWATCH application lifecycle.
 
 Steps 325-326: Configure Wyoming server startup
 Step 321: DGX Spark CUDA acceleration
+Step 327: Home Assistant compatibility
+Step 328: Wyoming service discovery (mDNS)
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+import socket
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Dict, List, Optional, Any
 
 if TYPE_CHECKING:
     from nightwatch.config import VoiceConfig, TTSConfig
@@ -30,6 +33,225 @@ class WyomingServerStatus:
     tts_running: bool = False
     tts_host: str = ""
     tts_port: int = 0
+    # Step 327: Home Assistant entity info
+    ha_entity_id: str = ""
+    ha_friendly_name: str = ""
+    # Step 328: Service discovery
+    mdns_registered: bool = False
+
+
+@dataclass
+class HomeAssistantEntityInfo:
+    """
+    Home Assistant entity information for Wyoming integration (Step 327).
+
+    Provides the metadata needed for Home Assistant to discover
+    and display NIGHTWATCH voice services.
+    """
+    entity_id: str
+    friendly_name: str
+    device_class: str = "voice"
+    unique_id: str = ""
+    manufacturer: str = "NIGHTWATCH"
+    model: str = "Observatory Voice Assistant"
+    sw_version: str = "1.0.0"
+    supported_features: List[str] = field(default_factory=lambda: [
+        "stt", "tts", "intent", "handle"
+    ])
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for Wyoming info response."""
+        return {
+            "entity_id": self.entity_id,
+            "friendly_name": self.friendly_name,
+            "device_class": self.device_class,
+            "unique_id": self.unique_id or self.entity_id,
+            "device_info": {
+                "manufacturer": self.manufacturer,
+                "model": self.model,
+                "sw_version": self.sw_version,
+            },
+            "supported_features": self.supported_features,
+        }
+
+
+class WyomingServiceDiscovery:
+    """
+    mDNS service discovery for Wyoming protocol (Step 328).
+
+    Advertises NIGHTWATCH Wyoming services via Zeroconf/mDNS,
+    allowing automatic discovery by Home Assistant and other
+    Wyoming-compatible systems.
+
+    Usage:
+        discovery = WyomingServiceDiscovery()
+        await discovery.register_stt_service("192.168.1.100", 10300)
+        await discovery.register_tts_service("192.168.1.100", 10400)
+    """
+
+    SERVICE_TYPE_STT = "_wyoming-stt._tcp.local."
+    SERVICE_TYPE_TTS = "_wyoming-tts._tcp.local."
+
+    def __init__(self, instance_name: str = "NIGHTWATCH"):
+        """
+        Initialize service discovery.
+
+        Args:
+            instance_name: Service instance name prefix
+        """
+        self.instance_name = instance_name
+        self._zeroconf = None
+        self._services: List[Any] = []
+        self._loaded = False
+
+    async def _ensure_loaded(self) -> bool:
+        """Lazily load zeroconf."""
+        if self._loaded:
+            return self._zeroconf is not None
+
+        try:
+            from zeroconf import Zeroconf
+            self._zeroconf = Zeroconf()
+            self._loaded = True
+            logger.info("Zeroconf initialized for service discovery")
+            return True
+        except ImportError:
+            logger.warning("zeroconf not installed, service discovery disabled")
+            self._loaded = True
+            return False
+
+    async def register_stt_service(
+        self,
+        host: str,
+        port: int,
+        properties: Optional[Dict[str, str]] = None
+    ) -> bool:
+        """
+        Register STT service via mDNS (Step 328).
+
+        Args:
+            host: Service host IP
+            port: Service port
+            properties: Additional service properties
+
+        Returns:
+            True if registration succeeded
+        """
+        if not await self._ensure_loaded():
+            return False
+
+        try:
+            from zeroconf import ServiceInfo
+
+            props = {
+                "version": "1",
+                "model": "faster-whisper",
+                "languages": "en",
+                **(properties or {})
+            }
+
+            # Resolve host to IP if needed
+            ip_addr = socket.gethostbyname(host) if host != "0.0.0.0" else self._get_local_ip()
+
+            service_info = ServiceInfo(
+                self.SERVICE_TYPE_STT,
+                f"{self.instance_name} STT.{self.SERVICE_TYPE_STT}",
+                addresses=[socket.inet_aton(ip_addr)],
+                port=port,
+                properties=props,
+                server=f"{self.instance_name.lower()}-stt.local.",
+            )
+
+            self._zeroconf.register_service(service_info)
+            self._services.append(service_info)
+            logger.info(f"Registered STT service on {ip_addr}:{port}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to register STT service: {e}")
+            return False
+
+    async def register_tts_service(
+        self,
+        host: str,
+        port: int,
+        properties: Optional[Dict[str, str]] = None
+    ) -> bool:
+        """
+        Register TTS service via mDNS (Step 328).
+
+        Args:
+            host: Service host IP
+            port: Service port
+            properties: Additional service properties
+
+        Returns:
+            True if registration succeeded
+        """
+        if not await self._ensure_loaded():
+            return False
+
+        try:
+            from zeroconf import ServiceInfo
+
+            props = {
+                "version": "1",
+                "model": "piper",
+                "languages": "en",
+                **(properties or {})
+            }
+
+            ip_addr = socket.gethostbyname(host) if host != "0.0.0.0" else self._get_local_ip()
+
+            service_info = ServiceInfo(
+                self.SERVICE_TYPE_TTS,
+                f"{self.instance_name} TTS.{self.SERVICE_TYPE_TTS}",
+                addresses=[socket.inet_aton(ip_addr)],
+                port=port,
+                properties=props,
+                server=f"{self.instance_name.lower()}-tts.local.",
+            )
+
+            self._zeroconf.register_service(service_info)
+            self._services.append(service_info)
+            logger.info(f"Registered TTS service on {ip_addr}:{port}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to register TTS service: {e}")
+            return False
+
+    def _get_local_ip(self) -> str:
+        """Get local IP address for service registration."""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+
+    async def unregister_all(self):
+        """Unregister all services."""
+        if self._zeroconf is None:
+            return
+
+        for service_info in self._services:
+            try:
+                self._zeroconf.unregister_service(service_info)
+            except Exception as e:
+                logger.warning(f"Failed to unregister service: {e}")
+
+        self._services.clear()
+        logger.info("All mDNS services unregistered")
+
+    async def close(self):
+        """Close service discovery."""
+        await self.unregister_all()
+        if self._zeroconf:
+            self._zeroconf.close()
+            self._zeroconf = None
 
 
 class WyomingManager:
@@ -41,12 +263,17 @@ class WyomingManager:
 
     Steps 325-326: Wyoming server startup configuration
     Step 321: CUDA acceleration for TTS
+    Step 327: Home Assistant compatibility
+    Step 328: Wyoming service discovery
     """
 
     def __init__(
         self,
         voice_config: Optional["VoiceConfig"] = None,
         tts_config: Optional["TTSConfig"] = None,
+        enable_discovery: bool = True,
+        ha_entity_id: str = "voice_assistant.nightwatch",
+        ha_friendly_name: str = "NIGHTWATCH Observatory",
     ):
         """
         Initialize Wyoming manager.
@@ -54,6 +281,9 @@ class WyomingManager:
         Args:
             voice_config: STT/voice configuration
             tts_config: TTS configuration
+            enable_discovery: Enable mDNS service discovery (Step 328)
+            ha_entity_id: Home Assistant entity ID (Step 327)
+            ha_friendly_name: Home Assistant friendly name (Step 327)
         """
         self._voice_config = voice_config
         self._tts_config = tts_config
@@ -61,6 +291,18 @@ class WyomingManager:
         self._tts_server = None
         self._stt_task: Optional[asyncio.Task] = None
         self._tts_task: Optional[asyncio.Task] = None
+
+        # Step 327: Home Assistant entity info
+        self._ha_entity_info = HomeAssistantEntityInfo(
+            entity_id=ha_entity_id,
+            friendly_name=ha_friendly_name,
+        )
+
+        # Step 328: Service discovery
+        self._enable_discovery = enable_discovery
+        self._service_discovery: Optional[WyomingServiceDiscovery] = None
+        if enable_discovery:
+            self._service_discovery = WyomingServiceDiscovery("NIGHTWATCH")
 
     async def start_stt_server(self) -> bool:
         """
@@ -201,16 +443,40 @@ class WyomingManager:
             status.stt_host = self._voice_config.wyoming_host
             status.stt_port = self._voice_config.wyoming_port
 
+            # Step 328: Register STT service via mDNS
+            if self._service_discovery:
+                await self._service_discovery.register_stt_service(
+                    status.stt_host,
+                    status.stt_port
+                )
+
         # Start TTS server
         if await self.start_tts_server():
             status.tts_running = True
             status.tts_host = self._tts_config.wyoming_host
             status.tts_port = self._tts_config.wyoming_port
 
+            # Step 328: Register TTS service via mDNS
+            if self._service_discovery:
+                await self._service_discovery.register_tts_service(
+                    status.tts_host,
+                    status.tts_port
+                )
+
+        # Step 327: Add Home Assistant entity info
+        if status.stt_running or status.tts_running:
+            status.ha_entity_id = self._ha_entity_info.entity_id
+            status.ha_friendly_name = self._ha_entity_info.friendly_name
+            status.mdns_registered = self._service_discovery is not None
+
         return status
 
     async def stop_all(self) -> None:
         """Stop all Wyoming servers."""
+        # Step 328: Unregister mDNS services
+        if self._service_discovery:
+            await self._service_discovery.close()
+
         if self._stt_server is not None:
             self._stt_server.stop()
             self._stt_server = None
@@ -247,6 +513,20 @@ class WyomingManager:
         """Get TTS server instance."""
         return self._tts_server
 
+    @property
+    def ha_entity_info(self) -> HomeAssistantEntityInfo:
+        """Get Home Assistant entity info (Step 327)."""
+        return self._ha_entity_info
+
+    def get_ha_info_dict(self) -> Dict[str, Any]:
+        """
+        Get Home Assistant info as dictionary (Step 327).
+
+        Returns:
+            Dictionary suitable for Wyoming INFO response
+        """
+        return self._ha_entity_info.to_dict()
+
 
 async def start_wyoming_servers(
     voice_config: Optional["VoiceConfig"] = None,
@@ -271,5 +551,7 @@ async def start_wyoming_servers(
 __all__ = [
     "WyomingManager",
     "WyomingServerStatus",
+    "HomeAssistantEntityInfo",
+    "WyomingServiceDiscovery",
     "start_wyoming_servers",
 ]
