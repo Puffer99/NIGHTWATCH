@@ -87,6 +87,11 @@ class AlertConfig:
     max_alerts_per_hour: int = 20         # Maximum alerts per hour
     email_min_interval_per_type: float = 3600.0  # 1 hour between same email alert type
 
+    # SMS-specific rate limiting (Step 127)
+    sms_min_interval_seconds: float = 300.0  # 5 min between SMS (more costly)
+    sms_max_per_hour: int = 6                # Max 6 SMS per hour
+    sms_max_chars: int = 160                 # SMS character limit (Step 126)
+
     # Escalation
     escalation_timeout_sec: float = 300.0  # Time before escalation
 
@@ -417,6 +422,9 @@ class AlertManager:
         self._history: List[Alert] = []
         self._recent_alerts: Dict[str, datetime] = {}  # For rate limiting
         self._recent_emails: Dict[str, datetime] = {}  # Per-type email rate limiting
+        self._recent_sms: Dict[str, datetime] = {}     # SMS rate limiting (Step 127)
+        self._sms_count_hour: int = 0                   # SMS hourly counter
+        self._sms_hour_reset: datetime = datetime.now()
         self._alert_count_hour = 0
         self._last_hour_reset = datetime.now()
         self._escalation_tasks: Dict[str, asyncio.Task] = {}
@@ -704,6 +712,76 @@ class AlertManager:
 """
         return html
 
+    def _format_sms_message(self, alert: Alert) -> str:
+        """
+        Format alert for SMS with 160 character limit (Step 126).
+
+        Uses smart truncation to preserve critical information:
+        - Level prefix (abbreviated)
+        - Source
+        - Message (truncated if needed with ellipsis)
+        """
+        max_chars = self.config.sms_max_chars
+
+        # Abbreviated level prefixes for SMS
+        level_prefix = {
+            AlertLevel.DEBUG: "DBG",
+            AlertLevel.INFO: "NFO",
+            AlertLevel.WARNING: "WRN",
+            AlertLevel.CRITICAL: "CRT",
+            AlertLevel.EMERGENCY: "SOS",
+        }
+        prefix = level_prefix.get(alert.level, "ALT")
+
+        # Format: [CRT] Source: Message
+        header = f"[{prefix}] {alert.source}: "
+
+        # Calculate available space for message
+        available = max_chars - len(header)
+
+        if len(alert.message) <= available:
+            return f"{header}{alert.message}"
+
+        # Truncate message with ellipsis, preserving word boundaries
+        truncated = alert.message[:available - 3]  # Room for "..."
+
+        # Try to break at word boundary
+        last_space = truncated.rfind(' ')
+        if last_space > available // 2:  # Don't break too early
+            truncated = truncated[:last_space]
+
+        return f"{header}{truncated}..."
+
+    def _should_rate_limit_sms(self, alert: Alert) -> bool:
+        """
+        Check if SMS should be rate limited (Step 127).
+
+        SMS-specific rate limiting is more aggressive than general
+        alerts due to per-message costs.
+        """
+        # Reset hourly SMS counter
+        if (datetime.now() - self._sms_hour_reset).total_seconds() > 3600:
+            self._sms_count_hour = 0
+            self._sms_hour_reset = datetime.now()
+
+        # Check hourly SMS limit
+        if self._sms_count_hour >= self.config.sms_max_per_hour:
+            logger.debug(f"SMS hourly limit reached ({self.config.sms_max_per_hour})")
+            return True
+
+        # Check per-alert SMS interval (dedup key)
+        key = f"sms:{alert.source}:{alert.level.name}"
+        if key in self._recent_sms:
+            elapsed = (datetime.now() - self._recent_sms[key]).total_seconds()
+            if elapsed < self.config.sms_min_interval_seconds:
+                logger.debug(
+                    f"SMS rate limited for {alert.source}, "
+                    f"last sent {elapsed:.0f}s ago"
+                )
+                return True
+
+        return False
+
     async def _send_smtp_email(
         self,
         recipient: str,
@@ -836,9 +914,36 @@ class AlertManager:
             logger.error(f"ntfy push error: {e}")
 
     async def _send_sms(self, alert: Alert):
-        """Send SMS notification."""
-        # Would use Twilio
-        logger.debug(f"Would send SMS: {alert.message}")
+        """
+        Send SMS notification via Twilio (Steps 126-127).
+
+        Implements:
+        - Message formatting with 160 char limit (Step 126)
+        - SMS-specific rate limiting (Step 127)
+        """
+        # Check SMS-specific rate limiting first
+        if self._should_rate_limit_sms(alert):
+            return
+
+        # Format message for SMS (160 char limit)
+        sms_text = self._format_sms_message(alert)
+
+        # Update SMS tracking
+        key = f"sms:{alert.source}:{alert.level.name}"
+        self._recent_sms[key] = datetime.now()
+        self._sms_count_hour += 1
+
+        # Would send via Twilio in production
+        # from twilio.rest import Client
+        # client = Client(self.config.sms_twilio_sid, self.config.sms_twilio_token)
+        # for number in self.config.sms_to_numbers:
+        #     client.messages.create(
+        #         body=sms_text,
+        #         from_=self.config.sms_from_number,
+        #         to=number
+        #     )
+
+        logger.debug(f"Would send SMS ({len(sms_text)} chars): {sms_text}")
 
     async def _send_call(self, alert: Alert):
         """Initiate voice call."""
@@ -1198,14 +1303,17 @@ class MockNotifier(AlertManager):
 
     async def _send_sms(self, alert: Alert):
         """Record SMS send instead of actually sending."""
+        # Use formatted SMS message
+        sms_text = self._format_sms_message(alert)
         self.sms_sends.append({
             "alert_id": alert.id,
             "level": alert.level.name,
             "source": alert.source,
             "message": alert.message,
+            "sms_text": sms_text,  # Formatted SMS (160 char limit)
             "to_numbers": list(self.config.sms_to_numbers),
         })
-        logger.debug(f"[MOCK] SMS recorded: {alert.message[:50]}")
+        logger.debug(f"[MOCK] SMS recorded ({len(sms_text)} chars): {sms_text[:50]}")
 
     async def _send_webhook(self, alert: Alert):
         """Record webhook send instead of actually sending."""

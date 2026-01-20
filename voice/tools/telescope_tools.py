@@ -3513,6 +3513,112 @@ def create_default_handlers(
 
     handlers["enable_temp_compensation"] = enable_temp_compensation
 
+    # -------------------------------------------------------------------------
+    # ASTROMETRY HANDLERS (Steps 420-422)
+    # -------------------------------------------------------------------------
+
+    async def plate_solve(timeout_sec: float = 30.0, use_hint: bool = True) -> str:
+        """Plate solve current image with timeout (Step 420)."""
+        if not astrometry_service:
+            return "Astrometry service not available"
+
+        try:
+            # Get current camera image or last captured
+            image_path = None
+            if camera_client and hasattr(camera_client, 'get_last_image_path'):
+                image_path = camera_client.get_last_image_path()
+
+            if not image_path:
+                return "No image available for plate solving. Capture an image first."
+
+            # Get position hint from mount if available
+            hint = None
+            if use_hint and mount_client:
+                status = mount_client.get_status()
+                if status and hasattr(status, 'ra_degrees') and hasattr(status, 'dec_degrees'):
+                    from services.astrometry.plate_solver import PlateSolveHint
+                    hint = PlateSolveHint(
+                        ra_deg=status.ra_degrees,
+                        dec_deg=status.dec_degrees,
+                        radius_deg=5.0
+                    )
+
+            # Solve with timeout
+            result = await astrometry_service.solve(image_path, hint=hint, timeout=timeout_sec)
+
+            if result.status.value == "success":
+                parts = [
+                    f"Plate solve successful in {result.solve_time_sec:.1f}s",
+                    f"Position: {result.ra_hms} {result.dec_dms}"
+                ]
+                if result.pixel_scale:
+                    parts.append(f"Scale: {result.pixel_scale:.2f} arcsec/pixel")
+                if result.rotation_deg is not None:
+                    parts.append(f"Rotation: {result.rotation_deg:.1f}°")
+                return "\n".join(parts)
+            elif result.status.value == "timeout":
+                return f"Plate solve timed out after {timeout_sec}s. Try increasing timeout or check image quality."
+            else:
+                return f"Plate solve failed: {result.error_message or 'Unknown error'}"
+
+        except Exception as e:
+            return f"Error during plate solve: {e}"
+
+    handlers["plate_solve"] = plate_solve
+
+    async def get_pointing_error() -> str:
+        """Get pointing error from last solve in arcseconds (Steps 421-422)."""
+        if not astrometry_service:
+            return "Astrometry service not available"
+        if not mount_client:
+            return "Mount not available"
+
+        try:
+            # Get mount's current position
+            status = mount_client.get_status()
+            if not status or not hasattr(status, 'ra_degrees'):
+                return "Cannot get mount position"
+
+            expected_ra = status.ra_degrees
+            expected_dec = status.dec_degrees
+
+            # Get last solve result
+            if hasattr(astrometry_service, '_solve_history') and astrometry_service._solve_history:
+                last_solve = astrometry_service._solve_history[-1]
+
+                if last_solve.status.value != "success":
+                    return "Last plate solve was not successful. Run plate_solve first."
+
+                # Step 422: Calculate error in arcseconds
+                ra_error, dec_error, total_error = astrometry_service.calculate_pointing_error(
+                    expected_ra, expected_dec, last_solve
+                )
+
+                parts = [
+                    f"Pointing error: {total_error:.1f}\" total",
+                    f"  RA error: {ra_error:+.1f}\" {'East' if ra_error > 0 else 'West'}",
+                    f"  Dec error: {dec_error:+.1f}\" {'North' if dec_error > 0 else 'South'}"
+                ]
+
+                # Quality assessment
+                if total_error < 10:
+                    parts.append("Pointing accuracy: Excellent")
+                elif total_error < 30:
+                    parts.append("Pointing accuracy: Good")
+                elif total_error < 60:
+                    parts.append("Pointing accuracy: Fair - consider sync")
+                else:
+                    parts.append("Pointing accuracy: Poor - sync recommended")
+
+                return "\n".join(parts)
+            else:
+                return "No plate solve results available. Run plate_solve first."
+
+        except Exception as e:
+            return f"Error calculating pointing error: {e}"
+
+    handlers["get_pointing_error"] = get_pointing_error
+
     return handlers
 
 

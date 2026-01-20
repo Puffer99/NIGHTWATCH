@@ -197,7 +197,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 109 | Core Service Completion | astrometry | Implement ASTAP command wrapper | 108 | 3 | 2 | Not Started | Shell integration |
 | 110 | Core Service Completion | astrometry | Parse ASTAP solution output | 109 | 3 | 2 | Not Started | Extract coordinates |
 | 111 | Core Service Completion | astrometry | Implement solver selection logic (primary/fallback) | 110 | 3 | 2 | Not Started | Automatic fallback |
-| 112 | Core Service Completion | astrometry | Add solve timeout handling (30s default) | 111 | 2 | 1 | Not Started | Prevent hangs |
+| 112 | Core Service Completion | astrometry | Add solve timeout handling (30s default) | 111 | 2 | 1 | Complete | SolverConfig.blind_timeout_sec/hint_timeout_sec in plate_solver.py |
 | 113 | Core Service Completion | astrometry | Implement solve_with_hint() using mount position | 112 | 3 | 2 | Not Started | Faster solves |
 | 114 | Core Service Completion | astrometry | Implement blind_solve() without hint | 113 | 3 | 2 | Not Started | Full-sky search |
 | 115 | Core Service Completion | astrometry | Add pixel scale estimation from image | 114 | 3 | 2 | Not Started | Auto-detect scale |
@@ -211,8 +211,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 123 | Core Service Completion | alerts | Add email template system (HTML + plain text) | 122 | 3 | 2 | Complete | Formatted emails |
 | 124 | Core Service Completion | alerts | Implement email rate limiting (max 1/hour per alert type) | 123 | 2 | 2 | Complete | Prevent spam |
 | 125 | Core Service Completion | alerts | Implement Twilio SMS notification channel | 124 | 3 | 3 | Not Started | Local-first: optional |
-| 126 | Core Service Completion | alerts | Add SMS message formatting (160 char limit) | 125 | 2 | 1 | Not Started | Concise messages |
-| 127 | Core Service Completion | alerts | Implement SMS rate limiting | 126 | 2 | 1 | Not Started | Cost control |
+| 126 | Core Service Completion | alerts | Add SMS message formatting (160 char limit) | 125 | 2 | 1 | Complete | _format_sms_message() with smart truncation |
+| 127 | Core Service Completion | alerts | Implement SMS rate limiting | 126 | 2 | 1 | Complete | _should_rate_limit_sms(), sms_min_interval_seconds, sms_max_per_hour |
 | 128 | Core Service Completion | alerts | Implement local push notification (ntfy.sh compatible) | 127 | 3 | 2 | Complete | Self-hosted push |
 | 129 | Core Service Completion | alerts | Implement webhook notification channel | 128 | 2 | 2 | Complete | Generic integration |
 | 130 | Core Service Completion | alerts | Add Slack webhook support | 129 | 2 | 1 | Complete | Team notifications |
@@ -404,7 +404,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 316 | Voice Pipeline Integration | stt_integration | Implement audio buffering for continuous mode | 315 | 3 | 2 | Not Started | Smooth capture |
 | 317 | Voice Pipeline Integration | stt_integration | Add transcription confidence filtering | 316 | 2 | 1 | Complete | confidence_threshold in WyomingSTTServer (default 0.6) |
 | 318 | Voice Pipeline Integration | stt_integration | Implement astronomy vocabulary boost | 317 | 3 | 2 | Not Started | Domain accuracy |
-| 319 | Voice Pipeline Integration | stt_integration | Add multi-language support preparation | 318 | 2 | 1 | Not Started | Future expansion |
+| 319 | Voice Pipeline Integration | stt_integration | Add multi-language support preparation | 318 | 2 | 1 | Complete | SUPPORTED_LANGUAGES, STT_SUPPORTED_LANGUAGES dicts in tts/stt servers |
 | 320 | Voice Pipeline Integration | tts_integration | Integrate PiperTTS with voice pipeline | 293 | 2 | 1 | Complete | TTSInterface wraps piper-tts |
 | 321 | Voice Pipeline Integration | tts_integration | Configure DGX Spark CUDA acceleration | 320 | 2 | 1 | Not Started | GPU synthesis |
 | 322 | Voice Pipeline Integration | tts_integration | Add response phrase caching | 321 | 3 | 2 | Not Started | Common responses |
@@ -504,10 +504,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 416 | Tool Handler Implementation | focus_tools | Add direction and step parameters | 415 | 2 | 1 | Complete | steps, direction (in/out), position params |
 | 417 | Tool Handler Implementation | focus_tools | Implement enable_temp_compensation handler | 416 | 2 | 1 | Complete | enable_temp_compensation() toggle with feedback |
 | 418 | Tool Handler Implementation | focus_tools | Write unit tests for focus tool handlers | 417 | 2 | 2 | Not Started | Test coverage |
-| 419 | Tool Handler Implementation | astrometry_tools | Implement plate_solve handler | 257 | 3 | 2 | Not Started | Solve current |
-| 420 | Tool Handler Implementation | astrometry_tools | Add timeout parameter | 419 | 2 | 1 | Not Started | Limit wait |
-| 421 | Tool Handler Implementation | astrometry_tools | Implement get_pointing_error handler | 420 | 2 | 1 | Not Started | Error report |
-| 422 | Tool Handler Implementation | astrometry_tools | Add error in arcseconds | 421 | 2 | 1 | Not Started | Precision |
+| 419 | Tool Handler Implementation | astrometry_tools | Implement plate_solve handler | 257 | 3 | 2 | Complete | plate_solve() with hint and timeout in telescope_tools.py |
+| 420 | Tool Handler Implementation | astrometry_tools | Add timeout parameter | 419 | 2 | 1 | Complete | timeout_sec parameter (default 30s) |
+| 421 | Tool Handler Implementation | astrometry_tools | Implement get_pointing_error handler | 420 | 2 | 1 | Complete | get_pointing_error() compares mount vs solve |
+| 422 | Tool Handler Implementation | astrometry_tools | Add error in arcseconds | 421 | 2 | 1 | Complete | RA/Dec/total error with quality assessment |
 | 423 | Tool Handler Implementation | astrometry_tools | Implement center_object handler | 422 | 3 | 2 | Not Started | Precise centering |
 | 424 | Tool Handler Implementation | astrometry_tools | Add iterative refinement | 423 | 3 | 2 | Not Started | Multi-solve |
 | 425 | Tool Handler Implementation | astrometry_tools | Write unit tests for astrometry tool handlers | 424 | 2 | 2 | Not Started | Test coverage |

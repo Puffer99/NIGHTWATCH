@@ -47,6 +47,47 @@ class TTSSettings:
     language: str = "en"
 
 
+# Step 319: Multi-language support preparation
+# Language codes supported by NIGHTWATCH voice system
+SUPPORTED_LANGUAGES = {
+    "en": {"name": "English", "voice_prefix": "en_US", "tts_available": True},
+    "de": {"name": "German", "voice_prefix": "de_DE", "tts_available": True},
+    "es": {"name": "Spanish", "voice_prefix": "es_ES", "tts_available": True},
+    "fr": {"name": "French", "voice_prefix": "fr_FR", "tts_available": True},
+    "it": {"name": "Italian", "voice_prefix": "it_IT", "tts_available": True},
+    "nl": {"name": "Dutch", "voice_prefix": "nl_NL", "tts_available": True},
+    "pt": {"name": "Portuguese", "voice_prefix": "pt_BR", "tts_available": True},
+    "pl": {"name": "Polish", "voice_prefix": "pl_PL", "tts_available": True},
+    "uk": {"name": "Ukrainian", "voice_prefix": "uk_UA", "tts_available": True},
+    "ru": {"name": "Russian", "voice_prefix": "ru_RU", "tts_available": True},
+}
+
+
+def get_language_voice(language: str, default_voice: str = "en_US-lessac-medium") -> str:
+    """
+    Get appropriate TTS voice for language (Step 319).
+
+    Args:
+        language: Language code (e.g., "en", "de")
+        default_voice: Fallback voice if language not supported
+
+    Returns:
+        Voice name appropriate for the language
+    """
+    lang_info = SUPPORTED_LANGUAGES.get(language)
+    if lang_info and lang_info.get("tts_available"):
+        # Return a default voice for that language prefix
+        # Actual voice selection would be more sophisticated
+        prefix = lang_info["voice_prefix"]
+        return f"{prefix}-medium"  # Placeholder voice pattern
+    return default_voice
+
+
+def is_language_supported(language: str) -> bool:
+    """Check if language is supported (Step 319)."""
+    return language in SUPPORTED_LANGUAGES
+
+
 # Step 323: Urgency keywords for dynamic speech rate adjustment
 URGENCY_KEYWORDS = {
     "high": [

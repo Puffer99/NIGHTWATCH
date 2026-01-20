@@ -40,6 +40,44 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+# Step 319: Multi-language support preparation for STT
+# Whisper supports these languages out of the box
+STT_SUPPORTED_LANGUAGES = {
+    "en": "english",
+    "de": "german",
+    "es": "spanish",
+    "fr": "french",
+    "it": "italian",
+    "nl": "dutch",
+    "pt": "portuguese",
+    "pl": "polish",
+    "uk": "ukrainian",
+    "ru": "russian",
+    "ja": "japanese",
+    "zh": "chinese",
+    "ar": "arabic",
+    "ko": "korean",
+}
+
+
+def get_whisper_language(language_code: str) -> str:
+    """
+    Convert language code to Whisper language name (Step 319).
+
+    Args:
+        language_code: ISO 639-1 language code (e.g., "en", "de")
+
+    Returns:
+        Whisper language name
+    """
+    return STT_SUPPORTED_LANGUAGES.get(language_code, "english")
+
+
+def is_stt_language_supported(language_code: str) -> bool:
+    """Check if STT language is supported (Step 319)."""
+    return language_code in STT_SUPPORTED_LANGUAGES
+
+
 @dataclass
 class ClientSession:
     """State for a connected client session."""
