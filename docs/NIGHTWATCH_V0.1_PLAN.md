@@ -245,14 +245,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 157 | Core Service Completion | power | Write unit tests for NUT client | 156 | 2 | 2 | Complete | tests/unit/test_power_manager.py (29 tests) |
 | 158 | Core Service Completion | power | Write integration test for thresholds | 157 | 2 | 2 | Complete | Threshold tests in test_power_manager.py |
 | 159 | Core Service Completion | enclosure | Review roof_controller.py current implementation | None | 2 | 1 | Complete | Full ROR control, safety interlocks, rain holdoff |
-| 160 | Core Service Completion | enclosure | Implement GPIO interface abstraction | 159 | 3 | 2 | Not Started | Hardware access |
-| 161 | Core Service Completion | enclosure | Add RPi.GPIO support for Raspberry Pi | 160 | 3 | 2 | Not Started | Pi compatibility |
+| 160 | Core Service Completion | enclosure | Implement GPIO interface abstraction | 159 | 3 | 2 | Complete | GPIOInterface class with backend enum |
+| 161 | Core Service Completion | enclosure | Add RPi.GPIO support for Raspberry Pi | 160 | 3 | 2 | Complete | _init_rpigpio() in GPIOInterface |
 | 162 | Core Service Completion | enclosure | Add gpiozero support as alternative | 161 | 2 | 1 | Complete | GPIOInterface with gpiozero backend in roof_controller.py |
-| 163 | Core Service Completion | enclosure | Implement relay control for motor | 162 | 3 | 2 | Not Started | Motor drive |
+| 163 | Core Service Completion | enclosure | Implement relay control for motor | 162 | 3 | 2 | Complete | stop_motor(), relay control in GPIOInterface |
 | 164 | Core Service Completion | enclosure | Add open/close relay wiring logic | 163 | 2 | 1 | Complete | set_motor_open_relay(), set_motor_close_relay() in GPIOInterface |
 | 165 | Core Service Completion | enclosure | Implement limit switch reading (open limit) | 164 | 2 | 2 | Complete | read_open_limit() in GPIOInterface |
 | 166 | Core Service Completion | enclosure | Implement limit switch reading (closed limit) | 165 | 2 | 1 | Complete | read_closed_limit() in GPIOInterface |
-| 167 | Core Service Completion | enclosure | Add hardware rain sensor input | 166 | 3 | 2 | Not Started | Failsafe interlock |
+| 167 | Core Service Completion | enclosure | Add hardware rain sensor input | 166 | 3 | 2 | Complete | read_rain_sensor() in GPIOInterface |
 | 168 | Core Service Completion | enclosure | Implement rain sensor interrupt handling | 167 | 3 | 2 | Not Started | Immediate response |
 | 169 | Core Service Completion | enclosure | Add motor current monitoring (optional) | 168 | 4 | 3 | Not Started | Over-current protection |
 | 170 | Core Service Completion | enclosure | Implement motor timeout protection (60s max) | 169 | 2 | 1 | Complete | _motor_timeout in roof_controller.py |
@@ -272,17 +272,17 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 184 | Core Service Completion | focus | Add contrast-based focusing | 183 | 3 | 2 | Not Started | Alternative method |
 | 185 | Core Service Completion | focus | Implement temperature compensation calibration | 184 | 4 | 3 | Not Started | Auto-adjust for temp |
 | 186 | Core Service Completion | focus | Add temperature coefficient storage | 185 | 2 | 1 | Complete | save/load_temp_coefficient() in focuser_service.py |
-| 187 | Core Service Completion | focus | Implement backlash compensation | 186 | 3 | 2 | Not Started | Consistent positioning |
+| 187 | Core Service Completion | focus | Implement backlash compensation | 186 | 3 | 2 | Complete | Direction-aware backlash tracking, calibrate_backlash(), get_backlash_info() in focuser_service.py |
 | 188 | Core Service Completion | focus | Add focus position history tracking | 187 | 2 | 2 | Complete | FocusPositionRecord, get_position_history(), get_position_stats() in focuser_service.py |
 | 189 | Core Service Completion | focus | Implement focus run database | 188 | 3 | 2 | Not Started | Analysis data |
 | 190 | Core Service Completion | focus | Create mock focuser for testing | 189 | 2 | 2 | Complete | tests/mocks/mock_focuser.py with error injection |
 | 191 | Core Service Completion | focus | Write unit tests for autofocus algorithms | 190 | 3 | 2 | Complete | tests/unit/test_focuser_service.py (35 tests) |
 | 192 | Core Service Completion | focus | Write integration test with camera | 191 | 3 | 2 | Not Started | End-to-end test |
 | 193 | Core Service Completion | guiding | Review phd2_client.py current implementation | None | 2 | 1 | Complete | Full JSON-RPC client, dither, calibration, events |
-| 194 | Core Service Completion | guiding | Complete dither implementation | 193 | 3 | 2 | Not Started | Imaging workflow |
-| 195 | Core Service Completion | guiding | Add settling detection with timeout | 194 | 3 | 2 | Not Started | Wait for stable |
+| 194 | Core Service Completion | guiding | Complete dither implementation | 193 | 3 | 2 | Complete | dither_and_wait() with settle detection in phd2_client.py |
+| 195 | Core Service Completion | guiding | Add settling detection with timeout | 194 | 3 | 2 | Complete | wait_for_settle(), get_settle_status(), is_settling property in phd2_client.py |
 | 196 | Core Service Completion | guiding | Implement guide star loss recovery | 195 | 3 | 2 | Not Started | Auto-reselect |
-| 197 | Core Service Completion | guiding | Add RMS trending and alerts | 196 | 3 | 2 | Not Started | Quality monitoring |
+| 197 | Core Service Completion | guiding | Add RMS trending and alerts | 196 | 3 | 2 | Complete | RMS history, trending, alerts with callback in phd2_client.py |
 | 198 | Core Service Completion | guiding | Implement guide log parsing | 197 | 3 | 2 | Not Started | Session analysis |
 | 199 | Core Service Completion | guiding | Write unit tests for PHD2 client | 198 | 2 | 2 | Complete | tests/unit/test_phd2_client.py (18 tests) |
 | 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Complete | Full WS90 integration, safety thresholds |

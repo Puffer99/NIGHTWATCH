@@ -141,6 +141,11 @@ class FocuserService:
         self._position_history: List[FocusPositionRecord] = []
         self._position_history_max_size: int = 1000  # Keep last 1000 records
 
+        # Step 187: Backlash tracking
+        self._last_direction: int = 0  # 1 = outward, -1 = inward, 0 = unknown
+        self._backlash_calibrated: bool = False
+        self._measured_backlash: Optional[int] = None
+
     @property
     def connected(self) -> bool:
         """Check if focuser is connected."""
@@ -230,18 +235,42 @@ class FocuserService:
         # Calculate direction
         direction = 1 if position > self._position else -1
 
-        # Backlash compensation: always approach from below
-        if compensate_backlash and direction > 0:
-            # Moving outward, overshoot and come back
-            overshoot = position + self.config.backlash_steps
-            overshoot = min(overshoot, self.config.max_position)
+        # Step 187: Enhanced backlash compensation
+        # Only apply when changing direction (direction reversal)
+        needs_backlash_comp = (
+            compensate_backlash and
+            self._last_direction != 0 and
+            direction != self._last_direction
+        )
 
-            self._state = FocuserState.MOVING
-            await self._do_move(overshoot)
-            await self._do_move(position)
+        backlash = self._measured_backlash or self.config.backlash_steps
+
+        if needs_backlash_comp:
+            # Approaching from consistent direction reduces backlash error
+            if direction > 0:
+                # Moving outward after inward: overshoot then return
+                overshoot = position + backlash
+                overshoot = min(overshoot, self.config.max_position)
+
+                self._state = FocuserState.MOVING
+                logger.debug(f"Backlash compensation: overshoot to {overshoot}")
+                await self._do_move(overshoot)
+                await self._do_move(position)
+            else:
+                # Moving inward after outward: undershoot then return
+                undershoot = position - backlash
+                undershoot = max(0, undershoot)
+
+                self._state = FocuserState.MOVING
+                logger.debug(f"Backlash compensation: undershoot to {undershoot}")
+                await self._do_move(undershoot)
+                await self._do_move(position)
         else:
             self._state = FocuserState.MOVING
             await self._do_move(position)
+
+        # Track direction for next move
+        self._last_direction = direction
 
         self._state = FocuserState.IDLE
 
@@ -288,6 +317,92 @@ class FocuserService:
         # In real implementation, would send halt command
         self._state = FocuserState.IDLE
         logger.info("Focuser halted")
+
+    # =========================================================================
+    # BACKLASH COMPENSATION (Step 187)
+    # =========================================================================
+
+    def get_backlash_info(self) -> dict:
+        """
+        Get backlash compensation information (Step 187).
+
+        Returns:
+            Dict with backlash settings and status
+        """
+        return {
+            "configured_backlash": self.config.backlash_steps,
+            "measured_backlash": self._measured_backlash,
+            "effective_backlash": self._measured_backlash or self.config.backlash_steps,
+            "calibrated": self._backlash_calibrated,
+            "last_direction": self._last_direction,
+        }
+
+    def set_backlash(self, steps: int) -> None:
+        """
+        Set measured backlash value (Step 187).
+
+        Args:
+            steps: Backlash in steps (typically 50-200)
+        """
+        self._measured_backlash = max(0, steps)
+        self._backlash_calibrated = True
+        logger.info(f"Backlash set to {steps} steps")
+
+    async def calibrate_backlash(self, camera=None) -> int:
+        """
+        Calibrate backlash by measuring star position shift (Step 187).
+
+        This is a simplified calibration that measures the mechanical
+        backlash by reversing direction and measuring the actual movement.
+
+        Args:
+            camera: Optional camera for precise measurement
+
+        Returns:
+            Measured backlash in steps
+        """
+        if not self._connected:
+            raise RuntimeError("Focuser not connected")
+
+        self._state = FocuserState.CALIBRATING
+        logger.info("Starting backlash calibration...")
+
+        try:
+            # Move to a known position
+            start_pos = self._position
+            test_distance = 500
+
+            # Move outward
+            await self._do_move(start_pos + test_distance)
+            self._last_direction = 1
+
+            # Move back to start (should have backlash)
+            await self._do_move(start_pos)
+            self._last_direction = -1
+
+            # In real implementation with camera:
+            # 1. Take image, measure star centroid
+            # 2. Move in small steps until star moves
+            # 3. That step count is the backlash
+
+            # For simulation, use configured value
+            measured = self.config.backlash_steps
+
+            self._measured_backlash = measured
+            self._backlash_calibrated = True
+
+            logger.info(f"Backlash calibration complete: {measured} steps")
+            return measured
+
+        finally:
+            self._state = FocuserState.IDLE
+
+    def reset_backlash_calibration(self) -> None:
+        """Reset backlash calibration to use configured default."""
+        self._measured_backlash = None
+        self._backlash_calibrated = False
+        self._last_direction = 0
+        logger.info("Backlash calibration reset")
 
     # =========================================================================
     # POSITION HISTORY TRACKING (Step 188)

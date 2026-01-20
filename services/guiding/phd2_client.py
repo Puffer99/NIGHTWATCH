@@ -104,6 +104,18 @@ class PHD2Client:
         self._calibration: Optional[CalibrationData] = None
         self._event_task: Optional[asyncio.Task] = None
 
+        # Step 194, 195: Dither and settling tracking
+        self._dither_in_progress: bool = False
+        self._settling: bool = False
+        self._settle_start_time: Optional[datetime] = None
+        self._dither_settle_event = asyncio.Event()
+
+        # Step 197: RMS trending and alerts
+        self._rms_history: List[tuple] = []  # (timestamp, rms_total)
+        self._rms_history_max_size: int = 1000
+        self._rms_alert_threshold: float = 2.0  # arcsec
+        self._rms_alert_callback: Optional[Callable] = None
+
     @property
     def connected(self) -> bool:
         """Check if connected to PHD2."""
@@ -220,19 +232,36 @@ class PHD2Client:
         event_type = event.get("Event")
 
         if event_type == "GuideStep":
+            # Calculate RMS
+            ra_dist = event.get("RADistanceRaw", 0)
+            dec_dist = event.get("DECDistanceRaw", 0)
+            rms_total = (ra_dist ** 2 + dec_dist ** 2) ** 0.5
+
             # Update guide stats
             self._last_stats = GuideStats(
                 timestamp=datetime.now(),
                 state=self._state,
-                rms_total=event.get("RADistanceRaw", 0) ** 2 + event.get("DECDistanceRaw", 0) ** 2,
-                rms_ra=abs(event.get("RADistanceRaw", 0)),
-                rms_dec=abs(event.get("DECDistanceRaw", 0)),
+                rms_total=rms_total,
+                rms_ra=abs(ra_dist),
+                rms_dec=abs(dec_dist),
                 peak_ra=0,  # Would calculate from history
                 peak_dec=0,
                 snr=event.get("SNR", 0),
                 star_mass=event.get("StarMass", 0),
                 frame_number=event.get("Frame", 0)
             )
+
+            # Step 197: Track RMS history
+            self._rms_history.append((datetime.now(), rms_total))
+            if len(self._rms_history) > self._rms_history_max_size:
+                self._rms_history = self._rms_history[-self._rms_history_max_size:]
+
+            # Step 197: Check RMS alert threshold
+            if rms_total > self._rms_alert_threshold and self._rms_alert_callback:
+                try:
+                    self._rms_alert_callback(rms_total, self._rms_alert_threshold)
+                except Exception as e:
+                    logger.error(f"RMS alert callback error: {e}")
 
         elif event_type == "AppState":
             state_str = event.get("State", "Stopped")
@@ -242,7 +271,26 @@ class PHD2Client:
                 self._state = GuideState.STOPPED
 
         elif event_type == "GuidingDithered":
-            logger.debug("Dither complete")
+            # Step 194: Dither complete
+            logger.debug("Dither complete, waiting for settle")
+            self._dither_in_progress = False
+
+        elif event_type == "Settling":
+            # Step 195: Settling started
+            self._settling = True
+            self._settle_start_time = datetime.now()
+            logger.debug("Guiding settling...")
+
+        elif event_type == "SettleDone":
+            # Step 195: Settling complete
+            self._settling = False
+            settle_status = event.get("Status", 0)
+            if settle_status == 0:
+                logger.debug("Settle complete - guiding stable")
+                self._dither_settle_event.set()
+            else:
+                logger.warning(f"Settle failed with status {settle_status}")
+            self._settle_start_time = None
 
         elif event_type == "StarLost":
             logger.warning("Guide star lost!")
@@ -329,33 +377,75 @@ class PHD2Client:
             return False
 
     async def dither(self, pixels: float = 5.0, ra_only: bool = False,
-                     settle_pixels: float = 1.0, settle_time: float = 10.0) -> bool:
+                     settle_pixels: float = 1.0, settle_time: float = 10.0,
+                     settle_timeout: float = 60.0) -> bool:
         """
-        Dither the guide position.
+        Dither the guide position (Step 194).
 
         Args:
             pixels: Dither amount in pixels
             ra_only: Only dither in RA direction
             settle_pixels: Settle threshold
             settle_time: Settle duration
+            settle_timeout: Maximum settle wait time
 
         Returns:
             True if dither initiated successfully
         """
         try:
+            self._dither_in_progress = True
             await self._send_request("dither", {
                 "amount": pixels,
                 "raOnly": ra_only,
                 "settle": {
                     "pixels": settle_pixels,
                     "time": settle_time,
-                    "timeout": 60.0
+                    "timeout": settle_timeout
                 }
             })
             logger.debug(f"Dithered {pixels} pixels")
             return True
         except Exception as e:
+            self._dither_in_progress = False
             logger.error(f"Failed to dither: {e}")
+            return False
+
+    async def dither_and_wait(self, pixels: float = 5.0, ra_only: bool = False,
+                              settle_pixels: float = 1.0, settle_time: float = 10.0,
+                              settle_timeout: float = 60.0) -> bool:
+        """
+        Dither and wait for guiding to settle (Step 194).
+
+        This is the recommended method for imaging workflows as it
+        blocks until guiding is stable after the dither.
+
+        Args:
+            pixels: Dither amount in pixels
+            ra_only: Only dither in RA direction
+            settle_pixels: Settle threshold
+            settle_time: Settle duration
+            settle_timeout: Maximum settle wait time
+
+        Returns:
+            True if dither and settle completed successfully
+        """
+        # Clear the settle event
+        self._dither_settle_event.clear()
+
+        # Initiate dither
+        if not await self.dither(pixels, ra_only, settle_pixels, settle_time, settle_timeout):
+            return False
+
+        # Wait for settle
+        try:
+            await asyncio.wait_for(
+                self._dither_settle_event.wait(),
+                timeout=settle_timeout
+            )
+            logger.info(f"Dither of {pixels} pixels complete and settled")
+            return True
+        except asyncio.TimeoutError:
+            logger.warning(f"Dither settle timeout after {settle_timeout}s")
             return False
 
     # =========================================================================
@@ -490,6 +580,159 @@ class PHD2Client:
             return float(result)
         except Exception:
             return 0.0
+
+    # =========================================================================
+    # SETTLING DETECTION (Step 195)
+    # =========================================================================
+
+    @property
+    def is_settling(self) -> bool:
+        """Check if guiding is currently settling."""
+        return self._settling
+
+    async def wait_for_settle(self, timeout: float = 60.0) -> bool:
+        """
+        Wait for guiding to settle (Step 195).
+
+        Args:
+            timeout: Maximum time to wait in seconds
+
+        Returns:
+            True if settled, False if timeout
+        """
+        if not self._settling:
+            return True  # Already settled
+
+        self._dither_settle_event.clear()
+
+        try:
+            await asyncio.wait_for(
+                self._dither_settle_event.wait(),
+                timeout=timeout
+            )
+            return True
+        except asyncio.TimeoutError:
+            logger.warning(f"Settle timeout after {timeout}s")
+            return False
+
+    def get_settle_status(self) -> dict:
+        """
+        Get current settle status (Step 195).
+
+        Returns:
+            Dict with settling information
+        """
+        elapsed = None
+        if self._settle_start_time:
+            elapsed = (datetime.now() - self._settle_start_time).total_seconds()
+
+        return {
+            "settling": self._settling,
+            "settle_elapsed_sec": elapsed,
+            "dither_in_progress": self._dither_in_progress,
+        }
+
+    # =========================================================================
+    # RMS TRENDING AND ALERTS (Step 197)
+    # =========================================================================
+
+    def set_rms_alert_threshold(self, threshold_arcsec: float) -> None:
+        """
+        Set RMS alert threshold (Step 197).
+
+        Args:
+            threshold_arcsec: RMS threshold in arcseconds
+        """
+        self._rms_alert_threshold = threshold_arcsec
+        logger.info(f"RMS alert threshold set to {threshold_arcsec} arcsec")
+
+    def set_rms_alert_callback(self, callback: Optional[Callable]) -> None:
+        """
+        Set callback for RMS alerts (Step 197).
+
+        Args:
+            callback: Function(rms_value, threshold) called when RMS exceeds threshold
+        """
+        self._rms_alert_callback = callback
+
+    def get_rms_history(self, limit: int = 100) -> List[tuple]:
+        """
+        Get recent RMS history (Step 197).
+
+        Args:
+            limit: Maximum number of samples to return
+
+        Returns:
+            List of (timestamp, rms_total) tuples, most recent last
+        """
+        return self._rms_history[-limit:]
+
+    def get_rms_stats(self) -> dict:
+        """
+        Get RMS statistics (Step 197).
+
+        Returns:
+            Dict with RMS statistics
+        """
+        if not self._rms_history:
+            return {
+                "sample_count": 0,
+                "avg_rms": None,
+                "min_rms": None,
+                "max_rms": None,
+                "current_rms": None,
+                "alert_threshold": self._rms_alert_threshold,
+            }
+
+        rms_values = [rms for _, rms in self._rms_history]
+        return {
+            "sample_count": len(rms_values),
+            "avg_rms": sum(rms_values) / len(rms_values),
+            "min_rms": min(rms_values),
+            "max_rms": max(rms_values),
+            "current_rms": rms_values[-1] if rms_values else None,
+            "alert_threshold": self._rms_alert_threshold,
+            "above_threshold_count": sum(1 for r in rms_values if r > self._rms_alert_threshold),
+        }
+
+    def get_rms_trend(self, window_size: int = 10) -> str:
+        """
+        Get RMS trend direction (Step 197).
+
+        Args:
+            window_size: Number of samples for trend calculation
+
+        Returns:
+            "improving", "degrading", or "stable"
+        """
+        if len(self._rms_history) < window_size * 2:
+            return "unknown"
+
+        # Compare average of first half vs second half
+        recent = self._rms_history[-window_size:]
+        older = self._rms_history[-window_size*2:-window_size]
+
+        recent_avg = sum(r for _, r in recent) / len(recent)
+        older_avg = sum(r for _, r in older) / len(older)
+
+        # 10% threshold for trend detection
+        if recent_avg < older_avg * 0.9:
+            return "improving"
+        elif recent_avg > older_avg * 1.1:
+            return "degrading"
+        else:
+            return "stable"
+
+    def clear_rms_history(self) -> int:
+        """
+        Clear RMS history (Step 197).
+
+        Returns:
+            Number of samples cleared
+        """
+        count = len(self._rms_history)
+        self._rms_history.clear()
+        return count
 
 
 # =============================================================================
