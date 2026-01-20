@@ -283,7 +283,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 195 | Core Service Completion | guiding | Add settling detection with timeout | 194 | 3 | 2 | Complete | wait_for_settle(), get_settle_status(), is_settling property in phd2_client.py |
 | 196 | Core Service Completion | guiding | Implement guide star loss recovery | 195 | 3 | 2 | Complete | Auto-recovery with _auto_recover_star(), manual_recover_star() in phd2_client.py |
 | 197 | Core Service Completion | guiding | Add RMS trending and alerts | 196 | 3 | 2 | Complete | RMS history, trending, alerts with callback in phd2_client.py |
-| 198 | Core Service Completion | guiding | Implement guide log parsing | 197 | 3 | 2 | Not Started | Session analysis |
+| 198 | Core Service Completion | guiding | Implement guide log parsing | 197 | 3 | 2 | Complete | parse_guide_log(), analyze_guide_session() in phd2_client.py |
 | 199 | Core Service Completion | guiding | Write unit tests for PHD2 client | 198 | 2 | 2 | Complete | tests/unit/test_phd2_client.py (18 tests) |
 | 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Complete | Full WS90 integration, safety thresholds |
 | 201 | Core Service Completion | weather | Add AAG CloudWatcher integration | 200 | 4 | 3 | Not Started | Cloud sensing |
@@ -318,10 +318,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 230 | Orchestrator Development | orchestrator | Add session state management | 229 | 3 | 2 | Complete | SessionState dataclass |
 | 231 | Orchestrator Development | orchestrator | Implement session start logic | 230 | 2 | 1 | Complete | start_session(), end_session() |
 | 232 | Orchestrator Development | orchestrator | Implement session end logic (park, close) | 231 | 3 | 2 | Complete | end_session() with park, close, guiding stop in orchestrator.py |
-| 233 | Orchestrator Development | orchestrator | Add observation log recording | 232 | 3 | 2 | Not Started | Session history |
+| 233 | Orchestrator Development | orchestrator | Add observation log recording | 232 | 3 | 2 | Complete | ObservationLogEntry, log_observation(), log_target_acquired(), log_image_captured() in orchestrator.py |
 | 234 | Orchestrator Development | orchestrator | Implement command queue | 233 | 3 | 2 | Not Started | Async command handling |
 | 235 | Orchestrator Development | orchestrator | Add command priority levels | 234 | 2 | 1 | Complete | CommandPriority enum in orchestrator.py |
-| 236 | Orchestrator Development | orchestrator | Implement command timeout handling | 235 | 3 | 2 | Not Started | Prevent hangs |
+| 236 | Orchestrator Development | orchestrator | Implement command timeout handling | 235 | 3 | 2 | Complete | execute_with_timeout(), execute_slew_with_timeout(), DEFAULT_TIMEOUTS in orchestrator.py |
 | 237 | Orchestrator Development | orchestrator | Add command cancellation support | 236 | 2 | 2 | Complete | execute_cancellable(), cancel_command(), cancel_all_commands() in orchestrator.py |
 | 238 | Orchestrator Development | orchestrator | Implement error recovery strategies | 237 | 4 | 3 | Not Started | Graceful degradation |
 | 239 | Orchestrator Development | orchestrator | Add mount error recovery (reconnect) | 238 | 3 | 2 | Not Started | Connection lost |
@@ -479,12 +479,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 391 | Tool Handler Implementation | session_tools | Add style options (normal, alert, calm, technical) | 390 | 2 | 1 | Complete | normal, alert, calm, technical with rate adjustments |
 | 392 | Tool Handler Implementation | session_tools | Write unit tests for session tool handlers | 391 | 2 | 2 | Complete | TestSessionToolHandlers in test_telescope_tools.py (4 tests) |
 | 393 | Tool Handler Implementation | guiding_tools | Implement start_guiding handler | 257 | 3 | 2 | Not Started | Begin guiding |
-| 394 | Tool Handler Implementation | guiding_tools | Add auto star selection option | 393 | 2 | 1 | Not Started | Convenience |
+| 394 | Tool Handler Implementation | guiding_tools | Add auto star selection option | 393 | 2 | 1 | Complete | auto_select, settle_pixels, settle_time params for start_guiding in telescope_tools.py |
 | 395 | Tool Handler Implementation | guiding_tools | Implement stop_guiding handler | 394 | 2 | 1 | Complete | stop_guiding() with stop/stop_guiding fallback |
 | 396 | Tool Handler Implementation | guiding_tools | Implement get_guiding_status handler | 395 | 2 | 1 | Complete | get_guiding_status() with state and RMS |
 | 397 | Tool Handler Implementation | guiding_tools | Add RMS in arcseconds | 396 | 2 | 1 | Complete | RMS RA/Dec/total with quality assessment |
 | 398 | Tool Handler Implementation | guiding_tools | Implement dither handler | 397 | 3 | 2 | Not Started | Imaging workflow |
-| 399 | Tool Handler Implementation | guiding_tools | Add dither amount parameter | 398 | 2 | 1 | Not Started | Customizable |
+| 399 | Tool Handler Implementation | guiding_tools | Add dither amount parameter | 398 | 2 | 1 | Complete | pixels, ra_only, wait_settle params for dither in telescope_tools.py |
 | 400 | Tool Handler Implementation | guiding_tools | Write unit tests for guiding tool handlers | 399 | 2 | 2 | Complete | TestGuidingToolHandlers in test_telescope_tools.py (5 tests) |
 | 401 | Tool Handler Implementation | camera_tools | Implement start_capture handler | 257 | 3 | 2 | Not Started | Begin imaging |
 | 402 | Tool Handler Implementation | camera_tools | Add exposure and gain parameters | 401 | 2 | 1 | Not Started | Capture settings |
@@ -658,7 +658,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 570 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_full_pipeline.py | 312,569 | 4 | 3 | Not Started | End-to-end |
 | 571 | Testing & Quality Assurance | integration_tests | Add simulator startup helper | 570 | 2 | 1 | Not Started | Test setup |
 | 572 | Testing & Quality Assurance | integration_tests | Add simulator shutdown helper | 571 | 2 | 1 | Not Started | Test teardown |
-| 573 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/__init__.py | 570 | 1 | 1 | Not Started | Package |
+| 573 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/__init__.py | 570 | 1 | 1 | Complete | E2E test package with pytest markers for e2e, requires_simulators, slow |
 | 574 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_goto_object.py | 573 | 3 | 2 | Not Started | Voice to slew |
 | 575 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_park_unpark.py | 574 | 3 | 2 | Not Started | Park cycle |
 | 576 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/test_safety_veto.py | 575 | 3 | 2 | Not Started | Safety block |

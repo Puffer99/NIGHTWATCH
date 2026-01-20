@@ -70,6 +70,7 @@ __all__ = [
     "ServiceStatus",
     "SessionState",
     "ObservingTarget",
+    "ObservationLogEntry",
     "EventType",
     "OrchestratorEvent",
     "OrchestratorMetrics",
@@ -585,6 +586,15 @@ class ObservingTarget:
 
 
 @dataclass
+class ObservationLogEntry:
+    """Single entry in the observation log (Step 233)."""
+    timestamp: datetime
+    event_type: str  # "target_acquired", "image_captured", "slew", "focus", "error", etc.
+    message: str
+    data: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class SessionState:
     """
     Current observing session state.
@@ -611,6 +621,10 @@ class SessionState:
     # Error tracking
     last_error: Optional[str] = None
     error_count: int = 0
+
+    # Observation log (Step 233)
+    observation_log: List[ObservationLogEntry] = field(default_factory=list)
+    targets_observed: List[str] = field(default_factory=list)
 
 
 # =============================================================================
@@ -1084,6 +1098,130 @@ class Orchestrator:
         return success
 
     # =========================================================================
+    # Observation Log Recording (Step 233)
+    # =========================================================================
+
+    def log_observation(
+        self,
+        event_type: str,
+        message: str,
+        data: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Record an entry in the observation log (Step 233).
+
+        Args:
+            event_type: Type of event (target_acquired, image_captured, slew, etc.)
+            message: Human-readable description
+            data: Additional event data
+        """
+        entry = ObservationLogEntry(
+            timestamp=datetime.now(),
+            event_type=event_type,
+            message=message,
+            data=data or {},
+        )
+        self.session.observation_log.append(entry)
+        logger.debug(f"Observation log: [{event_type}] {message}")
+
+    def log_target_acquired(self, target_name: str, ra: float, dec: float) -> None:
+        """Log target acquisition (Step 233)."""
+        self.log_observation(
+            event_type="target_acquired",
+            message=f"Acquired target: {target_name}",
+            data={"target": target_name, "ra": ra, "dec": dec}
+        )
+        if target_name not in self.session.targets_observed:
+            self.session.targets_observed.append(target_name)
+
+    def log_image_captured(
+        self,
+        filename: str,
+        exposure_sec: float,
+        filter_name: Optional[str] = None
+    ) -> None:
+        """Log image capture (Step 233)."""
+        self.session.images_captured += 1
+        self.session.total_exposure_sec += exposure_sec
+        self.log_observation(
+            event_type="image_captured",
+            message=f"Captured {exposure_sec}s exposure: {filename}",
+            data={
+                "filename": filename,
+                "exposure_sec": exposure_sec,
+                "filter": filter_name,
+                "image_number": self.session.images_captured,
+            }
+        )
+
+    def log_slew(self, target: str, ra: float, dec: float) -> None:
+        """Log telescope slew (Step 233)."""
+        self.log_observation(
+            event_type="slew",
+            message=f"Slewing to {target}",
+            data={"target": target, "ra": ra, "dec": dec}
+        )
+
+    def log_focus_run(self, position: int, hfd: Optional[float] = None) -> None:
+        """Log autofocus run (Step 233)."""
+        self.log_observation(
+            event_type="focus",
+            message=f"Autofocus complete at position {position}",
+            data={"position": position, "hfd": hfd}
+        )
+
+    def log_error(self, error_message: str, error_type: str = "error") -> None:
+        """Log an error (Step 233)."""
+        self.session.error_count += 1
+        self.session.last_error = error_message
+        self.log_observation(
+            event_type=error_type,
+            message=error_message,
+            data={"error_count": self.session.error_count}
+        )
+
+    def get_observation_log(self) -> List[Dict[str, Any]]:
+        """
+        Get the observation log as a list of dicts (Step 233).
+
+        Returns:
+            List of observation log entries
+        """
+        return [
+            {
+                "timestamp": entry.timestamp.isoformat(),
+                "event_type": entry.event_type,
+                "message": entry.message,
+                "data": entry.data,
+            }
+            for entry in self.session.observation_log
+        ]
+
+    def get_session_summary(self) -> Dict[str, Any]:
+        """
+        Get a summary of the current session (Step 233).
+
+        Returns:
+            Dict with session summary
+        """
+        duration = None
+        if self.session.started_at:
+            duration = (datetime.now() - self.session.started_at).total_seconds()
+
+        return {
+            "session_id": self.session.session_id,
+            "started_at": self.session.started_at.isoformat() if self.session.started_at else None,
+            "duration_sec": duration,
+            "is_observing": self.session.is_observing,
+            "targets_observed": self.session.targets_observed,
+            "images_captured": self.session.images_captured,
+            "total_exposure_sec": self.session.total_exposure_sec,
+            "current_target": self.session.current_target.name if self.session.current_target else None,
+            "error_count": self.session.error_count,
+            "log_entry_count": len(self.session.observation_log),
+        }
+
+    # =========================================================================
     # Command Cancellation (Step 237)
     # =========================================================================
 
@@ -1205,6 +1343,156 @@ class Orchestrator:
             cmd_id for cmd_id, task in self._active_commands.items()
             if not task.done()
         ]
+
+    # =========================================================================
+    # Command Timeout Handling (Step 236)
+    # =========================================================================
+
+    # Default timeouts for different command types
+    DEFAULT_TIMEOUTS = {
+        "slew": 120.0,      # 2 minutes for slew
+        "capture": 600.0,   # 10 minutes for long exposures
+        "focus": 180.0,     # 3 minutes for autofocus
+        "park": 60.0,       # 1 minute for park
+        "calibrate": 300.0, # 5 minutes for calibration
+        "dither": 60.0,     # 1 minute for dither
+        "default": 30.0,    # 30 seconds default
+    }
+
+    def get_command_timeout(self, command_type: str) -> float:
+        """
+        Get the timeout for a specific command type (Step 236).
+
+        Args:
+            command_type: Type of command (slew, capture, focus, etc.)
+
+        Returns:
+            Timeout in seconds
+        """
+        return self.DEFAULT_TIMEOUTS.get(command_type, self.DEFAULT_TIMEOUTS["default"])
+
+    def set_command_timeout(self, command_type: str, timeout_sec: float) -> None:
+        """
+        Set a custom timeout for a command type (Step 236).
+
+        Args:
+            command_type: Type of command
+            timeout_sec: Timeout in seconds
+        """
+        self.DEFAULT_TIMEOUTS[command_type] = timeout_sec
+        logger.info(f"Set timeout for '{command_type}' to {timeout_sec}s")
+
+    async def execute_with_timeout(
+        self,
+        coro,
+        command_type: str = "default",
+        custom_timeout: Optional[float] = None,
+        on_timeout: Optional[Callable] = None,
+    ):
+        """
+        Execute a coroutine with automatic timeout handling (Step 236).
+
+        Args:
+            coro: Coroutine to execute
+            command_type: Type of command for timeout lookup
+            custom_timeout: Override default timeout
+            on_timeout: Optional callback to execute on timeout
+
+        Returns:
+            Result of the coroutine
+
+        Raises:
+            asyncio.TimeoutError: If command times out
+        """
+        timeout = custom_timeout or self.get_command_timeout(command_type)
+        start_time = datetime.now()
+
+        try:
+            result = await asyncio.wait_for(coro, timeout=timeout)
+            return result
+
+        except asyncio.TimeoutError:
+            elapsed = (datetime.now() - start_time).total_seconds()
+            error_msg = f"Command '{command_type}' timed out after {elapsed:.1f}s (limit: {timeout}s)"
+            logger.warning(error_msg)
+
+            # Log the timeout
+            self.log_error(error_msg, error_type="timeout")
+            self.record_service_error("timeout")
+
+            # Execute timeout callback if provided
+            if on_timeout:
+                try:
+                    if asyncio.iscoroutinefunction(on_timeout):
+                        await on_timeout()
+                    else:
+                        on_timeout()
+                except Exception as e:
+                    logger.error(f"Timeout callback error: {e}")
+
+            raise
+
+    async def execute_slew_with_timeout(
+        self,
+        slew_coro,
+        target_name: str = "unknown"
+    ):
+        """
+        Execute a slew operation with proper timeout (Step 236).
+
+        Args:
+            slew_coro: Slew coroutine
+            target_name: Name of target for logging
+
+        Returns:
+            Result of slew operation
+        """
+        async def on_slew_timeout():
+            logger.warning(f"Slew to {target_name} timed out - stopping mount")
+            if self.mount and hasattr(self.mount, 'abort_slew'):
+                try:
+                    await self.mount.abort_slew()
+                except Exception as e:
+                    logger.error(f"Failed to abort slew: {e}")
+
+        return await self.execute_with_timeout(
+            slew_coro,
+            command_type="slew",
+            on_timeout=on_slew_timeout,
+        )
+
+    async def execute_capture_with_timeout(
+        self,
+        capture_coro,
+        exposure_sec: float
+    ):
+        """
+        Execute a capture operation with appropriate timeout (Step 236).
+
+        Args:
+            capture_coro: Capture coroutine
+            exposure_sec: Exposure duration in seconds
+
+        Returns:
+            Result of capture operation
+        """
+        # Timeout should be at least 2x exposure + 30s for download
+        timeout = max(exposure_sec * 2 + 30, self.get_command_timeout("capture"))
+
+        async def on_capture_timeout():
+            logger.warning("Capture timed out - aborting exposure")
+            if self.camera and hasattr(self.camera, 'abort_exposure'):
+                try:
+                    await self.camera.abort_exposure()
+                except Exception as e:
+                    logger.error(f"Failed to abort exposure: {e}")
+
+        return await self.execute_with_timeout(
+            capture_coro,
+            command_type="capture",
+            custom_timeout=timeout,
+            on_timeout=on_capture_timeout,
+        )
 
     # =========================================================================
     # Graceful Shutdown (Step 251)

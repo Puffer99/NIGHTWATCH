@@ -912,6 +912,203 @@ class PHD2Client:
         self._recovery_attempts = 0
         logger.info("Star loss stats reset")
 
+    # =========================================================================
+    # GUIDE LOG PARSING (Step 198)
+    # =========================================================================
+
+    @staticmethod
+    def parse_guide_log(log_path: str) -> dict:
+        """
+        Parse a PHD2 guide log file (Step 198).
+
+        PHD2 guide logs are CSV-like files with guiding data.
+        Format: Frame, Time, mount, dx, dy, RARawDistance, DECRawDistance,
+                RAGuideDistance, DECGuideDistance, RADuration, DECDuration,
+                RADirection, DECDirection, XStep, YStep, StarMass, SNR, ErrorCode
+
+        Args:
+            log_path: Path to PHD2 guide log file
+
+        Returns:
+            Dict with parsed log data and statistics
+        """
+        from pathlib import Path
+        import csv
+
+        log_file = Path(log_path)
+        if not log_file.exists():
+            raise FileNotFoundError(f"Guide log not found: {log_path}")
+
+        result = {
+            "file": str(log_file),
+            "header": {},
+            "frames": [],
+            "statistics": {},
+        }
+
+        frames = []
+        header_section = True
+
+        with open(log_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+
+                # Skip empty lines
+                if not line:
+                    continue
+
+                # Parse header section (PHD2 metadata)
+                if header_section:
+                    if line.startswith("Frame,"):
+                        # End of header, start of data
+                        header_section = False
+                        columns = line.split(",")
+                        result["columns"] = columns
+                        continue
+
+                    # Parse header key-value pairs
+                    if ":" in line or "=" in line:
+                        sep = ":" if ":" in line else "="
+                        parts = line.split(sep, 1)
+                        if len(parts) == 2:
+                            key = parts[0].strip()
+                            value = parts[1].strip()
+                            result["header"][key] = value
+                    continue
+
+                # Parse data rows
+                try:
+                    values = line.split(",")
+                    if len(values) >= 7:
+                        frame_data = {
+                            "frame": int(values[0]) if values[0] else 0,
+                            "time": float(values[1]) if values[1] else 0.0,
+                            "ra_raw": float(values[5]) if len(values) > 5 and values[5] else 0.0,
+                            "dec_raw": float(values[6]) if len(values) > 6 and values[6] else 0.0,
+                            "snr": float(values[16]) if len(values) > 16 and values[16] else 0.0,
+                            "star_mass": float(values[15]) if len(values) > 15 and values[15] else 0.0,
+                        }
+                        frames.append(frame_data)
+                except (ValueError, IndexError):
+                    continue
+
+        result["frames"] = frames
+        result["frame_count"] = len(frames)
+
+        # Calculate statistics
+        if frames:
+            ra_values = [f["ra_raw"] for f in frames if f["ra_raw"] != 0]
+            dec_values = [f["dec_raw"] for f in frames if f["dec_raw"] != 0]
+            snr_values = [f["snr"] for f in frames if f["snr"] != 0]
+
+            if ra_values:
+                result["statistics"]["ra_rms"] = (sum(v**2 for v in ra_values) / len(ra_values)) ** 0.5
+                result["statistics"]["ra_peak"] = max(abs(v) for v in ra_values)
+                result["statistics"]["ra_mean"] = sum(ra_values) / len(ra_values)
+
+            if dec_values:
+                result["statistics"]["dec_rms"] = (sum(v**2 for v in dec_values) / len(dec_values)) ** 0.5
+                result["statistics"]["dec_peak"] = max(abs(v) for v in dec_values)
+                result["statistics"]["dec_mean"] = sum(dec_values) / len(dec_values)
+
+            if ra_values and dec_values:
+                # Total RMS
+                total_sq = [ra**2 + dec**2 for ra, dec in zip(ra_values, dec_values)]
+                result["statistics"]["total_rms"] = (sum(total_sq) / len(total_sq)) ** 0.5
+
+            if snr_values:
+                result["statistics"]["snr_mean"] = sum(snr_values) / len(snr_values)
+                result["statistics"]["snr_min"] = min(snr_values)
+
+            # Duration
+            if len(frames) > 1:
+                result["statistics"]["duration_sec"] = frames[-1]["time"] - frames[0]["time"]
+
+        return result
+
+    @staticmethod
+    def analyze_guide_session(log_path: str) -> dict:
+        """
+        Analyze a complete guiding session from log (Step 198).
+
+        Provides session-level analysis including:
+        - Overall guiding quality assessment
+        - Trend analysis (improving/degrading)
+        - Problem detection (star loss events, high RMS periods)
+
+        Args:
+            log_path: Path to PHD2 guide log file
+
+        Returns:
+            Dict with session analysis
+        """
+        parsed = PHD2Client.parse_guide_log(log_path)
+
+        analysis = {
+            "file": parsed["file"],
+            "frame_count": parsed["frame_count"],
+            "statistics": parsed.get("statistics", {}),
+            "quality": "unknown",
+            "issues": [],
+            "recommendations": [],
+        }
+
+        stats = parsed.get("statistics", {})
+
+        # Quality assessment based on RMS
+        total_rms = stats.get("total_rms", 0)
+        if total_rms > 0:
+            if total_rms < 0.5:
+                analysis["quality"] = "excellent"
+            elif total_rms < 1.0:
+                analysis["quality"] = "good"
+            elif total_rms < 2.0:
+                analysis["quality"] = "acceptable"
+            else:
+                analysis["quality"] = "poor"
+                analysis["issues"].append(f"High RMS: {total_rms:.2f} arcsec")
+                analysis["recommendations"].append("Check polar alignment or balance")
+
+        # Check for SNR issues
+        snr_min = stats.get("snr_min", 0)
+        if snr_min > 0 and snr_min < 5:
+            analysis["issues"].append(f"Low SNR minimum: {snr_min:.1f}")
+            analysis["recommendations"].append("Consider brighter guide star or longer exposure")
+
+        # Analyze trend (first half vs second half)
+        frames = parsed.get("frames", [])
+        if len(frames) >= 20:
+            mid = len(frames) // 2
+            first_half = frames[:mid]
+            second_half = frames[mid:]
+
+            first_rms = sum(f["ra_raw"]**2 + f["dec_raw"]**2 for f in first_half) / len(first_half)
+            second_rms = sum(f["ra_raw"]**2 + f["dec_raw"]**2 for f in second_half) / len(second_half)
+
+            if second_rms > first_rms * 1.5:
+                analysis["trend"] = "degrading"
+                analysis["issues"].append("Guiding quality degraded during session")
+            elif second_rms < first_rms * 0.7:
+                analysis["trend"] = "improving"
+            else:
+                analysis["trend"] = "stable"
+
+        return analysis
+
+    async def get_guide_log_path(self) -> Optional[str]:
+        """
+        Get path to current guide log file (Step 198).
+
+        Returns:
+            Path to guide log or None if not available
+        """
+        try:
+            result = await self._send_request("get_guide_output_filename")
+            return result if result else None
+        except Exception as e:
+            logger.error(f"Failed to get guide log path: {e}")
+            return None
+
 
 # =============================================================================
 # MAIN (for testing)

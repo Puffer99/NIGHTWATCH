@@ -511,10 +511,33 @@ TELESCOPE_TOOLS: List[Tool] = [
 
     Tool(
         name="start_guiding",
-        description="Start autoguiding with PHD2. Automatically selects a guide star "
-                    "and begins tracking corrections.",
+        description="Start autoguiding with PHD2. Can automatically select a guide star "
+                    "or use a previously selected star. Begins tracking corrections.",
         category=ToolCategory.GUIDING,
-        parameters=[]
+        parameters=[
+            ToolParameter(
+                name="auto_select",
+                type="boolean",
+                description="Automatically select the best guide star (default True). "
+                            "Set to False to use a previously selected star.",
+                required=False,
+                default=True
+            ),
+            ToolParameter(
+                name="settle_pixels",
+                type="number",
+                description="Maximum settle distance in pixels (default 1.0)",
+                required=False,
+                default=1.0
+            ),
+            ToolParameter(
+                name="settle_time",
+                type="number",
+                description="Time to remain settled in seconds (default 10)",
+                required=False,
+                default=10.0
+            )
+        ]
     ),
 
     Tool(
@@ -542,9 +565,25 @@ TELESCOPE_TOOLS: List[Tool] = [
             ToolParameter(
                 name="pixels",
                 type="number",
-                description="Dither amount in pixels (default 5)",
+                description="Dither amount in pixels (default 5). Typical range is 3-10 pixels.",
                 required=False,
                 default=5.0
+            ),
+            ToolParameter(
+                name="ra_only",
+                type="boolean",
+                description="Only dither in RA direction (default False). "
+                            "Useful for some camera orientations.",
+                required=False,
+                default=False
+            ),
+            ToolParameter(
+                name="wait_settle",
+                type="boolean",
+                description="Wait for guiding to settle after dither (default True). "
+                            "Set to False for faster operation.",
+                required=False,
+                default=True
             )
         ]
     ),
