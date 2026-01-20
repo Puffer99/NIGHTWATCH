@@ -188,21 +188,21 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 100 | Core Service Completion | camera | Write unit tests for camera control | 99 | 2 | 2 | Complete | test_camera_service.py (26 tests) |
 | 101 | Core Service Completion | camera | Write integration test with simulator | 100 | 3 | 2 | Not Started | End-to-end test |
 | 102 | Core Service Completion | astrometry | Review plate_solver.py current implementation | None | 2 | 1 | Complete | Full astrometry.net/ASTAP, WCS parsing, mount sync |
-| 103 | Core Service Completion | astrometry | Implement astrometry.net local solver backend | 102 | 4 | 4 | Not Started | Primary solver |
-| 104 | Core Service Completion | astrometry | Add index file configuration for astrometry.net | 103 | 3 | 2 | Not Started | Local index files |
-| 105 | Core Service Completion | astrometry | Implement solve-field command wrapper | 104 | 3 | 2 | Not Started | Shell integration |
-| 106 | Core Service Completion | astrometry | Parse astrometry.net WCS output | 105 | 3 | 2 | Not Started | Extract coordinates |
-| 107 | Core Service Completion | astrometry | Implement ASTAP solver backend | 106 | 4 | 3 | Not Started | Fallback solver |
-| 108 | Core Service Completion | astrometry | Add ASTAP star database configuration | 107 | 3 | 2 | Not Started | G17 database |
-| 109 | Core Service Completion | astrometry | Implement ASTAP command wrapper | 108 | 3 | 2 | Not Started | Shell integration |
-| 110 | Core Service Completion | astrometry | Parse ASTAP solution output | 109 | 3 | 2 | Not Started | Extract coordinates |
-| 111 | Core Service Completion | astrometry | Implement solver selection logic (primary/fallback) | 110 | 3 | 2 | Not Started | Automatic fallback |
+| 103 | Core Service Completion | astrometry | Implement astrometry.net local solver backend | 102 | 4 | 4 | Complete | _solve_astrometry_net() in plate_solver.py |
+| 104 | Core Service Completion | astrometry | Add index file configuration for astrometry.net | 103 | 3 | 2 | Complete | SolverConfig.index_path in plate_solver.py |
+| 105 | Core Service Completion | astrometry | Implement solve-field command wrapper | 104 | 3 | 2 | Complete | cmd building with asyncio.create_subprocess_exec in plate_solver.py |
+| 106 | Core Service Completion | astrometry | Parse astrometry.net WCS output | 105 | 3 | 2 | Complete | _parse_wcs(), _parse_wcs_manual() in plate_solver.py |
+| 107 | Core Service Completion | astrometry | Implement ASTAP solver backend | 106 | 4 | 3 | Complete | _solve_astap() in plate_solver.py |
+| 108 | Core Service Completion | astrometry | Add ASTAP star database configuration | 107 | 3 | 2 | Complete | SolverConfig.astap_path, field_width_deg in plate_solver.py |
+| 109 | Core Service Completion | astrometry | Implement ASTAP command wrapper | 108 | 3 | 2 | Complete | cmd building in _solve_astap() |
+| 110 | Core Service Completion | astrometry | Parse ASTAP solution output | 109 | 3 | 2 | Complete | _parse_astap_ini() in plate_solver.py |
+| 111 | Core Service Completion | astrometry | Implement solver selection logic (primary/fallback) | 110 | 3 | 2 | Complete | primary_solver/fallback_solver in solve() method |
 | 112 | Core Service Completion | astrometry | Add solve timeout handling (30s default) | 111 | 2 | 1 | Complete | SolverConfig.blind_timeout_sec/hint_timeout_sec in plate_solver.py |
-| 113 | Core Service Completion | astrometry | Implement solve_with_hint() using mount position | 112 | 3 | 2 | Not Started | Faster solves |
-| 114 | Core Service Completion | astrometry | Implement blind_solve() without hint | 113 | 3 | 2 | Not Started | Full-sky search |
-| 115 | Core Service Completion | astrometry | Add pixel scale estimation from image | 114 | 3 | 2 | Not Started | Auto-detect scale |
-| 116 | Core Service Completion | astrometry | Implement pointing error calculation | 115 | 3 | 2 | Not Started | Mount correction |
-| 117 | Core Service Completion | astrometry | Add center_on_object() sync method | 116 | 3 | 2 | Not Started | Pointing refinement |
+| 113 | Core Service Completion | astrometry | Implement solve_with_hint() using mount position | 112 | 3 | 2 | Complete | solve() with PlateSolveHint parameter in plate_solver.py |
+| 114 | Core Service Completion | astrometry | Implement blind_solve() without hint | 113 | 3 | 2 | Complete | solve() without hint parameter in plate_solver.py |
+| 115 | Core Service Completion | astrometry | Add pixel scale estimation from image | 114 | 3 | 2 | Complete | estimate_pixel_scale_from_image(), auto_configure_scale() in plate_solver.py |
+| 116 | Core Service Completion | astrometry | Implement pointing error calculation | 115 | 3 | 2 | Complete | calculate_pointing_error() in plate_solver.py |
+| 117 | Core Service Completion | astrometry | Add center_on_object() sync method | 116 | 3 | 2 | Complete | solve_and_sync() in plate_solver.py |
 | 118 | Core Service Completion | astrometry | Create mock solver for testing | 117 | 3 | 2 | Complete | tests/mocks/mock_solver.py with error injection |
 | 119 | Core Service Completion | astrometry | Write unit tests for solver backends | 118 | 2 | 2 | Complete | test_plate_solver.py (21 tests) |
 | 120 | Core Service Completion | astrometry | Write integration test with camera | 119 | 3 | 2 | Not Started | End-to-end test |
@@ -264,7 +264,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 176 | Core Service Completion | enclosure | Implement status callbacks (opening, open, closing, closed) | 175 | 2 | 1 | Complete | register_status_callback() in roof_controller.py |
 | 177 | Core Service Completion | enclosure | Create mock GPIO for testing | 176 | 2 | 2 | Complete | tests/mocks/mock_gpio.py |
 | 178 | Core Service Completion | enclosure | Write unit tests for roof controller | 177 | 2 | 2 | Complete | tests/unit/test_roof_controller.py (45 tests) |
-| 179 | Core Service Completion | enclosure | Write integration test with safety monitor | 178 | 3 | 2 | Not Started | End-to-end test |
+| 179 | Core Service Completion | enclosure | Write integration test with safety monitor | 178 | 3 | 2 | Complete | tests/integration/test_safety_enclosure.py (12 test classes, rain/wind/sequence) |
 | 180 | Core Service Completion | focus | Review focuser_service.py current implementation | None | 2 | 1 | Complete | Full autofocus, V-curve/HFD, temp compensation |
 | 181 | Core Service Completion | focus | Complete V-curve autofocus algorithm | 180 | 4 | 3 | Not Started | Parabolic fit |
 | 182 | Core Service Completion | focus | Add HFD (Half-Flux Diameter) calculation | 181 | 4 | 3 | Not Started | Star measurement |

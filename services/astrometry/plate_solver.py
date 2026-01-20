@@ -545,6 +545,123 @@ class PlateSolver:
 
         return result
 
+    # =========================================================================
+    # PIXEL SCALE ESTIMATION (Step 115)
+    # =========================================================================
+
+    def estimate_pixel_scale_from_image(self, image_path: str) -> Optional[float]:
+        """
+        Estimate pixel scale from image metadata (Step 115).
+
+        Tries to determine pixel scale from FITS header information:
+        - FOCALLEN (focal length in mm)
+        - XPIXSZ/PIXSIZE1 (pixel size in microns)
+        - SCALE (direct scale if available)
+
+        Args:
+            image_path: Path to FITS image
+
+        Returns:
+            Estimated pixel scale in arcsec/pixel, or None if cannot determine
+        """
+        try:
+            from astropy.io import fits
+
+            with fits.open(image_path) as hdul:
+                header = hdul[0].header
+
+                # Check for direct scale keyword
+                if 'SCALE' in header:
+                    return float(header['SCALE'])
+
+                # Try to calculate from focal length and pixel size
+                focal_length_mm = header.get('FOCALLEN', header.get('FOCAL', None))
+                pixel_size_um = header.get('XPIXSZ', header.get('PIXSIZE1', header.get('PIXSIZE', None)))
+
+                if focal_length_mm and pixel_size_um:
+                    # Scale = 206.265 * pixel_size_um / focal_length_mm
+                    scale = 206.265 * float(pixel_size_um) / float(focal_length_mm)
+                    logger.debug(f"Estimated pixel scale from header: {scale:.3f} arcsec/px")
+                    return scale
+
+                # Check for CDELT keywords from existing WCS
+                cdelt1 = header.get('CDELT1', header.get('CD1_1', None))
+                cdelt2 = header.get('CDELT2', header.get('CD2_2', None))
+
+                if cdelt1 or cdelt2:
+                    scale = abs(float(cdelt1 or cdelt2)) * 3600  # Convert deg to arcsec
+                    return scale
+
+                logger.debug("Could not determine pixel scale from FITS header")
+                return None
+
+        except ImportError:
+            return self._estimate_pixel_scale_manual(image_path)
+        except Exception as e:
+            logger.debug(f"Pixel scale estimation failed: {e}")
+            return None
+
+    def _estimate_pixel_scale_manual(self, image_path: str) -> Optional[float]:
+        """
+        Manually estimate pixel scale without astropy (Step 115).
+
+        Simple FITS header parser for basic keywords.
+        """
+        try:
+            with open(image_path, 'rb') as f:
+                header_bytes = f.read(2880 * 10)  # Read first 10 blocks
+
+            header_str = header_bytes.decode('ascii', errors='ignore')
+            keywords = {}
+
+            for line in [header_str[i:i+80] for i in range(0, len(header_str), 80)]:
+                if '=' in line:
+                    key = line[:8].strip()
+                    value_part = line[10:].split('/')[0].strip()
+                    try:
+                        value = float(value_part)
+                        keywords[key] = value
+                    except ValueError:
+                        pass
+
+            # Try focal length + pixel size calculation
+            focal_length = keywords.get('FOCALLEN', keywords.get('FOCAL'))
+            pixel_size = keywords.get('XPIXSZ', keywords.get('PIXSIZE1', keywords.get('PIXSIZE')))
+
+            if focal_length and pixel_size:
+                return 206.265 * pixel_size / focal_length
+
+            return None
+
+        except Exception as e:
+            logger.debug(f"Manual pixel scale estimation failed: {e}")
+            return None
+
+    def auto_configure_scale(self, image_path: str) -> Tuple[float, float]:
+        """
+        Auto-configure pixel scale range from image (Step 115).
+
+        Estimates pixel scale and returns appropriate search range.
+
+        Args:
+            image_path: Path to FITS image
+
+        Returns:
+            (scale_low, scale_high) in arcsec/pixel
+        """
+        estimated = self.estimate_pixel_scale_from_image(image_path)
+
+        if estimated:
+            # Use +/- 50% range around estimated value
+            scale_low = estimated * 0.5
+            scale_high = estimated * 1.5
+            logger.info(f"Auto-configured scale: {scale_low:.2f}-{scale_high:.2f} arcsec/px "
+                       f"(estimated {estimated:.2f})")
+            return (scale_low, scale_high)
+        else:
+            # Fall back to config defaults
+            return (self.config.pixel_scale_low, self.config.pixel_scale_high)
+
     def calculate_pointing_error(self,
                                 expected_ra: float,
                                 expected_dec: float,
