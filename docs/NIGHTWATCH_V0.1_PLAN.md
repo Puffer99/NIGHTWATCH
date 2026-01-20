@@ -415,7 +415,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 327 | Voice Pipeline Integration | wyoming_integration | Add Home Assistant compatibility | 326 | 3 | 2 | Not Started | HA integration |
 | 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Not Started | Auto-detect |
 | 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Complete | Protocol test |
-| 330 | Tool Handler Implementation | mount_tools | Implement goto_object handler | 257,78 | 3 | 2 | Not Started | Core command |
+| 330 | Tool Handler Implementation | mount_tools | Implement goto_object handler | 257,78 | 3 | 2 | Complete | Catalog lookup, planet ephemeris, safety check, altitude limit |
 | 331 | Tool Handler Implementation | mount_tools | Add catalog resolution in goto_object | 330 | 2 | 1 | Complete | catalog_service.lookup() in telescope_tools.py |
 | 332 | Tool Handler Implementation | mount_tools | Add ephemeris resolution for planets in goto_object | 331 | 2 | 1 | Complete | ephemeris_service.get_body_position() in telescope_tools.py |
 | 333 | Tool Handler Implementation | mount_tools | Add safety check before slew | 332 | 2 | 1 | Complete | safety_monitor.evaluate() in goto_object/goto_coordinates |
@@ -461,8 +461,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 373 | Tool Handler Implementation | weather_tools | Add gust warning in response | 372 | 2 | 1 | Complete | Gust warnings in get_wind_speed |
 | 374 | Tool Handler Implementation | weather_tools | Implement get_cloud_status handler | 373 | 2 | 1 | Complete | get_cloud_status() with sky-ambient reading |
 | 375 | Tool Handler Implementation | weather_tools | Add sky quality (SQM) in response | 374 | 2 | 1 | Complete | SQM mag/arcsec² with quality assessment |
-| 376 | Tool Handler Implementation | weather_tools | Implement get_seeing_prediction handler | 375 | 3 | 2 | Not Started | Image quality |
-| 377 | Tool Handler Implementation | weather_tools | Add FWHM estimate | 376 | 3 | 2 | Not Started | Arcsec estimate |
+| 376 | Tool Handler Implementation | weather_tools | Implement get_seeing_prediction handler | 375 | 3 | 2 | Complete | Wind/humidity/pressure factors, 1-9 seeing score |
+| 377 | Tool Handler Implementation | weather_tools | Add FWHM estimate | 376 | 3 | 2 | Complete | FWHM arcsec estimate based on conditions and altitude |
 | 378 | Tool Handler Implementation | weather_tools | Write unit tests for weather tool handlers | 377 | 2 | 2 | Complete | TestWeatherToolHandlers in test_telescope_tools.py (4 tests) |
 | 379 | Tool Handler Implementation | safety_tools | Implement is_safe_to_observe handler | 257 | 2 | 1 | Complete | Enhanced is_safe_to_observe() with context |
 | 380 | Tool Handler Implementation | safety_tools | Add detailed reason if unsafe | 379 | 2 | 1 | Complete | Categorized reasons with current readings |
@@ -698,8 +698,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 610 | Documentation & POS | pos | Add Alec Radford perspective (Whisper) | 609 | 3 | 2 | Complete | Astronomy vocab boost, VAD, latency optimization |
 | 611 | Documentation & POS | pos | Add Michael Hansen perspective (Piper) | 610 | 3 | 2 | Complete | Voice selection, streaming synthesis, pronunciation |
 | 612 | Documentation & POS | pos | Document LLM model selection rationale | 611 | 2 | 1 | Complete | Decision record |
-| 613 | Documentation & POS | pos | Create POS deliberation for tool confirmation | 612 | 3 | 2 | Not Started | Safety design |
-| 614 | Documentation & POS | pos | Create POS deliberation for emergency response | 613 | 3 | 2 | Not Started | Safety design |
+| 613 | Documentation & POS | pos | Create POS deliberation for tool confirmation | 612 | 3 | 2 | Complete | POS_TOOL_CONFIRMATION.md - tiered confirmation system |
+| 614 | Documentation & POS | pos | Create POS deliberation for emergency response | 613 | 3 | 2 | Complete | POS_EMERGENCY_RESPONSE.md - 4-level emergency classification |
 | 615 | Documentation & POS | pos | Update POS_RETREAT_SIMULATION.md with v0.1 decisions | 614 | 2 | 2 | Complete | Record keeping |
 | 616 | Deployment Preparation | install | Create install.sh installation script | None | 3 | 2 | Complete | Full installer with all steps |
 | 617 | Deployment Preparation | install | Add Python version check | 616 | 2 | 1 | Complete | Min 3.10, recommended 3.11 |

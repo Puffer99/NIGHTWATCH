@@ -2550,6 +2550,135 @@ def create_default_handlers(
 
     handlers["get_cloud_status"] = get_cloud_status
 
+    async def get_seeing_prediction(include_fwhm: bool = True) -> str:
+        """Predict astronomical seeing conditions (Steps 376-377).
+
+        Estimates seeing quality based on weather conditions including
+        temperature stability, humidity, wind, and atmospheric pressure.
+        Optionally includes FWHM estimate for the current optical setup.
+
+        Args:
+            include_fwhm: Whether to include FWHM estimate in arcseconds
+        """
+        if not weather_client:
+            return "Weather data not available for seeing prediction"
+
+        try:
+            data = await weather_client.fetch_data()
+            if not data:
+                return "Could not fetch weather data"
+
+            parts = []
+            seeing_score = 5  # Start at "average" (1=excellent, 9=terrible)
+
+            # Factor 1: Wind speed (major factor)
+            wind_mph = data.wind_speed_mph
+            if wind_mph < 5:
+                wind_factor = -1  # Calm - good
+                parts.append(f"Wind calm ({wind_mph:.0f} mph) - favorable")
+            elif wind_mph < 10:
+                wind_factor = 0  # Light - neutral
+                parts.append(f"Light wind ({wind_mph:.0f} mph) - acceptable")
+            elif wind_mph < 15:
+                wind_factor = 1  # Moderate - degraded
+                parts.append(f"Moderate wind ({wind_mph:.0f} mph) - may affect seeing")
+            elif wind_mph < 20:
+                wind_factor = 2  # Strong - poor
+                parts.append(f"Strong wind ({wind_mph:.0f} mph) - poor conditions")
+            else:
+                wind_factor = 3  # Very strong - terrible
+                parts.append(f"High wind ({wind_mph:.0f} mph) - very poor")
+            seeing_score += wind_factor
+
+            # Factor 2: Humidity (affects transparency and stability)
+            humidity = data.humidity_percent
+            if humidity < 50:
+                humidity_factor = -1  # Low humidity - stable
+                parts.append(f"Low humidity ({humidity:.0f}%) - stable air")
+            elif humidity < 70:
+                humidity_factor = 0  # Moderate - neutral
+            elif humidity < 85:
+                humidity_factor = 1  # High - some degradation
+                parts.append(f"High humidity ({humidity:.0f}%) - some scintillation")
+            else:
+                humidity_factor = 2  # Very high - poor
+                parts.append(f"Very high humidity ({humidity:.0f}%) - poor transparency")
+            seeing_score += humidity_factor
+
+            # Factor 3: Temperature trend (stability indicator)
+            # If we have dewpoint, check temperature margin
+            if hasattr(data, 'dew_point_f') and data.dew_point_f is not None:
+                temp_margin = data.temperature_f - data.dew_point_f
+                if temp_margin < 5:
+                    parts.append(f"Near dew point (margin: {temp_margin:.1f}°F) - risk of dew")
+                    seeing_score += 1
+                elif temp_margin > 15:
+                    parts.append("Good temperature margin above dew point")
+                    seeing_score -= 1
+
+            # Factor 4: Pressure trend (if available)
+            if hasattr(data, 'pressure_hpa') and data.pressure_hpa:
+                pressure = data.pressure_hpa
+                if pressure > 1020:
+                    parts.append("High pressure system - typically stable")
+                    seeing_score -= 1
+                elif pressure < 1000:
+                    parts.append("Low pressure - possible instability")
+                    seeing_score += 1
+
+            # Clamp score to valid range
+            seeing_score = max(1, min(9, seeing_score))
+
+            # Convert score to descriptive rating
+            seeing_ratings = {
+                1: "Excellent",
+                2: "Very Good",
+                3: "Good",
+                4: "Above Average",
+                5: "Average",
+                6: "Below Average",
+                7: "Poor",
+                8: "Very Poor",
+                9: "Terrible"
+            }
+            rating = seeing_ratings[seeing_score]
+
+            # Step 377: Add FWHM estimate
+            fwhm_estimate = None
+            if include_fwhm:
+                # Typical seeing FWHM estimates based on conditions
+                # Base seeing at good site: ~1.5 arcsec
+                # Adjusted by seeing score
+                base_fwhm = 1.5  # arcsec at excellent conditions
+                fwhm_estimate = base_fwhm + (seeing_score - 1) * 0.4
+
+                # Adjust for altitude (Nevada site at ~6000ft)
+                # Higher altitude = better seeing baseline
+                fwhm_estimate *= 0.9  # 10% improvement for high altitude
+
+                parts.append(f"Estimated FWHM: {fwhm_estimate:.1f}\"")
+
+            # Build final response
+            result_parts = [f"Seeing prediction: {rating} (score {seeing_score}/9)"]
+            result_parts.extend(parts)
+
+            # Add recommendation
+            if seeing_score <= 3:
+                result_parts.append("Excellent for high-resolution imaging")
+            elif seeing_score <= 5:
+                result_parts.append("Suitable for most imaging")
+            elif seeing_score <= 7:
+                result_parts.append("Consider shorter exposures or binning")
+            else:
+                result_parts.append("Consider postponing high-resolution work")
+
+            return ". ".join(result_parts)
+
+        except Exception as e:
+            return f"Error predicting seeing: {e}"
+
+    handlers["get_seeing_prediction"] = get_seeing_prediction
+
     async def is_safe_to_observe() -> str:
         """Check if conditions are safe for observation (Steps 379-380)."""
         if not safety_monitor:
