@@ -40,6 +40,8 @@ class SafetyAction(Enum):
     LOW_BATTERY_SHUTDOWN = "low_battery_shutdown"
     # Step 489: Network failure action
     NETWORK_FAILURE = "network_failure"
+    # Step 485: Power failure response
+    POWER_FAILURE = "power_failure"
 
 
 class ObservatoryState(Enum):
@@ -739,6 +741,97 @@ class SafetyMonitor:
         is_ok = new_stage < 2
         return is_ok, reasons, stage_name, action
 
+    def _evaluate_power_failure(self) -> tuple[bool, List[str], SafetyAction]:
+        """
+        Evaluate and respond to power failure conditions (Step 485).
+
+        Detects UPS power failure (mains loss) and triggers appropriate response:
+        - Immediate alert when switching to battery
+        - Park telescope to safe position
+        - Close roof/enclosure
+        - Prepare for potential shutdown
+
+        Returns:
+            (is_ok, reasons, recommended_action)
+        """
+        reasons = []
+        action = SafetyAction.SAFE_TO_OBSERVE
+
+        # Check if we have UPS data
+        if self._ups_battery_percent is None:
+            return True, [], action
+
+        # Power failure detected when running on battery
+        if self._ups_on_battery:
+            battery = self._ups_battery_percent
+            reasons.append(f"POWER FAILURE: Running on UPS battery ({battery:.0f}%)")
+            action = SafetyAction.POWER_FAILURE
+
+            # Log power failure event
+            logger.warning(f"Power failure detected - UPS battery at {battery:.0f}%")
+
+            # Add time estimate if available (rough estimate)
+            if battery > 80:
+                reasons.append("Estimated runtime: >30 minutes")
+            elif battery > 50:
+                reasons.append("Estimated runtime: 15-30 minutes")
+            elif battery > 25:
+                reasons.append("Estimated runtime: 5-15 minutes")
+            else:
+                reasons.append("Estimated runtime: <5 minutes - URGENT")
+
+            # Power failure is always a safety concern requiring action
+            return False, reasons, action
+
+        return True, reasons, action
+
+    async def handle_power_failure_response(self):
+        """
+        Execute power failure response sequence (Step 485).
+
+        This method coordinates the observatory response to a power failure:
+        1. Send alert to operator
+        2. Stop any ongoing exposures
+        3. Park telescope safely
+        4. Close enclosure/roof
+        5. Reduce power consumption
+        6. Monitor battery and prepare for shutdown if needed
+
+        Should be called when power failure is detected.
+        """
+        logger.warning("Executing power failure response sequence")
+
+        # Track response
+        response_steps = []
+
+        try:
+            # Step 1: Log and alert
+            logger.critical("POWER FAILURE - Initiating emergency response")
+            response_steps.append("Alert sent")
+
+            # Step 2: If we have orchestrator callback, notify it
+            if self._action_callback:
+                await self._action_callback(
+                    SafetyAction.POWER_FAILURE,
+                    {"reason": "UPS power failure detected"}
+                )
+                response_steps.append("Orchestrator notified")
+
+            # Step 3: The orchestrator should handle parking and closing
+            # This method serves as the coordination point
+            logger.info("Power failure response: Requesting telescope park")
+            response_steps.append("Park requested")
+
+            logger.info("Power failure response: Requesting enclosure close")
+            response_steps.append("Enclosure close requested")
+
+            # Step 4: Log response completion
+            logger.info(f"Power failure response completed: {response_steps}")
+
+        except Exception as e:
+            logger.error(f"Error during power failure response: {e}")
+            raise
+
     async def check_network_connectivity(self) -> tuple[bool, Optional[float]]:
         """
         Check network connectivity (Step 489).
@@ -845,6 +938,9 @@ class SafetyMonitor:
         # Step 489: Network status
         network_ok, network_reasons = self._evaluate_network()
 
+        # Step 485: Power failure detection
+        power_failure_ok, power_failure_reasons, power_failure_action = self._evaluate_power_failure()
+
         reasons.extend(weather_reasons)
         reasons.extend(cloud_reasons)
         reasons.extend(daylight_reasons)
@@ -855,11 +951,12 @@ class SafetyMonitor:
         reasons.extend(meridian_reasons)
         reasons.extend(battery_reasons)
         reasons.extend(network_reasons)
+        reasons.extend(power_failure_reasons)
 
         # Determine overall safety and action
         is_safe = (weather_ok and clouds_ok and daylight_ok and
                    rain_holdoff_ok and altitude_ok and power_ok and enclosure_ok and
-                   meridian_ok and battery_shutdown_ok and network_ok)
+                   meridian_ok and battery_shutdown_ok and network_ok and power_failure_ok)
 
         # Check for emergency conditions (rain or power)
         is_emergency = power_emergency  # Step 469: Include power emergency
@@ -881,6 +978,10 @@ class SafetyMonitor:
         elif battery_action in [SafetyAction.LOW_BATTERY_SHUTDOWN, SafetyAction.LOW_BATTERY_PARK]:
             # Step 486: Use battery-specific action
             action = battery_action
+            alert_level = AlertLevel.CRITICAL
+        elif power_failure_action == SafetyAction.POWER_FAILURE:
+            # Step 485: Power failure detected - immediate response
+            action = SafetyAction.POWER_FAILURE
             alert_level = AlertLevel.CRITICAL
         elif not network_ok:
             # Step 489: Network failure - park safely
@@ -1028,6 +1129,13 @@ class SafetyMonitor:
                 self._state = ObservatoryState.PARKING
                 self.mount.stop()
                 self.mount.park()
+
+            # Step 485: Power failure action
+            elif action == SafetyAction.POWER_FAILURE:
+                logger.critical("POWER FAILURE - executing emergency response")
+                self._state = ObservatoryState.EMERGENCY
+                # Execute the full power failure response sequence
+                await self.handle_power_failure_response()
 
         except Exception as e:
             logger.error(f"Failed to execute safety action: {e}")

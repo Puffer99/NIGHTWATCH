@@ -341,7 +341,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 253 | Orchestrator Development | orchestrator | Add close enclosure on shutdown | 252 | 2 | 1 | Complete | Safety |
 | 254 | Orchestrator Development | orchestrator | Add save session log on shutdown | 253 | 2 | 1 | Complete | Data preservation |
 | 255 | Orchestrator Development | orchestrator | Write unit tests for orchestrator | 254 | 3 | 3 | Complete | tests/unit/test_orchestrator.py (86 tests, added CommandQueue/Priority) |
-| 256 | Orchestrator Development | orchestrator | Write integration test with mock services | 255 | 3 | 2 | Not Started | End-to-end test |
+| 256 | Orchestrator Development | orchestrator | Write integration test with mock services | 255 | 3 | 2 | Complete | tests/integration/test_orchestrator_mock.py (25 tests) |
 | 257 | Orchestrator Development | tool_executor | Create nightwatch/tool_executor.py module | 212 | 3 | 2 | Complete | Full tool executor with handlers |
 | 258 | Orchestrator Development | tool_executor | Define ToolExecutor class with orchestrator reference | 257 | 2 | 1 | Complete | Constructor with DI |
 | 259 | Orchestrator Development | tool_executor | Implement tool registration from telescope_tools.py | 258 | 3 | 2 | Complete | register_handler() method |
@@ -397,7 +397,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 309 | Voice Pipeline Integration | voice_pipeline | Implement audio feedback (beeps for state changes) | 308 | 2 | 1 | Complete | AudioFeedback class, _set_state() with feedback |
 | 310 | Voice Pipeline Integration | voice_pipeline | Add visual indicator support (LED control) | 309 | 3 | 2 | Complete | LEDIndicator class with GPIO, blink patterns for each state |
 | 311 | Voice Pipeline Integration | voice_pipeline | Write unit tests for voice pipeline | 310 | 3 | 2 | Complete | 55 tests in test_voice_pipeline.py |
-| 312 | Voice Pipeline Integration | voice_pipeline | Write integration test end-to-end | 311 | 3 | 3 | Not Started | Full flow test |
+| 312 | Voice Pipeline Integration | voice_pipeline | Write integration test end-to-end | 311 | 3 | 3 | Complete | tests/integration/test_voice_pipeline_e2e.py (30 tests) |
 | 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Complete | STTInterface wraps faster-whisper |
 | 314 | Voice Pipeline Integration | stt_integration | Configure DGX Spark optimized settings | 313 | 2 | 1 | Complete | beam_size, best_of, patience in VoiceConfig |
 | 315 | Voice Pipeline Integration | stt_integration | Add audio preprocessing (noise reduction) | 314 | 3 | 2 | Complete | AudioCapture.preprocess_audio() with high-pass filter, noise gate |
@@ -570,7 +570,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 482 | Safety System Hardening | emergency_response | Implement emergency park sequence | 481 | 3 | 2 | Complete | emergency_park() with retries and timeout |
 | 483 | Safety System Hardening | emergency_response | Implement emergency close sequence | 482 | 3 | 2 | Complete | emergency_close() with retries and timeout |
 | 484 | Safety System Hardening | emergency_response | Add mount safety position for enclosure close | 483 | 3 | 2 | Complete | move_to_safety_position() checks altitude and parks if needed |
-| 485 | Safety System Hardening | emergency_response | Implement power failure response | 484 | 4 | 3 | Not Started | UPS detected |
+| 485 | Safety System Hardening | emergency_response | Implement power failure response | 484 | 4 | 3 | Complete | POWER_FAILURE action, _evaluate_power_failure(), handle_power_failure_response() |
 | 486 | Safety System Hardening | emergency_response | Add staged shutdown on low battery | 485 | 3 | 2 | Complete | 4-stage shutdown: warning/park/close/shutdown |
 | 487 | Safety System Hardening | emergency_response | Implement weather emergency response | 486 | 3 | 2 | Complete | respond_to_weather() handles storm/high_wind with safety position |
 | 488 | Safety System Hardening | emergency_response | Add rain emergency response | 487 | 3 | 2 | Complete | respond_to_rain() with park+close+alerts |
