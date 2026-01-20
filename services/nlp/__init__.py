@@ -29,6 +29,16 @@ from .suggestions import (
     get_suggestion_service,
 )
 
+from .user_preferences import (
+    UserPreferences,
+    PreferenceCategory,
+    ObservationStyle,
+    CommunicationStyle,
+    TargetPreference,
+    ImagingPreference,
+    get_user_preferences,
+)
+
 __all__ = [
     # Conversation Context
     "ConversationContext",
@@ -49,4 +59,12 @@ __all__ = [
     "SuggestionType",
     "SuggestionPriority",
     "get_suggestion_service",
+    # User Preferences
+    "UserPreferences",
+    "PreferenceCategory",
+    "ObservationStyle",
+    "CommunicationStyle",
+    "TargetPreference",
+    "ImagingPreference",
+    "get_user_preferences",
 ]
