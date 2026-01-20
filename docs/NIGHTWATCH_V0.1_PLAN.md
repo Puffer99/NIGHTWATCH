@@ -286,14 +286,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 198 | Core Service Completion | guiding | Implement guide log parsing | 197 | 3 | 2 | Complete | parse_guide_log(), analyze_guide_session() in phd2_client.py |
 | 199 | Core Service Completion | guiding | Write unit tests for PHD2 client | 198 | 2 | 2 | Complete | tests/unit/test_phd2_client.py (18 tests) |
 | 200 | Core Service Completion | weather | Review ecowitt.py current implementation | None | 2 | 1 | Complete | Full WS90 integration, safety thresholds |
-| 201 | Core Service Completion | weather | Add AAG CloudWatcher integration | 200 | 4 | 3 | Not Started | Cloud sensing |
-| 202 | Core Service Completion | weather | Implement CloudWatcher serial protocol | 201 | 3 | 2 | Not Started | Data parsing |
+| 201 | Core Service Completion | weather | Add AAG CloudWatcher integration | 200 | 4 | 3 | Complete | services/weather/cloudwatcher.py - CloudWatcherClient class |
+| 202 | Core Service Completion | weather | Implement CloudWatcher serial protocol | 201 | 3 | 2 | Complete | A/C/E/D/K/Q commands, _parse_response() |
 | 203 | Core Service Completion | weather | Add sky quality (SQM) reading | 202 | 2 | 1 | Complete | get_sky_quality() in ecowitt.py |
 | 204 | Core Service Completion | weather | Add rain sensor reading | 203 | 2 | 1 | Complete | get_rain_sensor_reading() in ecowitt.py |
 | 205 | Core Service Completion | weather | Add ambient temperature reading | 204 | 2 | 1 | Complete | get_ambient_temperature() in ecowitt.py |
-| 206 | Core Service Completion | weather | Implement cloud threshold calibration | 205 | 3 | 2 | Not Started | Per POS Day 4 |
+| 206 | Core Service Completion | weather | Implement cloud threshold calibration | 205 | 3 | 2 | Complete | CloudThresholds class, calibrate_clear_sky(), calibrate_rain_sensor() |
 | 207 | Core Service Completion | weather | Add seeing estimation (FWHM proxy) | 206 | 4 | 3 | Not Started | Image quality prediction |
-| 208 | Core Service Completion | weather | Create unified weather interface | 207 | 3 | 2 | Not Started | Abstract both sources |
+| 208 | Core Service Completion | weather | Create unified weather interface | 207 | 3 | 2 | Complete | services/weather/unified.py - UnifiedWeatherService, combines Ecowitt+CloudWatcher |
 | 209 | Core Service Completion | weather | Write unit tests for weather service | 208 | 2 | 2 | Complete | tests/unit/test_weather.py |
 | 210 | Core Service Completion | ephemeris | Review skyfield_service.py current implementation | None | 2 | 1 | Complete | Full Skyfield integration, J2000/JNow, planets, twilight |
 | 211 | Core Service Completion | ephemeris | Add proper motion correction for stars | 210 | 4 | 3 | Not Started | Epoch adjustment |
@@ -351,7 +351,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 263 | Orchestrator Development | tool_executor | Implement tool timeout handling | 262 | 2 | 1 | Complete | asyncio.timeout() |
 | 264 | Orchestrator Development | tool_executor | Add tool execution logging | 263 | 2 | 1 | Complete | _log_execution(), get_execution_log() |
 | 265 | Orchestrator Development | tool_executor | Implement safety veto check before execution | 264 | 3 | 2 | Complete | VETOED status in handlers |
-| 266 | Orchestrator Development | tool_executor | Add confirmation requirement for critical tools | 265 | 3 | 2 | Not Started | Sync, park, etc. |
+| 266 | Orchestrator Development | tool_executor | Add confirmation requirement for critical tools | 265 | 3 | 2 | Complete | requires_confirmation on Tool, open_roof/close_roof/emergency_shutdown marked |
 | 267 | Orchestrator Development | tool_executor | Implement tool chaining for complex commands | 266 | 4 | 3 | Not Started | Multi-step operations |
 | 268 | Orchestrator Development | tool_executor | Write unit tests for tool executor | 267 | 2 | 2 | Complete | 35 tests in test_tool_executor.py |
 | 269 | Orchestrator Development | response_formatter | Create nightwatch/response_formatter.py module | 212 | 2 | 1 | Complete | Full formatter module |

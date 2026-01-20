@@ -52,6 +52,7 @@ class Tool:
     category: ToolCategory
     parameters: List[ToolParameter]
     handler: Optional[Callable] = None
+    requires_confirmation: bool = False  # Step 266: Critical tools require confirmation
 
     def to_openai_format(self) -> dict:
         """Convert to OpenAI function calling format."""
@@ -860,7 +861,8 @@ TELESCOPE_TOOLS: List[Tool] = [
         description="Open the roll-off roof. Requires all safety conditions "
                     "to be met and telescope to be parked.",
         category=ToolCategory.ENCLOSURE,
-        parameters=[]
+        parameters=[],
+        requires_confirmation=True  # Step 266: Critical operation
     ),
 
     Tool(
@@ -876,7 +878,8 @@ TELESCOPE_TOOLS: List[Tool] = [
                 required=False,
                 default=False
             )
-        ]
+        ],
+        requires_confirmation=True  # Step 266: Critical operation
     ),
 
     Tool(
@@ -891,7 +894,8 @@ TELESCOPE_TOOLS: List[Tool] = [
         name="stop_roof",
         description="Immediately stop roof motion.",
         category=ToolCategory.ENCLOSURE,
-        parameters=[]
+        parameters=[],
+        requires_confirmation=True  # Step 266: Critical operation
     ),
 
     # -------------------------------------------------------------------------
@@ -933,7 +937,8 @@ TELESCOPE_TOOLS: List[Tool] = [
                 type="string",
                 description="Reason for emergency shutdown"
             )
-        ]
+        ],
+        requires_confirmation=True  # Step 266: Critical operation
     ),
 
     # -------------------------------------------------------------------------
@@ -1338,19 +1343,41 @@ class ToolRegistry:
         """Get all tools in Anthropic format."""
         return [t.to_anthropic_format() for t in self._tools.values()]
 
-    async def execute(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+    def requires_confirmation(self, tool_name: str) -> bool:
+        """Check if a tool requires user confirmation before execution (Step 266)."""
+        tool = self._tools.get(tool_name)
+        return tool.requires_confirmation if tool else False
+
+    def get_critical_tools(self) -> List[Tool]:
+        """Get all tools that require confirmation (Step 266)."""
+        return [t for t in self._tools.values() if t.requires_confirmation]
+
+    async def execute(self, tool_name: str, arguments: Dict[str, Any], confirmed: bool = False) -> str:
         """
         Execute a tool with given arguments.
 
         Args:
             tool_name: Name of tool to execute
             arguments: Tool arguments as dictionary
+            confirmed: Whether user has confirmed critical operation (Step 266)
 
         Returns:
             Result string for LLM response
         """
         if tool_name not in self._tools:
             return f"Error: Unknown tool '{tool_name}'"
+
+        tool = self._tools[tool_name]
+
+        # Step 266: Check confirmation for critical tools
+        if tool.requires_confirmation and not confirmed:
+            return json.dumps({
+                "status": "confirmation_required",
+                "tool": tool_name,
+                "message": f"'{tool_name}' is a critical operation that requires confirmation. "
+                          f"Please confirm you want to proceed with this action.",
+                "description": tool.description
+            }, indent=2)
 
         handler = self._handlers.get(tool_name)
         if not handler:
