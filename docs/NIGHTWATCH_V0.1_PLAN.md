@@ -438,7 +438,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 350 | Tool Handler Implementation | mount_tools | Add home position offset setting | 349 | 2 | 1 | Complete | set_home_offset() with ±60 arcmin validation |
 | 351 | Tool Handler Implementation | mount_tools | Write unit tests for mount tool handlers | 350 | 2 | 2 | Complete | TestMountToolHandlers in test_telescope_tools.py (6 tests) |
 | 352 | Tool Handler Implementation | catalog_tools | Implement lookup_object handler | 257,78 | 2 | 1 | Complete | Enhanced with type, mag, constellation, altitude |
-| 353 | Tool Handler Implementation | catalog_tools | Add fuzzy name matching | 352 | 3 | 2 | Not Started | Typo tolerance |
+| 353 | Tool Handler Implementation | catalog_tools | Add fuzzy name matching | 352 | 3 | 2 | Complete | Levenshtein distance, similarity score, fuzzy_search(), suggest() |
 | 354 | Tool Handler Implementation | catalog_tools | Implement what_am_i_looking_at handler | 353 | 3 | 2 | Not Started | Reverse lookup |
 | 355 | Tool Handler Implementation | catalog_tools | Add nearest object search by coordinates | 354 | 3 | 2 | Not Started | Cone search |
 | 356 | Tool Handler Implementation | catalog_tools | Implement find_objects handler | 355 | 2 | 1 | Complete | find_objects() with catalog search |
@@ -686,12 +686,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 598 | Documentation & POS | docs | Create docs/QUICKSTART.md | 597 | 3 | 2 | Complete | Quickstart guide with install, config, voice commands, Docker |
 | 599 | Documentation & POS | docs | Create docs/CONFIGURATION.md | 598 | 3 | 2 | Complete | Created in step 596 |
 | 600 | Documentation & POS | docs | Create docs/VOICE_COMMANDS.md | 599 | 2 | 2 | Complete | Already exists, comprehensive |
-| 601 | Documentation & POS | docs | Create docs/API_REFERENCE.md | 600 | 4 | 3 | Not Started | Service APIs |
-| 602 | Documentation & POS | docs | Create docs/TROUBLESHOOTING.md | 601 | 3 | 2 | Not Started | Common issues |
+| 601 | Documentation & POS | docs | Create docs/API_REFERENCE.md | 600 | 4 | 3 | Complete | Mount, Weather, Safety, Catalog, Ephemeris, Voice API docs |
+| 602 | Documentation & POS | docs | Create docs/TROUBLESHOOTING.md | 601 | 3 | 2 | Complete | Mount, weather, voice, safety, catalog troubleshooting |
 | 603 | Documentation & POS | docs | Create docs/HARDWARE_SETUP.md | 602 | 3 | 2 | Complete | OnStepX, Ecowitt, Audio, Network |
 | 604 | Documentation & POS | docs | Create docs/SIMULATOR_GUIDE.md | 603 | 2 | 2 | Complete | Alpaca, INDI, Mock fixtures |
 | 605 | Documentation & POS | docs | Update docs/INTEGRATION_PLAN.md for v0.1 | 604 | 2 | 1 | Complete | Alignment |
-| 606 | Documentation & POS | docs | Add architecture diagrams (Mermaid) | 605 | 3 | 2 | Not Started | Visual docs |
+| 606 | Documentation & POS | docs | Add architecture diagrams (Mermaid) | 605 | 3 | 2 | Complete | ARCHITECTURE.md with system, voice, safety, data flow diagrams |
 | 607 | Documentation & POS | docs | Add sequence diagrams for key flows | 606 | 3 | 2 | Not Started | Visual docs |
 | 608 | Documentation & POS | pos | Create POS deliberation for LLM integration | None | 4 | 3 | Not Started | Expert consensus |
 | 609 | Documentation & POS | pos | Add Michael Clive perspective (DGX Spark) | 608 | 3 | 2 | Not Started | AI expert |
