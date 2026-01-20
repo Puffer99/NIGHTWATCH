@@ -126,6 +126,10 @@ class EcowittClient:
         self._temperature_history: List[Tuple[datetime, float]] = []
         self._temperature_history_max_size: int = 120  # 1 hour at 30s intervals
 
+        # Pressure history tracking for trend detection
+        self._pressure_history: List[Tuple[datetime, float]] = []
+        self._pressure_history_max_size: int = 180  # 1.5 hours at 30s intervals
+
     async def fetch_data(self) -> Optional[WeatherData]:
         """
         Fetch current weather data from gateway.
@@ -226,7 +230,7 @@ class EcowittClient:
             solar_radiation_wm2=solar,
             uv_index=uv_index,
             pressure_inhg=pressure,
-            pressure_trend="steady",  # Would need historical data
+            pressure_trend=self._get_pressure_trend_for_data(pressure),
             condition=condition,
             wind_condition=wind_condition,
             safe_to_observe=safe
@@ -236,6 +240,9 @@ class EcowittClient:
 
         # Record temperature in history (Step 205)
         self._record_temperature(weather.timestamp, weather.temperature_f)
+
+        # Record pressure in history for trend detection
+        self._record_pressure(weather.timestamp, weather.pressure_inhg)
 
         return weather
 
@@ -392,6 +399,119 @@ class EcowittClient:
         count = len(self._temperature_history)
         self._temperature_history.clear()
         return count
+
+    # =========================================================================
+    # Pressure History Tracking
+    # =========================================================================
+
+    def _record_pressure(self, timestamp: datetime, pressure_inhg: float) -> None:
+        """
+        Record a pressure reading in the history.
+
+        Args:
+            timestamp: Time of the reading
+            pressure_inhg: Barometric pressure in inches of mercury
+        """
+        self._pressure_history.append((timestamp, pressure_inhg))
+
+        # Trim history if too large
+        if len(self._pressure_history) > self._pressure_history_max_size:
+            self._pressure_history = self._pressure_history[-self._pressure_history_max_size:]
+
+    def _get_pressure_trend_for_data(self, current_pressure: float) -> str:
+        """
+        Get pressure trend for WeatherData construction.
+
+        This is called before recording the new pressure, so it uses
+        the existing history to determine the trend.
+
+        Args:
+            current_pressure: The current pressure reading
+
+        Returns:
+            "rising", "falling", or "steady"
+        """
+        trend = self.get_pressure_trend()
+        return trend if trend else "steady"
+
+    def get_pressure_history(self, limit: int = 60) -> List[Tuple[datetime, float]]:
+        """
+        Get recent pressure history.
+
+        Args:
+            limit: Maximum number of readings to return
+
+        Returns:
+            List of (timestamp, pressure_inhg) tuples, most recent last
+        """
+        return self._pressure_history[-limit:]
+
+    def clear_pressure_history(self) -> int:
+        """
+        Clear pressure history.
+
+        Returns:
+            Number of records cleared
+        """
+        count = len(self._pressure_history)
+        self._pressure_history.clear()
+        return count
+
+    def get_pressure_trend(self, window_minutes: int = 60) -> Optional[str]:
+        """
+        Get barometric pressure trend.
+
+        Compares average pressure from the recent window against
+        an older window to detect rising, falling, or steady trends.
+
+        Pressure changes are significant for weather prediction:
+        - Rapid fall (>0.06 inHg/hr): Storm approaching
+        - Slow fall: Weather deteriorating
+        - Rising: Weather improving
+        - Steady: Stable conditions
+
+        Args:
+            window_minutes: Size of comparison window in minutes (default 60)
+
+        Returns:
+            "rising" if pressure increased >0.02 inHg,
+            "falling" if decreased >0.02 inHg,
+            "steady" if within 0.02 inHg,
+            or None if insufficient history
+        """
+        if len(self._pressure_history) < 4:
+            return None
+
+        now = datetime.now()
+        window_delta = timedelta(minutes=window_minutes)
+
+        # Separate readings into recent (last window_minutes) and older
+        recent_readings = []
+        older_readings = []
+
+        for timestamp, pressure in self._pressure_history:
+            age = now - timestamp
+            if age <= window_delta:
+                recent_readings.append(pressure)
+            elif age <= window_delta * 2:
+                older_readings.append(pressure)
+
+        # Need readings in both windows to determine trend
+        if not recent_readings or not older_readings:
+            return None
+
+        recent_avg = sum(recent_readings) / len(recent_readings)
+        older_avg = sum(older_readings) / len(older_readings)
+        delta = recent_avg - older_avg
+
+        # 0.02 inHg threshold - significant for weather changes
+        # (0.06+ inHg/hr indicates rapid change)
+        if delta > 0.02:
+            return "rising"
+        elif delta < -0.02:
+            return "falling"
+        else:
+            return "steady"
 
     # =========================================================================
     # Individual Sensor Readings (Steps 203-205)

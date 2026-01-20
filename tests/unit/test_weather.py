@@ -663,3 +663,155 @@ class TestLatestDataProperty:
         """Test unsafe_to_observe via latest property."""
         weather_client._latest_data = unsafe_weather_data
         assert weather_client.latest.safe_to_observe is False
+
+
+# =============================================================================
+# Pressure History Tests
+# =============================================================================
+
+
+class TestPressureHistory:
+    """Tests for pressure history tracking."""
+
+    def test_initial_pressure_history_empty(self, weather_client):
+        """Test pressure history is initially empty."""
+        assert len(weather_client._pressure_history) == 0
+
+    def test_record_pressure(self, weather_client):
+        """Test recording pressure adds to history."""
+        from datetime import datetime
+        now = datetime.now()
+        weather_client._record_pressure(now, 29.92)
+        assert len(weather_client._pressure_history) == 1
+        assert weather_client._pressure_history[0] == (now, 29.92)
+
+    def test_record_multiple_pressures(self, weather_client):
+        """Test recording multiple pressure readings."""
+        from datetime import datetime, timedelta
+        base = datetime.now()
+        weather_client._record_pressure(base, 29.90)
+        weather_client._record_pressure(base + timedelta(seconds=30), 29.92)
+        weather_client._record_pressure(base + timedelta(seconds=60), 29.94)
+        assert len(weather_client._pressure_history) == 3
+
+    def test_pressure_history_max_size_limit(self, weather_client):
+        """Test pressure history is trimmed when exceeding max size."""
+        from datetime import datetime, timedelta
+        weather_client._pressure_history_max_size = 5
+        base = datetime.now()
+        for i in range(10):
+            weather_client._record_pressure(base + timedelta(seconds=i * 30), 29.90 + i * 0.01)
+        assert len(weather_client._pressure_history) == 5
+        # Should keep the most recent entries
+        assert weather_client._pressure_history[-1][1] == 29.99
+
+    def test_get_pressure_history_default_limit(self, weather_client):
+        """Test get_pressure_history with default limit."""
+        from datetime import datetime, timedelta
+        base = datetime.now()
+        for i in range(70):
+            weather_client._record_pressure(base + timedelta(seconds=i * 30), 29.90 + i * 0.001)
+        history = weather_client.get_pressure_history()
+        assert len(history) == 60  # Default limit is 60
+
+    def test_get_pressure_history_custom_limit(self, weather_client):
+        """Test get_pressure_history with custom limit."""
+        from datetime import datetime, timedelta
+        base = datetime.now()
+        for i in range(20):
+            weather_client._record_pressure(base + timedelta(seconds=i * 30), 29.92)
+        history = weather_client.get_pressure_history(limit=10)
+        assert len(history) == 10
+
+    def test_clear_pressure_history(self, weather_client):
+        """Test clearing pressure history."""
+        from datetime import datetime
+        weather_client._record_pressure(datetime.now(), 29.90)
+        weather_client._record_pressure(datetime.now(), 29.92)
+        count = weather_client.clear_pressure_history()
+        assert count == 2
+        assert len(weather_client._pressure_history) == 0
+
+    def test_pressure_trend_rising(self, weather_client):
+        """Test pressure trend detection - rising."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Add older readings (80-120 minutes ago) - lower pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=120 - i * 10), 29.80)
+        # Add recent readings (0-60 minutes ago) - higher pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=60 - i * 15), 29.95)
+        trend = weather_client.get_pressure_trend(window_minutes=60)
+        assert trend == "rising"
+
+    def test_pressure_trend_falling(self, weather_client):
+        """Test pressure trend detection - falling."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Add older readings (80-120 minutes ago) - higher pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=120 - i * 10), 30.10)
+        # Add recent readings (0-60 minutes ago) - lower pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=60 - i * 15), 29.85)
+        trend = weather_client.get_pressure_trend(window_minutes=60)
+        assert trend == "falling"
+
+    def test_pressure_trend_steady(self, weather_client):
+        """Test pressure trend detection - steady."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Add older readings (80-120 minutes ago)
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=120 - i * 10), 29.92)
+        # Add recent readings (0-60 minutes ago) - nearly same pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=60 - i * 15), 29.93)
+        trend = weather_client.get_pressure_trend(window_minutes=60)
+        assert trend == "steady"
+
+    def test_pressure_trend_insufficient_history(self, weather_client):
+        """Test pressure trend returns None with insufficient history."""
+        # With no history, should return None
+        trend = weather_client.get_pressure_trend()
+        assert trend is None
+
+    def test_pressure_trend_needs_both_windows(self, weather_client):
+        """Test trend returns None if only one window has data."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Only add recent readings
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=i * 10), 29.92)
+        trend = weather_client.get_pressure_trend(window_minutes=60)
+        assert trend is None
+
+    def test_pressure_trend_custom_window(self, weather_client):
+        """Test pressure trend with custom window size."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Add readings for 30-minute windows
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=50 - i * 5), 29.80)
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=20 - i * 5), 30.00)
+        trend = weather_client.get_pressure_trend(window_minutes=30)
+        assert trend == "rising"
+
+    def test_get_pressure_trend_for_data_with_history(self, weather_client):
+        """Test _get_pressure_trend_for_data returns trend when history exists."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        # Add enough history for trend detection - falling pressure
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=120 - i * 10), 30.00)
+        for i in range(4):
+            weather_client._record_pressure(now - timedelta(minutes=60 - i * 15), 29.80)
+        trend = weather_client._get_pressure_trend_for_data(29.75)
+        assert trend == "falling"
+
+    def test_get_pressure_trend_for_data_no_history(self, weather_client):
+        """Test _get_pressure_trend_for_data returns steady when no history."""
+        trend = weather_client._get_pressure_trend_for_data(29.92)
+        assert trend == "steady"
