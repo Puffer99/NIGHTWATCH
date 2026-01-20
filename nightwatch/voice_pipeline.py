@@ -43,6 +43,8 @@ __all__ = [
     "STTInterface",
     "TTSInterface",
     "AudioPlayer",
+    "AudioCapture",
+    "LEDIndicator",
     "create_voice_pipeline",
     "normalize_transcript",
 ]
@@ -119,6 +121,24 @@ class VoicePipelineConfig:
     # Feedback
     play_acknowledgment: bool = True
     acknowledgment_sound: Optional[str] = None
+
+    # Step 295: Audio capture settings
+    audio_sample_rate: int = 16000
+    audio_channels: int = 1
+    vad_aggressiveness: int = 2  # 0-3, higher = more aggressive
+    vad_frame_ms: int = 30  # Frame duration in ms
+
+    # Step 297: Continuous listening settings
+    continuous_mode: bool = False
+    wake_word: Optional[str] = None  # Optional wake word to trigger
+
+    # Step 307: Concurrent request settings
+    max_concurrent_requests: int = 3
+    request_timeout_sec: float = 30.0
+
+    # Step 310: LED indicator settings
+    led_enabled: bool = False
+    led_gpio_pin: int = 18  # Default GPIO pin for LED
 
 
 # =============================================================================
@@ -383,6 +403,318 @@ class AudioPlayer:
                 self._sd.stop()
             except Exception:
                 pass
+
+
+# =============================================================================
+# Audio Capture with VAD (Step 295)
+# =============================================================================
+
+
+class AudioCapture:
+    """
+    Audio capture with Voice Activity Detection (Step 295).
+
+    Captures audio from microphone with VAD to detect speech start/end,
+    enabling hands-free voice command input.
+
+    Usage:
+        capture = AudioCapture(sample_rate=16000, vad_aggressiveness=2)
+        audio_data = await capture.capture_until_silence()
+    """
+
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        vad_aggressiveness: int = 2,
+        frame_duration_ms: int = 30,
+        silence_threshold_sec: float = 1.5,
+        max_duration_sec: float = 30.0,
+        device: Optional[str] = None,
+    ):
+        """
+        Initialize audio capture.
+
+        Args:
+            sample_rate: Audio sample rate (must be 8000, 16000, 32000, or 48000 for VAD)
+            channels: Number of audio channels
+            vad_aggressiveness: VAD sensitivity 0-3 (higher = more aggressive)
+            frame_duration_ms: Frame duration for VAD (10, 20, or 30 ms)
+            silence_threshold_sec: Seconds of silence to stop recording
+            max_duration_sec: Maximum recording duration
+            device: Audio input device name
+        """
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.vad_aggressiveness = vad_aggressiveness
+        self.frame_duration_ms = frame_duration_ms
+        self.silence_threshold_sec = silence_threshold_sec
+        self.max_duration_sec = max_duration_sec
+        self.device = device
+
+        self._vad = None
+        self._sd = None
+        self._loaded = False
+        self._capturing = False
+
+    async def _ensure_loaded(self):
+        """Lazily load dependencies."""
+        if self._loaded:
+            return
+
+        try:
+            import sounddevice as sd
+            self._sd = sd
+        except ImportError:
+            logger.warning("sounddevice not installed, audio capture disabled")
+            self._sd = None
+
+        try:
+            import webrtcvad
+            self._vad = webrtcvad.Vad(self.vad_aggressiveness)
+        except ImportError:
+            logger.warning("webrtcvad not installed, VAD disabled")
+            self._vad = None
+
+        self._loaded = True
+
+    @property
+    def is_capturing(self) -> bool:
+        """Check if currently capturing audio."""
+        return self._capturing
+
+    async def capture_until_silence(self) -> Optional[bytes]:
+        """
+        Capture audio until silence is detected (Step 295).
+
+        Records audio starting when speech is detected and stops
+        after a period of silence.
+
+        Returns:
+            Raw audio bytes (16-bit PCM) or None if capture failed
+        """
+        await self._ensure_loaded()
+
+        if self._sd is None:
+            logger.error("sounddevice not available for capture")
+            return None
+
+        self._capturing = True
+        frames = []
+        speech_started = False
+        silence_frames = 0
+        frame_size = int(self.sample_rate * self.frame_duration_ms / 1000)
+        silence_frame_threshold = int(self.silence_threshold_sec * 1000 / self.frame_duration_ms)
+        max_frames = int(self.max_duration_sec * 1000 / self.frame_duration_ms)
+
+        logger.info("Starting audio capture with VAD")
+
+        try:
+            import numpy as np
+            import queue
+
+            audio_queue = queue.Queue()
+
+            def audio_callback(indata, frames_count, time_info, status):
+                if status:
+                    logger.warning(f"Audio capture status: {status}")
+                audio_queue.put(indata.copy())
+
+            with self._sd.InputStream(
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                dtype='int16',
+                blocksize=frame_size,
+                callback=audio_callback,
+                device=self.device,
+            ):
+                frame_count = 0
+                while self._capturing and frame_count < max_frames:
+                    try:
+                        # Get audio frame with timeout
+                        frame_data = audio_queue.get(timeout=0.1)
+                        frame_bytes = frame_data.tobytes()
+
+                        # Check for speech with VAD
+                        is_speech = True  # Default if VAD not available
+                        if self._vad:
+                            try:
+                                is_speech = self._vad.is_speech(frame_bytes, self.sample_rate)
+                            except Exception:
+                                pass
+
+                        if is_speech:
+                            speech_started = True
+                            silence_frames = 0
+                            frames.append(frame_bytes)
+                        elif speech_started:
+                            frames.append(frame_bytes)
+                            silence_frames += 1
+                            if silence_frames >= silence_frame_threshold:
+                                logger.info("Silence detected, stopping capture")
+                                break
+
+                        frame_count += 1
+
+                        # Yield to event loop
+                        await asyncio.sleep(0)
+
+                    except queue.Empty:
+                        continue
+
+        except Exception as e:
+            logger.error(f"Audio capture error: {e}")
+            return None
+        finally:
+            self._capturing = False
+
+        if not frames:
+            logger.warning("No audio captured")
+            return None
+
+        # Combine frames
+        audio_data = b''.join(frames)
+        logger.info(f"Captured {len(audio_data)} bytes of audio")
+        return audio_data
+
+    def stop_capture(self):
+        """Stop ongoing capture."""
+        self._capturing = False
+
+
+# =============================================================================
+# LED Indicator Support (Step 310)
+# =============================================================================
+
+
+class LEDIndicator:
+    """
+    Visual LED indicator for pipeline state (Step 310).
+
+    Controls an LED (via GPIO) to indicate pipeline state:
+    - Off: Idle
+    - Solid: Listening
+    - Fast blink: Processing
+    - Slow blink: Speaking
+    - Double blink: Error
+
+    Supports both real GPIO (Raspberry Pi) and mock mode for testing.
+    """
+
+    # Blink patterns (on_ms, off_ms, repeat)
+    PATTERNS = {
+        PipelineState.IDLE: None,  # LED off
+        PipelineState.LISTENING: (1000, 0, 1),  # Solid on
+        PipelineState.TRANSCRIBING: (100, 100, -1),  # Fast blink
+        PipelineState.PROCESSING: (100, 100, -1),  # Fast blink
+        PipelineState.EXECUTING: (200, 200, -1),  # Medium blink
+        PipelineState.SPEAKING: (500, 500, -1),  # Slow blink
+        PipelineState.ERROR: (100, 100, 2),  # Double blink
+    }
+
+    def __init__(self, gpio_pin: int = 18, enabled: bool = True):
+        """
+        Initialize LED indicator.
+
+        Args:
+            gpio_pin: GPIO pin number for LED
+            enabled: Whether LED control is enabled
+        """
+        self.gpio_pin = gpio_pin
+        self.enabled = enabled
+        self._gpio = None
+        self._loaded = False
+        self._blink_task: Optional[asyncio.Task] = None
+        self._current_state = PipelineState.IDLE
+
+    async def _ensure_loaded(self):
+        """Lazily load GPIO library."""
+        if self._loaded or not self.enabled:
+            return
+
+        try:
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self.gpio_pin, GPIO.OUT)
+            GPIO.output(self.gpio_pin, GPIO.LOW)
+            self._gpio = GPIO
+            logger.info(f"LED indicator initialized on GPIO {self.gpio_pin}")
+        except (ImportError, RuntimeError):
+            logger.info("GPIO not available, LED indicator in mock mode")
+            self._gpio = None
+
+        self._loaded = True
+
+    def _set_led(self, on: bool):
+        """Set LED state."""
+        if self._gpio:
+            self._gpio.output(self.gpio_pin, self._gpio.HIGH if on else self._gpio.LOW)
+        else:
+            logger.debug(f"LED {'ON' if on else 'OFF'} (mock)")
+
+    async def _blink_pattern(self, on_ms: int, off_ms: int, repeat: int):
+        """Execute blink pattern."""
+        count = 0
+        while repeat < 0 or count < repeat:
+            self._set_led(True)
+            await asyncio.sleep(on_ms / 1000)
+            if off_ms > 0:
+                self._set_led(False)
+                await asyncio.sleep(off_ms / 1000)
+            count += 1
+
+    async def set_state(self, state: PipelineState):
+        """
+        Set LED to indicate pipeline state (Step 310).
+
+        Args:
+            state: New pipeline state
+        """
+        await self._ensure_loaded()
+
+        if state == self._current_state:
+            return
+
+        self._current_state = state
+
+        # Cancel existing blink task
+        if self._blink_task:
+            self._blink_task.cancel()
+            try:
+                await self._blink_task
+            except asyncio.CancelledError:
+                pass
+            self._blink_task = None
+
+        pattern = self.PATTERNS.get(state)
+
+        if pattern is None:
+            # LED off
+            self._set_led(False)
+        else:
+            on_ms, off_ms, repeat = pattern
+            if off_ms == 0:
+                # Solid on
+                self._set_led(True)
+            else:
+                # Start blink task
+                self._blink_task = asyncio.create_task(
+                    self._blink_pattern(on_ms, off_ms, repeat)
+                )
+
+    async def cleanup(self):
+        """Cleanup GPIO resources."""
+        if self._blink_task:
+            self._blink_task.cancel()
+            try:
+                await self._blink_task
+            except asyncio.CancelledError:
+                pass
+
+        self._set_led(False)
+
+        if self._gpio:
+            self._gpio.cleanup(self.gpio_pin)
 
 
 def normalize_transcript(text: str) -> str:
@@ -667,6 +999,20 @@ class VoicePipeline:
         self._stt: Optional[STTInterface] = None
         self._tts: Optional[TTSInterface] = None
         self._audio_player: Optional[AudioPlayer] = None
+
+        # Step 295: Audio capture with VAD
+        self._audio_capture: Optional[AudioCapture] = None
+
+        # Step 297: Continuous listening mode
+        self._continuous_listening = False
+
+        # Step 310: LED indicator
+        self._led_indicator: Optional[LEDIndicator] = None
+        if self.config.led_enabled:
+            self._led_indicator = LEDIndicator(
+                gpio_pin=self.config.led_gpio_pin,
+                enabled=True
+            )
 
         # Metrics (Step 308 - enhanced latency tracking)
         self._commands_processed = 0
@@ -1080,6 +1426,197 @@ class VoicePipeline:
         """
         player = self._get_audio_player()
         return await player.play(audio_data, blocking=True)
+
+    # =========================================================================
+    # Continuous Listening Mode (Step 297)
+    # =========================================================================
+
+    async def listen_continuous(self, callback: Optional[Callable] = None):
+        """
+        Start continuous listening mode (Step 297).
+
+        Continuously captures audio commands and processes them,
+        enabling hands-free operation.
+
+        Args:
+            callback: Optional callback for each processed command
+
+        Note:
+            Call stop() to exit continuous listening mode.
+        """
+        if not self._running:
+            await self.start()
+
+        if self._audio_capture is None:
+            self._audio_capture = AudioCapture(
+                sample_rate=self.config.audio_sample_rate,
+                channels=self.config.audio_channels,
+                vad_aggressiveness=self.config.vad_aggressiveness,
+                frame_duration_ms=self.config.vad_frame_ms,
+                silence_threshold_sec=self.config.silence_threshold_sec,
+                max_duration_sec=self.config.max_audio_length_sec,
+            )
+
+        logger.info("Starting continuous listening mode")
+        self._continuous_listening = True
+
+        while self._running and self._continuous_listening:
+            try:
+                # Set state to listening
+                await self._set_state(PipelineState.LISTENING)
+
+                # Update LED indicator if enabled
+                if self._led_indicator:
+                    await self._led_indicator.set_state(PipelineState.LISTENING)
+
+                # Capture audio with VAD
+                audio_data = await self._audio_capture.capture_until_silence()
+
+                if audio_data:
+                    # Process the captured audio
+                    result = await self.process_audio(audio_data)
+
+                    # Call callback if provided
+                    if callback:
+                        try:
+                            if asyncio.iscoroutinefunction(callback):
+                                await callback(result)
+                            else:
+                                callback(result)
+                        except Exception as e:
+                            logger.error(f"Continuous listening callback error: {e}")
+
+                    # Play the response
+                    if result.audio_output:
+                        await self.play_response(result.audio_output)
+
+                # Small delay before next listen cycle
+                await asyncio.sleep(0.1)
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Continuous listening error: {e}")
+                await asyncio.sleep(1)  # Prevent tight loop on errors
+
+        logger.info("Exited continuous listening mode")
+
+    def stop_continuous_listening(self):
+        """Stop continuous listening mode."""
+        self._continuous_listening = False
+        if self._audio_capture:
+            self._audio_capture.stop_capture()
+
+    # =========================================================================
+    # Concurrent Request Handling (Step 307)
+    # =========================================================================
+
+    async def process_concurrent(
+        self,
+        requests: List[Union[str, bytes]],
+        max_concurrent: Optional[int] = None,
+    ) -> List[PipelineResult]:
+        """
+        Process multiple requests concurrently (Step 307).
+
+        Args:
+            requests: List of text commands or audio bytes
+            max_concurrent: Max concurrent requests (uses config default if None)
+
+        Returns:
+            List of PipelineResult for each request
+        """
+        max_concurrent = max_concurrent or self.config.max_concurrent_requests
+        semaphore = asyncio.Semaphore(max_concurrent)
+        results = []
+
+        async def process_with_semaphore(request, index):
+            async with semaphore:
+                try:
+                    if isinstance(request, bytes):
+                        result = await asyncio.wait_for(
+                            self.process_audio(request),
+                            timeout=self.config.request_timeout_sec,
+                        )
+                    else:
+                        result = await asyncio.wait_for(
+                            self.process_text(request),
+                            timeout=self.config.request_timeout_sec,
+                        )
+                    return index, result
+                except asyncio.TimeoutError:
+                    result = PipelineResult(
+                        transcript=request if isinstance(request, str) else "",
+                        success=False,
+                        error="Request timed out",
+                    )
+                    return index, result
+                except Exception as e:
+                    result = PipelineResult(
+                        transcript=request if isinstance(request, str) else "",
+                        success=False,
+                        error=str(e),
+                    )
+                    return index, result
+
+        # Create tasks for all requests
+        tasks = [
+            process_with_semaphore(req, i)
+            for i, req in enumerate(requests)
+        ]
+
+        # Wait for all tasks
+        completed = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Sort by original index and extract results
+        sorted_results = [None] * len(requests)
+        for item in completed:
+            if isinstance(item, tuple):
+                index, result = item
+                sorted_results[index] = result
+            else:
+                # Exception case
+                logger.error(f"Concurrent request error: {item}")
+
+        return [r for r in sorted_results if r is not None]
+
+    async def submit_request(self, request: Union[str, bytes]) -> asyncio.Task:
+        """
+        Submit a request for background processing (Step 307).
+
+        Args:
+            request: Text command or audio bytes
+
+        Returns:
+            Task that can be awaited for result
+        """
+        if isinstance(request, bytes):
+            task = asyncio.create_task(self.process_audio(request))
+        else:
+            task = asyncio.create_task(self.process_text(request))
+
+        return task
+
+    # =========================================================================
+    # LED Indicator Integration (Step 310)
+    # =========================================================================
+
+    def enable_led_indicator(self, gpio_pin: Optional[int] = None):
+        """
+        Enable LED indicator for pipeline state (Step 310).
+
+        Args:
+            gpio_pin: GPIO pin for LED (uses config default if None)
+        """
+        pin = gpio_pin or self.config.led_gpio_pin
+        self._led_indicator = LEDIndicator(gpio_pin=pin, enabled=True)
+        logger.info(f"LED indicator enabled on GPIO {pin}")
+
+    def disable_led_indicator(self):
+        """Disable LED indicator."""
+        if self._led_indicator:
+            asyncio.create_task(self._led_indicator.cleanup())
+            self._led_indicator = None
 
 
 # =============================================================================

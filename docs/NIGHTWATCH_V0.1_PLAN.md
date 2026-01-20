@@ -380,9 +380,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 292 | Voice Pipeline Integration | llm | Write unit tests for LLM client | 291 | 2 | 2 | Complete | Test coverage |
 | 293 | Voice Pipeline Integration | voice_pipeline | Create nightwatch/voice_pipeline.py module | 277 | 3 | 2 | Complete | End-to-end voice |
 | 294 | Voice Pipeline Integration | voice_pipeline | Define VoicePipeline class integrating STT, LLM, TTS | 293 | 3 | 2 | Complete | Pipeline coordinator |
-| 295 | Voice Pipeline Integration | voice_pipeline | Implement audio capture with VAD | 294 | 3 | 2 | Not Started | Voice detection |
+| 295 | Voice Pipeline Integration | voice_pipeline | Implement audio capture with VAD | 294 | 3 | 2 | Complete | AudioCapture class with webrtcvad, capture_until_silence() |
 | 296 | Voice Pipeline Integration | voice_pipeline | Add push-to-talk mode support | 295 | 2 | 1 | Complete | input_mode, ptt_key in VoiceConfig |
-| 297 | Voice Pipeline Integration | voice_pipeline | Implement continuous listening mode | 296 | 3 | 2 | Not Started | Hands-free |
+| 297 | Voice Pipeline Integration | voice_pipeline | Implement continuous listening mode | 296 | 3 | 2 | Complete | listen_continuous(), stop_continuous_listening() |
 | 298 | Voice Pipeline Integration | voice_pipeline | Add wake word detection (pymicro-vad as trigger) | 297 | 4 | 3 | Not Started | Voice activation |
 | 299 | Voice Pipeline Integration | voice_pipeline | Implement STT transcription call | 298 | 2 | 1 | Complete | Speech to text |
 | 300 | Voice Pipeline Integration | voice_pipeline | Add transcription post-processing (normalization) | 299 | 2 | 1 | Complete | normalize_transcript(), ASTRONOMY_NORMALIZATIONS |
@@ -392,10 +392,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 304 | Voice Pipeline Integration | voice_pipeline | Add TTS synthesis call | 303 | 2 | 1 | Complete | Text to speech |
 | 305 | Voice Pipeline Integration | voice_pipeline | Implement audio playback | 304 | 2 | 1 | Complete | AudioPlayer class, play_response() |
 | 306 | Voice Pipeline Integration | voice_pipeline | Add pipeline state machine | 305 | 3 | 2 | Complete | PipelineState enum, _set_state() with callbacks, state property |
-| 307 | Voice Pipeline Integration | voice_pipeline | Implement concurrent request handling | 306 | 3 | 2 | Not Started | Multiple users |
+| 307 | Voice Pipeline Integration | voice_pipeline | Implement concurrent request handling | 306 | 3 | 2 | Complete | process_concurrent(), submit_request() with semaphore |
 | 308 | Voice Pipeline Integration | voice_pipeline | Add pipeline latency tracking | 307 | 2 | 1 | Complete | _record_latency(), get_latency_history(), enhanced get_metrics() |
 | 309 | Voice Pipeline Integration | voice_pipeline | Implement audio feedback (beeps for state changes) | 308 | 2 | 1 | Complete | AudioFeedback class, _set_state() with feedback |
-| 310 | Voice Pipeline Integration | voice_pipeline | Add visual indicator support (LED control) | 309 | 3 | 2 | Not Started | Status display |
+| 310 | Voice Pipeline Integration | voice_pipeline | Add visual indicator support (LED control) | 309 | 3 | 2 | Complete | LEDIndicator class with GPIO, blink patterns for each state |
 | 311 | Voice Pipeline Integration | voice_pipeline | Write unit tests for voice pipeline | 310 | 3 | 2 | Complete | 55 tests in test_voice_pipeline.py |
 | 312 | Voice Pipeline Integration | voice_pipeline | Write integration test end-to-end | 311 | 3 | 3 | Not Started | Full flow test |
 | 313 | Voice Pipeline Integration | stt_integration | Integrate WhisperSTT with voice pipeline | 293 | 2 | 1 | Complete | STTInterface wraps faster-whisper |
