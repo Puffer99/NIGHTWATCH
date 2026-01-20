@@ -1,7 +1,8 @@
 """
 NIGHTWATCH Catalog Service
 
-Provides astronomical object lookup from SQLite database.
+Provides astronomical object lookup from SQLite database
+and intelligent target scoring for observation planning.
 """
 
 from .catalog import (
@@ -13,6 +14,14 @@ from .catalog import (
     load_named_stars,
 )
 
+from .target_scorer import (
+    TargetScorer,
+    TargetScore,
+    ScoringWeights,
+    ScoringWeight,
+    get_scorer,
+)
+
 __all__ = [
     "CatalogService",
     "CatalogDatabase",
@@ -20,4 +29,9 @@ __all__ = [
     "ObjectType",
     "load_messier_catalog",
     "load_named_stars",
+    "TargetScorer",
+    "TargetScore",
+    "ScoringWeights",
+    "ScoringWeight",
+    "get_scorer",
 ]
