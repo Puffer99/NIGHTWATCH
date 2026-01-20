@@ -767,6 +767,279 @@ class EphemerisService:
         else:
             return f"{name} is currently below the horizon at {altaz.altitude_degrees:.1f} degrees."
 
+    # =========================================================================
+    # MOON AVOIDANCE CALCULATIONS (Step 116 - v0.5 Intelligent Scheduling)
+    # =========================================================================
+
+    def get_moon_separation(
+        self,
+        ra_hours: float,
+        dec_degrees: float,
+        when: Optional[datetime] = None
+    ) -> float:
+        """
+        Calculate angular separation between the Moon and a target (Step 116).
+
+        Uses the spherical law of cosines for accurate angular distance.
+
+        Args:
+            ra_hours: Target Right Ascension in hours (J2000)
+            dec_degrees: Target Declination in degrees (J2000)
+            when: Time for calculation (default: now)
+
+        Returns:
+            Angular separation in degrees
+        """
+        self._ensure_initialized()
+        t = self._get_time(when)
+
+        # Get moon position
+        moon = self._eph['moon']
+        moon_astrometric = self._observer.at(t).observe(moon)
+        moon_apparent = moon_astrometric.apparent()
+        moon_ra, moon_dec, _ = moon_apparent.radec()
+
+        # Create target as a star
+        target = Star(ra_hours=ra_hours, dec_degrees=dec_degrees)
+        target_astrometric = self._observer.at(t).observe(target)
+        target_apparent = target_astrometric.apparent()
+
+        # Calculate separation using Skyfield's built-in method
+        separation = moon_apparent.separation_from(target_apparent)
+
+        return separation.degrees
+
+    def get_moon_separation_from_body(
+        self,
+        body: CelestialBody,
+        when: Optional[datetime] = None
+    ) -> float:
+        """
+        Calculate angular separation between the Moon and a solar system body.
+
+        Args:
+            body: Target celestial body
+            when: Time for calculation (default: now)
+
+        Returns:
+            Angular separation in degrees
+        """
+        self._ensure_initialized()
+        t = self._get_time(when)
+
+        moon = self._eph['moon']
+        target = self._eph[self.BODY_NAMES[body]]
+
+        moon_apparent = self._observer.at(t).observe(moon).apparent()
+        target_apparent = self._observer.at(t).observe(target).apparent()
+
+        separation = moon_apparent.separation_from(target_apparent)
+        return separation.degrees
+
+    def is_moon_safe(
+        self,
+        ra_hours: float,
+        dec_degrees: float,
+        min_separation_deg: float = 30.0,
+        when: Optional[datetime] = None
+    ) -> bool:
+        """
+        Check if a target is safe to observe given moon position (Step 116).
+
+        A target is considered "moon safe" if:
+        1. It's separated from the moon by at least min_separation_deg, OR
+        2. The moon is below the horizon, OR
+        3. The moon is a thin crescent (< 10% illuminated)
+
+        Args:
+            ra_hours: Target Right Ascension in hours (J2000)
+            dec_degrees: Target Declination in degrees (J2000)
+            min_separation_deg: Minimum safe separation (default 30°)
+            when: Time for calculation (default: now)
+
+        Returns:
+            True if safe to observe, False if moon interference expected
+        """
+        # Check if moon is below horizon
+        moon_altaz = self.get_body_altaz(CelestialBody.MOON, when)
+        if not moon_altaz.is_visible:
+            return True
+
+        # Check if moon is a thin crescent (minimal interference)
+        moon_phase = self.get_moon_phase(when)
+        if moon_phase < 0.10:  # Less than 10% illuminated
+            return True
+
+        # Check angular separation
+        separation = self.get_moon_separation(ra_hours, dec_degrees, when)
+        return separation >= min_separation_deg
+
+    def get_moon_penalty(
+        self,
+        ra_hours: float,
+        dec_degrees: float,
+        when: Optional[datetime] = None
+    ) -> float:
+        """
+        Calculate a moon interference penalty score for target prioritization (Step 116).
+
+        Returns a score from 0.0 (no penalty, excellent) to 1.0 (severe penalty).
+        This can be used in scheduling algorithms to deprioritize targets
+        that are close to a bright moon.
+
+        Penalty factors:
+        - Moon phase (brighter = worse)
+        - Moon altitude (higher = worse if bright)
+        - Angular separation (closer = worse)
+
+        Args:
+            ra_hours: Target Right Ascension in hours (J2000)
+            dec_degrees: Target Declination in degrees (J2000)
+            when: Time for calculation (default: now)
+
+        Returns:
+            Penalty score 0.0 to 1.0 (lower is better)
+        """
+        # Moon below horizon = no penalty
+        moon_altaz = self.get_body_altaz(CelestialBody.MOON, when)
+        if not moon_altaz.is_visible:
+            return 0.0
+
+        # Get moon brightness and separation
+        moon_phase = self.get_moon_phase(when)
+        separation = self.get_moon_separation(ra_hours, dec_degrees, when)
+
+        # Phase penalty: 0 at new moon, 1 at full moon
+        phase_penalty = moon_phase
+
+        # Separation penalty: 1.0 at 0°, 0.0 at 90° or more
+        # Using exponential decay for more realistic light scatter model
+        sep_penalty = math.exp(-separation / 30.0)  # 30° characteristic scale
+
+        # Altitude penalty: higher moon = more sky glow
+        alt_factor = moon_altaz.altitude_degrees / 90.0  # 0 to 1
+
+        # Combined penalty: product of factors
+        # A dim moon far from target has low penalty
+        # A full moon close to target has high penalty
+        combined = phase_penalty * sep_penalty * (0.5 + 0.5 * alt_factor)
+
+        # Clamp to 0-1 range
+        return min(1.0, max(0.0, combined))
+
+    def get_moon_avoidance_info(
+        self,
+        ra_hours: float,
+        dec_degrees: float,
+        when: Optional[datetime] = None
+    ) -> dict:
+        """
+        Get comprehensive moon avoidance information for a target (Step 116).
+
+        Returns a dictionary with all relevant moon information for
+        scheduling decisions and voice feedback.
+
+        Args:
+            ra_hours: Target Right Ascension in hours (J2000)
+            dec_degrees: Target Declination in degrees (J2000)
+            when: Time for calculation (default: now)
+
+        Returns:
+            Dictionary with moon status, separation, phase, penalty, etc.
+        """
+        moon_altaz = self.get_body_altaz(CelestialBody.MOON, when)
+        moon_phase = self.get_moon_phase(when)
+        separation = self.get_moon_separation(ra_hours, dec_degrees, when)
+        penalty = self.get_moon_penalty(ra_hours, dec_degrees, when)
+        is_safe = self.is_moon_safe(ra_hours, dec_degrees, when=when)
+
+        # Determine moon status description
+        if not moon_altaz.is_visible:
+            status = "below_horizon"
+            recommendation = "excellent"
+        elif moon_phase < 0.10:
+            status = "thin_crescent"
+            recommendation = "good"
+        elif separation >= 60:
+            status = "far_from_target"
+            recommendation = "good"
+        elif separation >= 30:
+            status = "moderate_separation"
+            recommendation = "acceptable" if moon_phase < 0.5 else "caution"
+        else:
+            status = "close_to_target"
+            recommendation = "avoid" if moon_phase > 0.5 else "caution"
+
+        return {
+            "moon_visible": moon_altaz.is_visible,
+            "moon_altitude_deg": moon_altaz.altitude_degrees,
+            "moon_azimuth_deg": moon_altaz.azimuth_degrees,
+            "moon_phase_percent": moon_phase * 100,
+            "separation_deg": separation,
+            "penalty_score": penalty,
+            "is_safe": is_safe,
+            "status": status,
+            "recommendation": recommendation,
+        }
+
+    def format_moon_avoidance_info(
+        self,
+        ra_hours: float,
+        dec_degrees: float,
+        when: Optional[datetime] = None
+    ) -> str:
+        """
+        Get formatted moon avoidance info for voice output (Step 116).
+
+        Args:
+            ra_hours: Target Right Ascension in hours (J2000)
+            dec_degrees: Target Declination in degrees (J2000)
+            when: Time for calculation (default: now)
+
+        Returns:
+            Human-readable description of moon conditions
+        """
+        info = self.get_moon_avoidance_info(ra_hours, dec_degrees, when)
+
+        if not info["moon_visible"]:
+            return "The Moon is below the horizon. Excellent conditions for deep sky imaging."
+
+        phase_desc = (
+            "new" if info["moon_phase_percent"] < 5 else
+            "crescent" if info["moon_phase_percent"] < 25 else
+            "quarter" if info["moon_phase_percent"] < 60 else
+            "gibbous" if info["moon_phase_percent"] < 95 else
+            "full"
+        )
+
+        sep = info["separation_deg"]
+        sep_desc = (
+            f"{sep:.0f} degrees away" if sep >= 10 else
+            f"only {sep:.1f} degrees away"
+        )
+
+        if info["recommendation"] == "excellent" or info["recommendation"] == "good":
+            return (
+                f"The {phase_desc} Moon is {sep_desc} from your target. "
+                f"Conditions are {info['recommendation']} for imaging."
+            )
+        elif info["recommendation"] == "acceptable":
+            return (
+                f"The {phase_desc} Moon is {sep_desc} at {info['moon_altitude_deg']:.0f} degrees altitude. "
+                f"Acceptable conditions, but some sky glow may be present."
+            )
+        elif info["recommendation"] == "caution":
+            return (
+                f"Caution: The {phase_desc} Moon is {sep_desc}. "
+                f"Moon illumination is {info['moon_phase_percent']:.0f}%. "
+                f"Consider a different target or wait for the Moon to set."
+            )
+        else:  # avoid
+            return (
+                f"Warning: The bright {phase_desc} Moon is very close to your target at {sep:.0f} degrees. "
+                f"Imaging conditions are poor. Recommend choosing a different target."
+            )
+
 
 # =============================================================================
 # CONVENIENCE FUNCTIONS
