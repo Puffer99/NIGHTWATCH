@@ -1281,8 +1281,25 @@ class AlertManager:
     # CALLBACKS
     # =========================================================================
 
-    def register_callback(self, callback: Callable):
-        """Register callback for new alerts."""
+    def register_callback(self, callback: Callable[["Alert"], None]):
+        """
+        Register callback for new alerts.
+
+        Callbacks are invoked when alerts are created or dispatched,
+        enabling external systems to react to alert events.
+
+        Args:
+            callback: Function with signature (alert: Alert) -> None
+                     Can be sync or async. Receives the Alert object
+                     with severity, message, channels, and timestamp.
+
+        Example:
+            async def on_alert(alert: Alert):
+                if alert.severity == AlertSeverity.CRITICAL:
+                    await sound_alarm()
+
+            manager.register_callback(on_alert)
+        """
         self._callbacks.append(callback)
 
     async def _notify_callbacks(self, alert: Alert):

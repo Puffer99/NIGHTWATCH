@@ -1704,12 +1704,29 @@ class PowerManager:
     # CALLBACKS
     # =========================================================================
 
-    def register_callback(self, callback: Callable):
-        """Register callback for power events."""
+    def register_callback(self, callback: Callable[[str, Any], None]):
+        """
+        Register callback for power events.
+
+        Callbacks are notified of power state changes, UPS events, and
+        PDU port operations. Can be sync or async functions.
+
+        Args:
+            callback: Function with signature (event: str, data: Any) -> None
+                     Events include: "power_lost", "power_restored",
+                     "battery_low", "park_initiated", "shutdown_initiated"
+
+        Example:
+            async def on_power_event(event: str, data: Any):
+                if event == "power_lost":
+                    logger.warning("UPS on battery!")
+
+            manager.register_callback(on_power_event)
+        """
         self._callbacks.append(callback)
 
     async def _notify_callbacks(self, event: str, data: Any = None):
-        """Notify registered callbacks."""
+        """Notify registered callbacks with error isolation."""
         for callback in self._callbacks:
             try:
                 if asyncio.iscoroutinefunction(callback):

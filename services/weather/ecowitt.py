@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 import math
-from typing import List, Optional, Tuple
+from typing import Awaitable, Callable, List, Optional, Tuple
 import json
 
 
@@ -355,8 +355,23 @@ class EcowittClient:
         """Get most recently fetched weather data."""
         return self._latest_data
 
-    def register_callback(self, callback):
-        """Register callback for weather updates."""
+    def register_callback(self, callback: Callable[["WeatherData"], Awaitable[None]]):
+        """
+        Register callback for weather updates.
+
+        The callback will be invoked each time new weather data is fetched
+        during polling. Callbacks are async and receive the WeatherData object.
+
+        Args:
+            callback: Async function with signature (data: WeatherData) -> None
+
+        Example:
+            async def on_weather_update(data: WeatherData):
+                if not data.safe_to_observe:
+                    await trigger_safety_shutdown()
+
+            client.register_callback(on_weather_update)
+        """
         self._callbacks.append(callback)
 
     # =========================================================================

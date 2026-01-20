@@ -274,8 +274,25 @@ class SafetyMonitor:
         """Most recent safety assessment."""
         return self._last_status
 
-    def register_callback(self, callback: Callable[[SafetyStatus], None]):
-        """Register callback for safety status changes."""
+    def register_callback(self, callback: Callable[["SafetyStatus"], None]):
+        """
+        Register callback for safety status changes.
+
+        Callbacks are invoked whenever the safety status is updated,
+        allowing other services to respond to safety state transitions.
+
+        Args:
+            callback: Function with signature (status: SafetyStatus) -> None
+                     Called with current SafetyStatus containing is_safe,
+                     conditions, and any active alerts.
+
+        Example:
+            def on_safety_change(status: SafetyStatus):
+                if not status.is_safe:
+                    initiate_emergency_close()
+
+            monitor.register_callback(on_safety_change)
+        """
         self._callbacks.append(callback)
 
     async def update_weather(self, data):
