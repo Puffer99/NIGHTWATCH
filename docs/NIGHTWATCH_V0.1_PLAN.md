@@ -646,9 +646,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 558 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_catalog.py | 81 | 2 | 2 | Complete | Added edge cases, formatting tests |
 | 559 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_camera.py | 100 | 2 | 2 | Complete | Created with enums, settings, presets tests |
 | 560 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_astrometry.py | 119 | 2 | 2 | Complete | Created with solver config, result tests |
-| 561 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_alerts.py | 139 | 2 | 2 | Not Started | More coverage |
-| 562 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_power.py | 157 | 2 | 2 | Not Started | More coverage |
-| 563 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_enclosure.py | 178 | 2 | 2 | Not Started | More coverage |
+| 561 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_alerts.py | 139 | 2 | 2 | Complete | Already comprehensive (672 lines, 28 test classes) |
+| 562 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_power.py | 157 | 2 | 2 | Complete | Created with NUT client, PowerManager, PDU tests |
+| 563 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_enclosure.py | 178 | 2 | 2 | Complete | Created with GPIO, RoofController, safety tests |
 | 564 | Testing & Quality Assurance | unit_tests | Expand tests/unit/test_focus.py | 191 | 2 | 2 | Complete | Created with config, state, metrics tests |
 | 565 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_mount_catalog.py | 351,358 | 3 | 2 | Not Started | Mount+catalog |
 | 566 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_voice_mount.py | 312,351 | 3 | 3 | Not Started | Voice+mount |
@@ -674,17 +674,17 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 586 | Testing & Quality Assurance | ci_cd | Add type checking job (mypy) | 585 | 2 | 1 | Complete | type-check job in ci.yml with mypy on nightwatch/services/voice |
 | 587 | Testing & Quality Assurance | ci_cd | Add linting job (ruff) | 586 | 2 | 1 | Complete | Enhanced lint job with ruff check and format in ci.yml |
 | 588 | Testing & Quality Assurance | ci_cd | Add security scanning job | 587 | 3 | 2 | Not Started | Vulnerability check |
-| 589 | Testing & Quality Assurance | ci_cd | Add documentation build job | 588 | 2 | 1 | Not Started | Doc generation |
+| 589 | Testing & Quality Assurance | ci_cd | Add documentation build job | 588 | 2 | 1 | Complete | docs-validation job in ci.yml |
 | 590 | Testing & Quality Assurance | ci_cd | Add release automation | 589 | 3 | 2 | Not Started | Version tagging |
 | 591 | Testing & Quality Assurance | ci_cd | Create GitHub issue templates | 590 | 2 | 1 | Complete | Bug report, feature request |
 | 592 | Testing & Quality Assurance | ci_cd | Create pull request template | 591 | 2 | 1 | Complete | Safety checklist included |
 | 593 | Testing & Quality Assurance | ci_cd | Add branch protection rules documentation | 592 | 2 | 1 | Complete | In CONTRIBUTING.md |
 | 594 | Documentation & POS | docs | Update README.md with v0.1 quickstart | None | 3 | 2 | Not Started | Entry point |
 | 595 | Documentation & POS | docs | Add installation section | 594 | 2 | 1 | Complete | INSTALLATION.md comprehensive guide exists |
-| 596 | Documentation & POS | docs | Add configuration section | 595 | 2 | 1 | Not Started | Config guide |
-| 597 | Documentation & POS | docs | Add voice command examples | 596 | 2 | 1 | Not Started | Usage examples |
+| 596 | Documentation & POS | docs | Add configuration section | 595 | 2 | 1 | Complete | Created docs/CONFIGURATION.md with full config reference |
+| 597 | Documentation & POS | docs | Add voice command examples | 596 | 2 | 1 | Complete | VOICE_COMMANDS.md already has comprehensive examples |
 | 598 | Documentation & POS | docs | Create docs/QUICKSTART.md | 597 | 3 | 2 | Not Started | Fast setup |
-| 599 | Documentation & POS | docs | Create docs/CONFIGURATION.md | 598 | 3 | 2 | Not Started | Full config ref |
+| 599 | Documentation & POS | docs | Create docs/CONFIGURATION.md | 598 | 3 | 2 | Complete | Created in step 596 |
 | 600 | Documentation & POS | docs | Create docs/VOICE_COMMANDS.md | 599 | 2 | 2 | Complete | Already exists, comprehensive |
 | 601 | Documentation & POS | docs | Create docs/API_REFERENCE.md | 600 | 4 | 3 | Not Started | Service APIs |
 | 602 | Documentation & POS | docs | Create docs/TROUBLESHOOTING.md | 601 | 3 | 2 | Not Started | Common issues |

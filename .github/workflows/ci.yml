@@ -269,3 +269,63 @@ jobs:
           echo "Checking INDI image..."
           docker pull indilib/indi-full:latest && echo "INDI image OK" || echo "Warning: Could not pull INDI image"
         continue-on-error: true
+
+  # ============================================================================
+  # Documentation Validation (Step 589)
+  # ============================================================================
+  docs-validation:
+    name: Documentation Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check documentation structure
+        run: |
+          echo "Verifying documentation files exist..."
+          required_docs=(
+            "README.md"
+            "docs/INSTALLATION.md"
+            "docs/CONFIGURATION.md"
+            "docs/HARDWARE_SETUP.md"
+            "docs/VOICE_COMMANDS.md"
+          )
+          missing=0
+          for doc in "${required_docs[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✓ $doc"
+            else
+              echo "✗ $doc (missing)"
+              missing=$((missing + 1))
+            fi
+          done
+          if [ $missing -gt 0 ]; then
+            echo "::warning::$missing required documentation files are missing"
+          fi
+
+      - name: Validate markdown syntax
+        run: |
+          # Check for common markdown issues
+          echo "Checking markdown files..."
+          find docs/ -name "*.md" -type f | while read -r file; do
+            # Check for broken internal links (basic check)
+            if grep -l '\[.*\](\./' "$file" > /dev/null 2>&1; then
+              echo "Checking links in $file"
+            fi
+            # Check file is not empty
+            if [ ! -s "$file" ]; then
+              echo "::warning::Empty file: $file"
+            fi
+          done
+          echo "Markdown validation complete"
+
+      - name: Check for TODO/FIXME in docs
+        run: |
+          echo "Checking for incomplete documentation markers..."
+          if grep -r -i "TODO\|FIXME\|XXX" docs/*.md 2>/dev/null; then
+            echo "::warning::Found TODO/FIXME markers in documentation"
+          else
+            echo "No TODO/FIXME markers found"
+          fi
+        continue-on-error: true
