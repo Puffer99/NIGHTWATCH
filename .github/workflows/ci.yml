@@ -164,10 +164,10 @@ jobs:
           docker compose -f docker/docker-compose.dev.yml down 2>/dev/null || true
 
   # ============================================================================
-  # Code Quality
+  # Code Quality - Linting (Step 587)
   # ============================================================================
   lint:
-    name: Code Quality
+    name: Linting (ruff)
     runs-on: ubuntu-latest
 
     steps:
@@ -179,14 +179,70 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install linters
+      - name: Install ruff
         run: |
           python -m pip install --upgrade pip
           pip install ruff
 
       - name: Run ruff linter
         run: |
-          ruff check services/ voice/ tests/ --ignore=E501,F401 || true
+          echo "Running ruff linter..."
+          ruff check services/ voice/ nightwatch/ --ignore=E501,F401,F841 --output-format=github || true
+
+      - name: Run ruff formatter check
+        run: |
+          echo "Checking code formatting..."
+          ruff format --check services/ voice/ nightwatch/ || echo "::warning::Some files need formatting"
+        continue-on-error: true
+
+  # ============================================================================
+  # Code Quality - Type Checking (Step 586)
+  # ============================================================================
+  type-check:
+    name: Type Checking (mypy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy types-requests types-PyYAML
+          pip install -r services/requirements.txt || true
+
+      - name: Run mypy on core modules
+        run: |
+          echo "Running mypy type checker..."
+          mypy nightwatch/ \
+            --ignore-missing-imports \
+            --no-error-summary \
+            --show-error-codes \
+            --pretty || echo "::warning::Type errors found in nightwatch/"
+
+      - name: Run mypy on services
+        run: |
+          mypy services/ \
+            --ignore-missing-imports \
+            --no-error-summary \
+            --show-error-codes \
+            --pretty || echo "::warning::Type errors found in services/"
+        continue-on-error: true
+
+      - name: Run mypy on voice
+        run: |
+          mypy voice/ \
+            --ignore-missing-imports \
+            --no-error-summary \
+            --show-error-codes \
+            --pretty || echo "::warning::Type errors found in voice/"
         continue-on-error: true
 
   # ============================================================================

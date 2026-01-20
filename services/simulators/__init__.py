@@ -151,12 +151,33 @@ class BaseSimulator:
         return message
 
 
+# Import simulators for easy access
+from .mount_simulator import MountSimulator, MountSimulatorConfig, MountState, TrackingRate
+from .weather_simulator import WeatherSimulator, WeatherSimulatorConfig, WeatherScenario
+from .guider_simulator import GuiderSimulator, GuiderSimulatorConfig, RMSQuality, GuideState
+
+
 # Version info
 __version__ = "0.1.0"
 __all__ = [
+    # Base classes
     "SimulatorState",
     "FaultConfig",
     "SimulatorConfig",
     "SimulatorStats",
     "BaseSimulator",
+    # Mount simulator (Steps 521-522)
+    "MountSimulator",
+    "MountSimulatorConfig",
+    "MountState",
+    "TrackingRate",
+    # Weather simulator (Step 527)
+    "WeatherSimulator",
+    "WeatherSimulatorConfig",
+    "WeatherScenario",
+    # Guider simulator (Step 535)
+    "GuiderSimulator",
+    "GuiderSimulatorConfig",
+    "RMSQuality",
+    "GuideState",
 ]

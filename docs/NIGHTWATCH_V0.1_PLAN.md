@@ -586,7 +586,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 498 | Safety System Hardening | watchdog | Add restart attempt limit | 497 | 2 | 1 | Complete | Prevent loop |
 | 499 | Safety System Hardening | watchdog | Implement safe state on persistent failure | 498 | 3 | 2 | Complete | SafeStateHandler.enter_safe_state() parks, closes, alerts |
 | 500 | Safety System Hardening | watchdog | Write unit tests for watchdog | 499 | 2 | 2 | Complete | Test coverage |
-| 501 | Hardware-in-Loop Simulation | docker | Review docker-compose.dev.yml current state | None | 2 | 1 | Not Started | Understand setup |
+| 501 | Hardware-in-Loop Simulation | docker | Review docker-compose.dev.yml current state | None | 2 | 1 | Complete | Already well-configured with Alpaca/INDI simulators |
 | 502 | Hardware-in-Loop Simulation | docker | Add mount simulator service | 501 | 3 | 2 | Not Started | OnStepX sim |
 | 503 | Hardware-in-Loop Simulation | docker | Configure mount simulator with LX200 protocol | 502 | 2 | 1 | Not Started | TCP port 9999 |
 | 504 | Hardware-in-Loop Simulation | docker | Add weather simulator service | 503 | 3 | 2 | Not Started | Ecowitt sim |
@@ -606,13 +606,13 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 518 | Hardware-in-Loop Simulation | simulators | Implement LX200 command parsing | 517 | 3 | 2 | Not Started | Protocol handling |
 | 519 | Hardware-in-Loop Simulation | simulators | Add simulated position tracking | 518 | 3 | 2 | Not Started | Virtual mount |
 | 520 | Hardware-in-Loop Simulation | simulators | Add simulated slew behavior | 519 | 3 | 2 | Not Started | Movement timing |
-| 521 | Hardware-in-Loop Simulation | simulators | Add simulated tracking rate | 520 | 2 | 1 | Not Started | Sidereal motion |
-| 522 | Hardware-in-Loop Simulation | simulators | Implement park/unpark simulation | 521 | 2 | 1 | Not Started | State machine |
+| 521 | Hardware-in-Loop Simulation | simulators | Add simulated tracking rate | 520 | 2 | 1 | Complete | TrackingRate enum (sidereal/lunar/solar/king) in mount_simulator.py |
+| 522 | Hardware-in-Loop Simulation | simulators | Implement park/unpark simulation | 521 | 2 | 1 | Complete | MountState enum, park/unpark methods in mount_simulator.py |
 | 523 | Hardware-in-Loop Simulation | simulators | Add configurable fault injection | 522 | 3 | 2 | Not Started | Error testing |
 | 524 | Hardware-in-Loop Simulation | simulators | Create weather_simulator.py | 523 | 3 | 2 | Not Started | Weather sim |
 | 525 | Hardware-in-Loop Simulation | simulators | Implement Ecowitt API simulation | 524 | 3 | 2 | Not Started | HTTP responses |
 | 526 | Hardware-in-Loop Simulation | simulators | Add weather pattern generation | 525 | 3 | 2 | Not Started | Varying conditions |
-| 527 | Hardware-in-Loop Simulation | simulators | Add configurable weather scenarios | 526 | 2 | 1 | Not Started | Clear, cloudy, rain |
+| 527 | Hardware-in-Loop Simulation | simulators | Add configurable weather scenarios | 526 | 2 | 1 | Complete | WeatherScenario enum, SCENARIO_PRESETS in weather_simulator.py |
 | 528 | Hardware-in-Loop Simulation | simulators | Create camera_simulator.py | 527 | 3 | 2 | Not Started | Camera sim |
 | 529 | Hardware-in-Loop Simulation | simulators | Implement simulated image generation | 528 | 4 | 3 | Not Started | Synthetic stars |
 | 530 | Hardware-in-Loop Simulation | simulators | Add configurable star field | 529 | 3 | 2 | Not Started | Test images |
@@ -620,7 +620,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 532 | Hardware-in-Loop Simulation | simulators | Create phd2_simulator.py | 531 | 3 | 2 | Not Started | Guiding sim |
 | 533 | Hardware-in-Loop Simulation | simulators | Implement JSON-RPC protocol | 532 | 3 | 2 | Not Started | PHD2 API |
 | 534 | Hardware-in-Loop Simulation | simulators | Add simulated guide star tracking | 533 | 3 | 2 | Not Started | Virtual guiding |
-| 535 | Hardware-in-Loop Simulation | simulators | Add configurable RMS levels | 534 | 2 | 1 | Not Started | Quality simulation |
+| 535 | Hardware-in-Loop Simulation | simulators | Add configurable RMS levels | 534 | 2 | 1 | Complete | RMSQuality enum, RMS_PRESETS in guider_simulator.py |
 | 536 | Hardware-in-Loop Simulation | test_fixtures | Create tests/fixtures/__init__.py | 501 | 1 | 1 | Complete | Package |
 | 537 | Hardware-in-Loop Simulation | test_fixtures | Create mock_mount.py fixture | 536 | 3 | 2 | Complete | Mount mock |
 | 538 | Hardware-in-Loop Simulation | test_fixtures | Create mock_weather.py fixture | 537 | 3 | 2 | Complete | Weather mock |
@@ -671,8 +671,8 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 583 | Testing & Quality Assurance | ci_cd | Add coverage threshold check (80%) | 582 | 2 | 1 | Complete | Coverage threshold check step in ci.yml with warning on <80% |
 | 584 | Testing & Quality Assurance | ci_cd | Add integration test job with simulators | 583 | 3 | 2 | Not Started | Docker tests |
 | 585 | Testing & Quality Assurance | ci_cd | Add e2e test job | 584 | 3 | 2 | Not Started | Full tests |
-| 586 | Testing & Quality Assurance | ci_cd | Add type checking job (mypy) | 585 | 2 | 1 | Not Started | Type safety |
-| 587 | Testing & Quality Assurance | ci_cd | Add linting job (ruff) | 586 | 2 | 1 | Not Started | Code style |
+| 586 | Testing & Quality Assurance | ci_cd | Add type checking job (mypy) | 585 | 2 | 1 | Complete | type-check job in ci.yml with mypy on nightwatch/services/voice |
+| 587 | Testing & Quality Assurance | ci_cd | Add linting job (ruff) | 586 | 2 | 1 | Complete | Enhanced lint job with ruff check and format in ci.yml |
 | 588 | Testing & Quality Assurance | ci_cd | Add security scanning job | 587 | 3 | 2 | Not Started | Vulnerability check |
 | 589 | Testing & Quality Assurance | ci_cd | Add documentation build job | 588 | 2 | 1 | Not Started | Doc generation |
 | 590 | Testing & Quality Assurance | ci_cd | Add release automation | 589 | 3 | 2 | Not Started | Version tagging |
