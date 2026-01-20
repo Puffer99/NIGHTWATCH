@@ -30,6 +30,17 @@ from .success_tracker import (
     get_success_tracker,
 )
 
+from .object_identifier import (
+    ObjectIdentifier,
+    IdentificationMethod,
+    ConfidenceLevel,
+    ObjectMatch,
+    FieldOfView,
+    IdentificationResult,
+    PatternMatch,
+    get_object_identifier,
+)
+
 __all__ = [
     "CatalogService",
     "CatalogDatabase",
@@ -47,4 +58,13 @@ __all__ = [
     "SuccessPrediction",
     "ConditionBucket",
     "get_success_tracker",
+    # Object Identification
+    "ObjectIdentifier",
+    "IdentificationMethod",
+    "ConfidenceLevel",
+    "ObjectMatch",
+    "FieldOfView",
+    "IdentificationResult",
+    "PatternMatch",
+    "get_object_identifier",
 ]
