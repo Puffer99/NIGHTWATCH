@@ -18,9 +18,12 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
+import logging
 import math
 from typing import Awaitable, Callable, List, Optional, Tuple
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class WeatherCondition(Enum):
@@ -147,10 +150,10 @@ class EcowittClient:
                         data = await response.json()
                         return self._parse_response(data)
                     else:
-                        print(f"Weather API error: {response.status}")
+                        logger.warning(f"Weather API error: HTTP {response.status}")
                         return None
         except Exception as e:
-            print(f"Weather fetch failed: {e}")
+            logger.error(f"Weather fetch failed: {e}")
             return None
 
     def _parse_response(self, data: dict) -> WeatherData:
@@ -698,7 +701,7 @@ class EcowittClient:
                     try:
                         await callback(data)
                     except Exception as e:
-                        print(f"Weather callback error: {e}")
+                        logger.error(f"Weather callback error: {e}")
             await asyncio.sleep(self.poll_interval)
 
 
