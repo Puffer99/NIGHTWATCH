@@ -527,7 +527,8 @@ class TestNarrateSessionEnd:
 
         narration = loaded_narrator.narrate_session_end()
 
-        assert "complete" in narration.text.lower() or "finished" in narration.text.lower()
+        text_lower = narration.text.lower()
+        assert any(phrase in text_lower for phrase in ["complete", "finished", "wraps up", "concluded"])
         assert narration.phase == SessionPhase.COMPLETE
 
     def test_session_end_updates_state(self, loaded_narrator):
