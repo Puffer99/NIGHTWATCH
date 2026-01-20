@@ -655,7 +655,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 567 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_safety_mount.py | 480,351 | 3 | 2 | Complete | Safety+mount |
 | 568 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_safety_enclosure.py | 480,433 | 3 | 2 | Complete | Safety+enclosure |
 | 569 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_orchestrator_services.py | 256,547 | 3 | 3 | Complete | Full orchestration tests (25+ tests, 7 mock services) |
-| 570 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_full_pipeline.py | 312,569 | 4 | 3 | Not Started | End-to-end |
+| 570 | Testing & Quality Assurance | integration_tests | Create tests/integration/test_full_pipeline.py | 312,569 | 4 | 3 | Complete | End-to-end full pipeline tests (22 tests, STT->LLM->Services->TTS) |
 | 571 | Testing & Quality Assurance | integration_tests | Add simulator startup helper | 570 | 2 | 1 | Complete | SimulatorManager.start(), start_simulators() in tests/integration/__init__.py |
 | 572 | Testing & Quality Assurance | integration_tests | Add simulator shutdown helper | 571 | 2 | 1 | Complete | SimulatorManager.stop(), stop_simulators() in tests/integration/__init__.py |
 | 573 | Testing & Quality Assurance | e2e_tests | Create tests/e2e/__init__.py | 570 | 1 | 1 | Complete | E2E test package with pytest markers for e2e, requires_simulators, slow |
@@ -735,7 +735,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 647 | Deployment Preparation | release | Verify all tests passing | 646 | 2 | 1 | Complete | Core tests pass (191+ tests), optional deps required for full suite |
 | 648 | Deployment Preparation | release | Update version numbers | 647 | 1 | 1 | Complete | 0.1.0 in __init__.py |
 | 649 | Deployment Preparation | release | Generate changelog | 648 | 2 | 1 | Complete | CHANGELOG.md updated |
-| 650 | Deployment Preparation | release | Create GitHub release | 649 | 2 | 1 | Not Started | Tag v0.1.0 |
+| 650 | Deployment Preparation | release | Create GitHub release | 649 | 2 | 1 | Complete | Tag v0.1.0 created and released on GitHub |
 | 651 | Deployment Preparation | release | Record demo video | 650 | 3 | 3 | Not Started | Showcase |
 | 652 | Deployment Preparation | release | Write release announcement | 651 | 2 | 1 | Complete | RELEASE_v0.1.0.md |
 | 653 | Deployment Preparation | release | Update project roadmap for v0.2 | 652 | 2 | 1 | Complete | ROADMAP.md |
