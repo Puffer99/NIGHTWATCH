@@ -406,12 +406,12 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 318 | Voice Pipeline Integration | stt_integration | Implement astronomy vocabulary boost | 317 | 3 | 2 | Not Started | Domain accuracy |
 | 319 | Voice Pipeline Integration | stt_integration | Add multi-language support preparation | 318 | 2 | 1 | Complete | SUPPORTED_LANGUAGES, STT_SUPPORTED_LANGUAGES dicts in tts/stt servers |
 | 320 | Voice Pipeline Integration | tts_integration | Integrate PiperTTS with voice pipeline | 293 | 2 | 1 | Complete | TTSInterface wraps piper-tts |
-| 321 | Voice Pipeline Integration | tts_integration | Configure DGX Spark CUDA acceleration | 320 | 2 | 1 | Not Started | GPU synthesis |
+| 321 | Voice Pipeline Integration | tts_integration | Configure DGX Spark CUDA acceleration | 320 | 2 | 1 | Complete | cuda_device, cuda_memory_fraction in TTSConfig |
 | 322 | Voice Pipeline Integration | tts_integration | Add response phrase caching | 321 | 3 | 2 | Not Started | Common responses |
 | 323 | Voice Pipeline Integration | tts_integration | Implement dynamic speech rate based on urgency | 322 | 2 | 1 | Complete | detect_urgency(), get_urgency_rate() in tts_server.py |
 | 324 | Voice Pipeline Integration | tts_integration | Add audio ducking (lower volume for background) | 323 | 3 | 2 | Not Started | Audio mix |
-| 325 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming STT server startup | 293 | 2 | 1 | Not Started | Protocol server |
-| 326 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming TTS server startup | 325 | 2 | 1 | Not Started | Protocol server |
+| 325 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming STT server startup | 293 | 2 | 1 | Complete | WyomingManager.start_stt_server(), wyoming_* config fields |
+| 326 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming TTS server startup | 325 | 2 | 1 | Complete | WyomingManager.start_tts_server() in startup.py |
 | 327 | Voice Pipeline Integration | wyoming_integration | Add Home Assistant compatibility | 326 | 3 | 2 | Not Started | HA integration |
 | 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Not Started | Auto-detect |
 | 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Not Started | Protocol test |
@@ -436,14 +436,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 348 | Tool Handler Implementation | mount_tools | Add confirmation requirement for sync | 347 | 2 | 1 | Complete | sync_position(confirmed) requires confirm |
 | 349 | Tool Handler Implementation | mount_tools | Implement home_telescope handler | 348 | 2 | 1 | Complete | home_telescope() with find_home/home fallback |
 | 350 | Tool Handler Implementation | mount_tools | Add home position offset setting | 349 | 2 | 1 | Complete | set_home_offset() with ±60 arcmin validation |
-| 351 | Tool Handler Implementation | mount_tools | Write unit tests for mount tool handlers | 350 | 2 | 2 | Not Started | Test coverage |
+| 351 | Tool Handler Implementation | mount_tools | Write unit tests for mount tool handlers | 350 | 2 | 2 | Complete | TestMountToolHandlers in test_telescope_tools.py (6 tests) |
 | 352 | Tool Handler Implementation | catalog_tools | Implement lookup_object handler | 257,78 | 2 | 1 | Complete | Enhanced with type, mag, constellation, altitude |
 | 353 | Tool Handler Implementation | catalog_tools | Add fuzzy name matching | 352 | 3 | 2 | Not Started | Typo tolerance |
 | 354 | Tool Handler Implementation | catalog_tools | Implement what_am_i_looking_at handler | 353 | 3 | 2 | Not Started | Reverse lookup |
 | 355 | Tool Handler Implementation | catalog_tools | Add nearest object search by coordinates | 354 | 3 | 2 | Not Started | Cone search |
 | 356 | Tool Handler Implementation | catalog_tools | Implement find_objects handler | 355 | 2 | 1 | Complete | find_objects() with catalog search |
 | 357 | Tool Handler Implementation | catalog_tools | Add filtering by type, magnitude, constellation | 356 | 2 | 1 | Complete | object_type, max_magnitude, constellation, min_altitude params |
-| 358 | Tool Handler Implementation | catalog_tools | Write unit tests for catalog tool handlers | 357 | 2 | 2 | Not Started | Test coverage |
+| 358 | Tool Handler Implementation | catalog_tools | Write unit tests for catalog tool handlers | 357 | 2 | 2 | Complete | TestCatalogToolHandlers in test_telescope_tools.py (4 tests) |
 | 359 | Tool Handler Implementation | ephemeris_tools | Implement get_planet_position handler | 257 | 2 | 1 | Complete | get_planet_position() with full coords |
 | 360 | Tool Handler Implementation | ephemeris_tools | Add rise/set times in response | 359 | 2 | 1 | Complete | Rise/set/transit times in planet position |
 | 361 | Tool Handler Implementation | ephemeris_tools | Implement get_visible_planets handler | 360 | 2 | 1 | Complete | Enhanced with compass direction and quality |
@@ -470,7 +470,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 382 | Tool Handler Implementation | safety_tools | Add last reading timestamps | 381 | 2 | 1 | Complete | Timestamps and age in sensor health |
 | 383 | Tool Handler Implementation | safety_tools | Implement get_hysteresis_status handler | 382 | 2 | 1 | Complete | get_hysteresis_status() with triggered states |
 | 384 | Tool Handler Implementation | safety_tools | Add time until threshold reset | 383 | 2 | 1 | Complete | time_to_reset with rain holdoff and resume times |
-| 385 | Tool Handler Implementation | safety_tools | Write unit tests for safety tool handlers | 384 | 2 | 2 | Not Started | Test coverage |
+| 385 | Tool Handler Implementation | safety_tools | Write unit tests for safety tool handlers | 384 | 2 | 2 | Complete | TestSafetyToolHandlers in test_telescope_tools.py (5 tests) |
 | 386 | Tool Handler Implementation | session_tools | Implement confirm_command handler | 257 | 2 | 1 | Complete | confirm_command() returns confirmation prompt |
 | 387 | Tool Handler Implementation | session_tools | Add timeout for confirmation | 386 | 2 | 1 | Complete | timeout_seconds parameter (default 30) |
 | 388 | Tool Handler Implementation | session_tools | Implement get_observation_log handler | 387 | 2 | 1 | Complete | Enhanced with session filter and date range |

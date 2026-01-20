@@ -367,6 +367,222 @@ class TestHandlerCreation:
 
 
 # ============================================================================
+# Mount Tool Handler Tests (Step 351)
+# ============================================================================
+
+class TestMountToolHandlers:
+    """Tests for mount tool handlers."""
+
+    def test_mount_tools_defined(self):
+        """Verify all mount control tools are defined."""
+        mount_tool_names = [
+            "goto_object",
+            "goto_coordinates",
+            "park_telescope",
+            "unpark_telescope",
+            "stop_telescope",
+            "start_tracking",
+            "stop_tracking",
+            "get_mount_status",
+            "sync_position",
+            "home_telescope",
+        ]
+        tool_names = {t.name for t in TELESCOPE_TOOLS}
+        for name in mount_tool_names:
+            assert name in tool_names, f"Mount tool '{name}' not found"
+
+    def test_goto_object_parameters(self):
+        """Verify goto_object has object_name parameter."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("goto_object")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        assert "object_name" in param_names
+
+        # object_name should be required
+        object_param = next(p for p in tool.parameters if p.name == "object_name")
+        assert object_param.required is True
+        assert object_param.type == "string"
+
+    def test_goto_coordinates_parameters(self):
+        """Verify goto_coordinates has ra and dec parameters."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("goto_coordinates")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        assert "ra" in param_names
+        assert "dec" in param_names
+
+        # Both should be required
+        for p in tool.parameters:
+            if p.name in ("ra", "dec"):
+                assert p.required is True
+                assert p.type == "string"
+
+    def test_park_telescope_parameters(self):
+        """Verify park_telescope has optional confirmed parameter."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("park_telescope")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        assert "confirmed" in param_names
+
+        confirmed_param = next(p for p in tool.parameters if p.name == "confirmed")
+        assert confirmed_param.required is False
+        assert confirmed_param.type == "boolean"
+
+    def test_sync_position_parameters(self):
+        """Verify sync_position has object_name and confirmed parameters."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("sync_position")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        assert "object_name" in param_names
+        assert "confirmed" in param_names
+
+    def test_mount_handlers_created(self):
+        """Verify mount handlers are created in default handlers."""
+        handlers = create_default_handlers()
+
+        mount_handlers = [
+            "goto_object",
+            "goto_coordinates",
+            "park_telescope",
+            "unpark_telescope",
+            "stop_telescope",
+            "start_tracking",
+            "stop_tracking",
+            "get_mount_status",
+            "sync_position",
+            "home_telescope",
+        ]
+
+        for handler_name in mount_handlers:
+            assert handler_name in handlers, f"Handler '{handler_name}' not created"
+            assert callable(handlers[handler_name])
+
+
+# ============================================================================
+# Catalog Tool Handler Tests (Step 358)
+# ============================================================================
+
+class TestCatalogToolHandlers:
+    """Tests for catalog tool handlers."""
+
+    def test_catalog_tools_defined(self):
+        """Verify all catalog tools are defined."""
+        catalog_tool_names = [
+            "lookup_object",
+            "find_objects",
+        ]
+        tool_names = {t.name for t in TELESCOPE_TOOLS}
+        for name in catalog_tool_names:
+            assert name in tool_names, f"Catalog tool '{name}' not found"
+
+    def test_lookup_object_parameters(self):
+        """Verify lookup_object has object_name parameter."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("lookup_object")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        assert "object_name" in param_names
+
+        name_param = next(p for p in tool.parameters if p.name == "object_name")
+        assert name_param.required is True
+        assert name_param.type == "string"
+
+    def test_find_objects_parameters(self):
+        """Verify find_objects has filtering parameters."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("find_objects")
+        assert tool is not None
+
+        param_names = {p.name for p in tool.parameters}
+        # Should have some filtering parameters
+        assert len(param_names) > 0
+
+    def test_catalog_handlers_created(self):
+        """Verify catalog handlers are created in default handlers."""
+        handlers = create_default_handlers()
+
+        catalog_handlers = [
+            "lookup_object",
+            "find_objects",
+        ]
+
+        for handler_name in catalog_handlers:
+            assert handler_name in handlers, f"Handler '{handler_name}' not created"
+            assert callable(handlers[handler_name])
+
+
+# ============================================================================
+# Safety Tool Handler Tests (Step 385)
+# ============================================================================
+
+class TestSafetyToolHandlers:
+    """Tests for safety tool handlers."""
+
+    def test_safety_tools_defined(self):
+        """Verify all safety tools are defined."""
+        safety_tool_names = [
+            "is_safe_to_observe",
+            "get_sensor_health",
+            "get_hysteresis_status",
+        ]
+        tool_names = {t.name for t in TELESCOPE_TOOLS}
+        for name in safety_tool_names:
+            assert name in tool_names, f"Safety tool '{name}' not found"
+
+    def test_is_safe_to_observe_no_required_params(self):
+        """Verify is_safe_to_observe has no required parameters."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("is_safe_to_observe")
+        assert tool is not None
+
+        # Should have no required parameters or all optional
+        required_params = [p for p in tool.parameters if p.required]
+        assert len(required_params) == 0
+
+    def test_get_sensor_health_no_required_params(self):
+        """Verify get_sensor_health has no required parameters."""
+        registry = ToolRegistry()
+        tool = registry.get_tool("get_sensor_health")
+        assert tool is not None
+
+        required_params = [p for p in tool.parameters if p.required]
+        assert len(required_params) == 0
+
+    def test_safety_handlers_created(self):
+        """Verify safety handlers are created in default handlers."""
+        handlers = create_default_handlers()
+
+        safety_handlers = [
+            "is_safe_to_observe",
+            "get_sensor_health",
+            "get_hysteresis_status",
+        ]
+
+        for handler_name in safety_handlers:
+            assert handler_name in handlers, f"Handler '{handler_name}' not created"
+            assert callable(handlers[handler_name])
+
+    def test_safety_tools_in_correct_category(self):
+        """Verify safety tools are in SAFETY category."""
+        registry = ToolRegistry()
+        safety_tools = registry.get_tools_by_category(ToolCategory.SAFETY)
+        safety_names = {t.name for t in safety_tools}
+
+        expected = ["is_safe_to_observe", "get_sensor_health", "get_hysteresis_status"]
+        for name in expected:
+            assert name in safety_names, f"'{name}' not in SAFETY category"
+
+
+# ============================================================================
 # Run Configuration
 # ============================================================================
 

@@ -304,6 +304,28 @@ class VoiceConfig(BaseModel):
         description="Condition decoding on previous output",
     )
 
+    # Wyoming protocol server settings (Step 325)
+    wyoming_enabled: bool = Field(
+        default=True,
+        description="Enable Wyoming protocol STT server",
+    )
+    wyoming_host: str = Field(
+        default="0.0.0.0",
+        description="Wyoming STT server bind address",
+    )
+    wyoming_port: int = Field(
+        default=10300,
+        ge=1024,
+        le=65535,
+        description="Wyoming STT server port",
+    )
+    confidence_threshold: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Minimum transcription confidence (Step 317)",
+    )
+
 
 class TTSConfig(BaseModel):
     """Text-to-Speech (TTS) configuration (Step 7).
@@ -345,6 +367,35 @@ class TTSConfig(BaseModel):
         ge=0.5,
         le=2.0,
         description="Speech rate multiplier",
+    )
+
+    # Wyoming protocol server settings (Step 326)
+    wyoming_enabled: bool = Field(
+        default=True,
+        description="Enable Wyoming protocol TTS server",
+    )
+    wyoming_host: str = Field(
+        default="0.0.0.0",
+        description="Wyoming TTS server bind address",
+    )
+    wyoming_port: int = Field(
+        default=10301,
+        ge=1024,
+        le=65535,
+        description="Wyoming TTS server port",
+    )
+
+    # DGX Spark CUDA settings (Step 321)
+    cuda_device: int = Field(
+        default=0,
+        ge=0,
+        description="CUDA device index for TTS inference",
+    )
+    cuda_memory_fraction: float = Field(
+        default=0.2,
+        ge=0.1,
+        le=1.0,
+        description="Fraction of GPU memory to use for TTS",
     )
 
 

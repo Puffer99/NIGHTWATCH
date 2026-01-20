@@ -25,6 +25,7 @@ from .protocol import (
 )
 from .stt_server import WyomingSTTServer
 from .tts_server import WyomingTTSServer
+from .startup import WyomingManager, WyomingServerStatus, start_wyoming_servers
 
 __all__ = [
     # Protocol types
@@ -40,4 +41,8 @@ __all__ = [
     # Servers
     "WyomingSTTServer",
     "WyomingTTSServer",
+    # Startup (Steps 321, 325-326)
+    "WyomingManager",
+    "WyomingServerStatus",
+    "start_wyoming_servers",
 ]
