@@ -1233,5 +1233,41 @@ All planned integration phases have been successfully implemented as of January 
 
 ---
 
+## v0.1 Release Status (Step 605)
+
+**Version:** 0.1.0
+**Target Completion:** 74% (490/663 steps)
+**Last Updated:** January 2026
+
+### v0.1 Feature Summary
+
+| Feature Area | Status | Key Components |
+|--------------|--------|----------------|
+| Voice Pipeline | ✓ Complete | faster-whisper STT, Piper TTS, Wyoming protocol |
+| Mount Control | ✓ Complete | LX200 client, OnStepX extended commands, encoder bridge |
+| Device Layer | ✓ Complete | INDI adapters, Alpaca client, unified device abstraction |
+| Safety System | ✓ Complete | Safety monitor, interlock, emergency response, watchdog |
+| Docker Infrastructure | ✓ Complete | Dev/test/prod compose files, healthchecks, CI integration |
+| Tool Handlers | 90% Complete | 44+ voice tools, INDI/Alpaca handlers, power control |
+| Testing | 80% Complete | Unit tests, integration tests, hardware-in-loop simulation |
+| Documentation | 75% Complete | Installation, configuration, voice commands, API reference |
+
+### Docker Infrastructure (v0.1)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `docker-compose.dev.yml` | Development with full simulators | ✓ Ready |
+| `docker-compose.test.yml` | Lightweight CI testing | ✓ Ready |
+| `docker-compose.prod.yml` | Production deployment template | ✓ Ready |
+
+### v0.1 Known Limitations
+
+1. Camera service requires ZWO ASI SDK (not included, platform-specific)
+2. Astrometry solving requires local installation of astrometry.net or ASTAP
+3. PHD2 guiding requires separate PHD2 installation
+4. Weather station requires physical Ecowitt hardware or simulator
+
+---
+
 *Document maintained by NIGHTWATCH development team. See `pos/PANEL_RESOURCES.md` for source repository links.*
-*Last updated: January 2026 - All phases complete*
+*Last updated: January 2026 - v0.1 release preparation*

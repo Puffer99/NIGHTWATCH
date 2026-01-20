@@ -414,7 +414,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 326 | Voice Pipeline Integration | wyoming_integration | Configure Wyoming TTS server startup | 325 | 2 | 1 | Complete | WyomingManager.start_tts_server() in startup.py |
 | 327 | Voice Pipeline Integration | wyoming_integration | Add Home Assistant compatibility | 326 | 3 | 2 | Not Started | HA integration |
 | 328 | Voice Pipeline Integration | wyoming_integration | Implement Wyoming service discovery | 327 | 3 | 2 | Not Started | Auto-detect |
-| 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Not Started | Protocol test |
+| 329 | Voice Pipeline Integration | wyoming_integration | Write integration test for Wyoming protocol | 328 | 2 | 2 | Complete | Protocol test |
 | 330 | Tool Handler Implementation | mount_tools | Implement goto_object handler | 257,78 | 3 | 2 | Not Started | Core command |
 | 331 | Tool Handler Implementation | mount_tools | Add catalog resolution in goto_object | 330 | 2 | 1 | Complete | catalog_service.lookup() in telescope_tools.py |
 | 332 | Tool Handler Implementation | mount_tools | Add ephemeris resolution for planets in goto_object | 331 | 2 | 1 | Complete | ephemeris_service.get_body_position() in telescope_tools.py |
@@ -597,10 +597,10 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 509 | Hardware-in-Loop Simulation | docker | Configure PHD2 simulator JSON-RPC | 508 | 2 | 1 | Not Started | Port 4400 |
 | 510 | Hardware-in-Loop Simulation | docker | Add INDI simulator configuration | 509 | 2 | 1 | Not Started | Device sim |
 | 511 | Hardware-in-Loop Simulation | docker | Add Alpaca simulator configuration | 510 | 2 | 1 | Not Started | Device sim |
-| 512 | Hardware-in-Loop Simulation | docker | Create docker-compose.test.yml for CI | 511 | 2 | 2 | Not Started | Lightweight |
+| 512 | Hardware-in-Loop Simulation | docker | Create docker-compose.test.yml for CI | 511 | 2 | 2 | Complete | Lightweight |
 | 513 | Hardware-in-Loop Simulation | docker | Add healthcheck for all services | 512 | 2 | 1 | Complete | Startup wait |
-| 514 | Hardware-in-Loop Simulation | docker | Create docker-compose.prod.yml template | 513 | 2 | 2 | Not Started | Production config |
-| 515 | Hardware-in-Loop Simulation | docker | Write docker-compose validation test | 514 | 2 | 1 | Not Started | Syntax check |
+| 514 | Hardware-in-Loop Simulation | docker | Create docker-compose.prod.yml template | 513 | 2 | 2 | Complete | Production config |
+| 515 | Hardware-in-Loop Simulation | docker | Write docker-compose validation test | 514 | 2 | 1 | Complete | Syntax check |
 | 516 | Hardware-in-Loop Simulation | simulators | Create services/simulators/__init__.py | 501 | 1 | 1 | Complete | BaseSimulator, SimulatorConfig, SimulatorStats, FaultConfig classes |
 | 517 | Hardware-in-Loop Simulation | simulators | Create mount_simulator.py | 516 | 4 | 3 | Not Started | LX200 simulator |
 | 518 | Hardware-in-Loop Simulation | simulators | Implement LX200 command parsing | 517 | 3 | 2 | Not Started | Protocol handling |
@@ -690,14 +690,14 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 602 | Documentation & POS | docs | Create docs/TROUBLESHOOTING.md | 601 | 3 | 2 | Not Started | Common issues |
 | 603 | Documentation & POS | docs | Create docs/HARDWARE_SETUP.md | 602 | 3 | 2 | Complete | OnStepX, Ecowitt, Audio, Network |
 | 604 | Documentation & POS | docs | Create docs/SIMULATOR_GUIDE.md | 603 | 2 | 2 | Complete | Alpaca, INDI, Mock fixtures |
-| 605 | Documentation & POS | docs | Update docs/INTEGRATION_PLAN.md for v0.1 | 604 | 2 | 1 | Not Started | Alignment |
+| 605 | Documentation & POS | docs | Update docs/INTEGRATION_PLAN.md for v0.1 | 604 | 2 | 1 | Complete | Alignment |
 | 606 | Documentation & POS | docs | Add architecture diagrams (Mermaid) | 605 | 3 | 2 | Not Started | Visual docs |
 | 607 | Documentation & POS | docs | Add sequence diagrams for key flows | 606 | 3 | 2 | Not Started | Visual docs |
 | 608 | Documentation & POS | pos | Create POS deliberation for LLM integration | None | 4 | 3 | Not Started | Expert consensus |
 | 609 | Documentation & POS | pos | Add Michael Clive perspective (DGX Spark) | 608 | 3 | 2 | Not Started | AI expert |
 | 610 | Documentation & POS | pos | Add Alec Radford perspective (Whisper) | 609 | 3 | 2 | Not Started | STT expert |
 | 611 | Documentation & POS | pos | Add Michael Hansen perspective (Piper) | 610 | 3 | 2 | Not Started | TTS expert |
-| 612 | Documentation & POS | pos | Document LLM model selection rationale | 611 | 2 | 1 | Not Started | Decision record |
+| 612 | Documentation & POS | pos | Document LLM model selection rationale | 611 | 2 | 1 | Complete | Decision record |
 | 613 | Documentation & POS | pos | Create POS deliberation for tool confirmation | 612 | 3 | 2 | Not Started | Safety design |
 | 614 | Documentation & POS | pos | Create POS deliberation for emergency response | 613 | 3 | 2 | Not Started | Safety design |
 | 615 | Documentation & POS | pos | Update POS_RETREAT_SIMULATION.md with v0.1 decisions | 614 | 2 | 2 | Not Started | Record keeping |

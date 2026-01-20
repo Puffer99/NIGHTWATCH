@@ -1,0 +1,71 @@
+# NIGHTWATCH CI Test Infrastructure
+#
+# Lightweight Docker Compose configuration for CI/CD testing.
+# Uses only essential services with minimal resources.
+#
+# Usage:
+#   docker-compose -f docker/docker-compose.test.yml up -d
+#
+# Optimized for:
+#   - Fast startup time
+#   - Minimal resource usage
+#   - GitHub Actions compatibility
+#
+# See docs/INTEGRATION_PLAN.md Phase 4 for details.
+
+version: '3.8'
+
+services:
+  # ASCOM Alpaca Simulators (CI Mode)
+  # Minimal configuration for integration testing
+  alpaca-simulators:
+    image: ghcr.io/ascominitiative/alpaca-simulators:latest
+    container_name: nightwatch-alpaca-test
+    ports:
+      - "11111:11111"
+    environment:
+      - ASPNETCORE_URLS=http://+:11111
+      - ASPNETCORE_ENVIRONMENT=Testing
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11111/management/apiversions"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - nightwatch-test
+
+  # INDI Server (CI Mode)
+  # Minimal simulators for testing
+  indi-server:
+    image: indilib/indi-full:latest
+    container_name: nightwatch-indi-test
+    ports:
+      - "7624:7624"
+    command: >
+      indiserver
+      indi_simulator_telescope
+      indi_simulator_ccd
+    healthcheck:
+      test: ["CMD-SHELL", "echo ':' | nc -w 1 localhost 7624 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - nightwatch-test
+
+networks:
+  nightwatch-test:
+    driver: bridge
+    name: nightwatch-test

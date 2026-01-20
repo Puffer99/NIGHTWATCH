@@ -1,0 +1,134 @@
+# NIGHTWATCH Production Configuration Template
+#
+# Docker Compose template for production deployment.
+# Copy this file and customize for your observatory.
+#
+# Usage:
+#   cp docker-compose.prod.yml docker-compose.local.yml
+#   # Edit docker-compose.local.yml with your settings
+#   docker-compose -f docker/docker-compose.local.yml up -d
+#
+# IMPORTANT: This is a TEMPLATE. Customize before use!
+#
+# See docs/INSTALLATION.md and docs/CONFIGURATION.md for details.
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Core NIGHTWATCH Services
+  # ==========================================================================
+
+  # Main NIGHTWATCH Observatory Controller
+  nightwatch:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: nightwatch-main
+    restart: unless-stopped
+    privileged: true  # Required for GPIO access
+    environment:
+      - NIGHTWATCH_CONFIG=/config/nightwatch.yaml
+      - NIGHTWATCH_LOG_LEVEL=INFO
+      - TZ=${TIMEZONE:-America/Los_Angeles}
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data
+      - ./logs:/logs
+      - /dev:/dev  # Hardware access
+    ports:
+      - "8080:8080"  # Web UI
+      - "9999:9999"  # Mount API (if forwarding)
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nightwatch-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # Voice Processing Services
+  # ==========================================================================
+
+  # Wyoming Protocol Satellite (wake word + audio capture)
+  wyoming-satellite:
+    image: rhasspy/wyoming-satellite:latest
+    container_name: nightwatch-voice
+    restart: unless-stopped
+    environment:
+      - SATELLITE_NAME=nightwatch
+      - WAKE_WORD=hey_nightwatch
+      - AUDIO_DEVICE=default
+    volumes:
+      - ./config/wake_word:/wake_word:ro
+    ports:
+      - "10300:10300"  # Wyoming protocol
+    devices:
+      - /dev/snd:/dev/snd  # Audio hardware
+    networks:
+      - nightwatch-prod
+
+  # ==========================================================================
+  # Support Services
+  # ==========================================================================
+
+  # Redis for state management and caching
+  redis:
+    image: redis:7-alpine
+    container_name: nightwatch-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nightwatch-prod
+
+  # ==========================================================================
+  # Optional: Monitoring Stack
+  # Uncomment to enable Prometheus + Grafana monitoring
+  # ==========================================================================
+
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: nightwatch-prometheus
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus-data:/prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - nightwatch-prod
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: nightwatch-grafana
+  #   restart: unless-stopped
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-nightwatch}
+  #   volumes:
+  #     - ./config/grafana:/etc/grafana/provisioning:ro
+  #     - grafana-data:/var/lib/grafana
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - nightwatch-prod
+
+networks:
+  nightwatch-prod:
+    driver: bridge
+    name: nightwatch-prod
+
+volumes:
+  redis-data:
+  # prometheus-data:
+  # grafana-data:
