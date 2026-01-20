@@ -3149,6 +3149,107 @@ def create_default_handlers(
 
     handlers["get_power_events"] = get_power_events
 
+    async def emergency_shutdown(confirmed: bool = False) -> str:
+        """Execute emergency shutdown of all systems (Step 438).
+
+        Initiates a controlled emergency shutdown:
+        1. Stops all active imaging/guiding
+        2. Parks the mount
+        3. Closes the enclosure
+        4. Powers down non-essential equipment
+
+        Args:
+            confirmed: Must be True to proceed - prevents accidental shutdown
+        """
+        if not confirmed:
+            return (
+                "Emergency shutdown requested. This will:\n"
+                "  - Stop all imaging and guiding\n"
+                "  - Park the telescope\n"
+                "  - Close the enclosure\n"
+                "  - Power down equipment\n"
+                "Say 'emergency shutdown confirmed' to proceed."
+            )
+
+        results = []
+        errors = []
+
+        # 1. Stop imaging/guiding
+        try:
+            if camera_client and hasattr(camera_client, 'abort_exposure'):
+                camera_client.abort_exposure()
+                results.append("Imaging stopped")
+        except Exception as e:
+            errors.append(f"Camera stop error: {e}")
+
+        try:
+            guider = None
+            if 'guider_client' in dir() and guider_client:
+                guider = guider_client
+            elif 'phd2_client' in dir() and phd2_client:
+                guider = phd2_client
+            if guider and hasattr(guider, 'stop_guiding'):
+                guider.stop_guiding()
+                results.append("Guiding stopped")
+        except Exception as e:
+            errors.append(f"Guider stop error: {e}")
+
+        # 2. Park mount
+        try:
+            if mount_client:
+                if hasattr(mount_client, 'emergency_park'):
+                    mount_client.emergency_park()
+                elif hasattr(mount_client, 'park'):
+                    mount_client.park()
+                results.append("Mount parking")
+        except Exception as e:
+            errors.append(f"Mount park error: {e}")
+
+        # 3. Close enclosure
+        try:
+            if enclosure_service:
+                if hasattr(enclosure_service, 'emergency_close'):
+                    await enclosure_service.emergency_close()
+                elif hasattr(enclosure_service, 'close'):
+                    await enclosure_service.close()
+                results.append("Enclosure closing")
+        except Exception as e:
+            errors.append(f"Enclosure close error: {e}")
+
+        # 4. Power down non-essential equipment
+        try:
+            if power_service and hasattr(power_service, 'emergency_power_down'):
+                await power_service.emergency_power_down()
+                results.append("Non-essential power down")
+        except Exception as e:
+            errors.append(f"Power down error: {e}")
+
+        # 5. Send alerts
+        try:
+            if alert_service:
+                await alert_service.send_emergency_alert(
+                    "Emergency shutdown initiated",
+                    details={
+                        "actions": results,
+                        "errors": errors
+                    }
+                )
+        except Exception:
+            pass  # Don't fail shutdown for alert errors
+
+        # Build response
+        response = "Emergency shutdown initiated:\n"
+        for r in results:
+            response += f"  ✓ {r}\n"
+        if errors:
+            response += "\nWarnings:\n"
+            for e in errors:
+                response += f"  ⚠ {e}\n"
+
+        return response.strip()
+
+    handlers["emergency_shutdown"] = emergency_shutdown
+
     # -------------------------------------------------------------------------
     # ENCODER HANDLERS (Phase 5.1)
     # -------------------------------------------------------------------------
@@ -3934,8 +4035,102 @@ def create_default_handlers(
     handlers["get_guiding_status"] = get_guiding_status
 
     # -------------------------------------------------------------------------
-    # CAMERA HANDLERS (Steps 403-405)
+    # CAMERA HANDLERS (Steps 401-405)
     # -------------------------------------------------------------------------
+
+    async def start_capture(
+        exposure_ms: int = 1000,
+        gain: int = 100,
+        binning: int = 1,
+        count: int = 1,
+        filter_name: Optional[str] = None,
+        save_path: Optional[str] = None
+    ) -> str:
+        """Start camera capture sequence (Step 401).
+
+        Initiates image capture with specified settings.
+
+        Args:
+            exposure_ms: Exposure time in milliseconds (default 1000)
+            gain: Camera gain setting (default 100)
+            binning: Pixel binning (1x1, 2x2, etc.) (default 1)
+            count: Number of frames to capture (default 1)
+            filter_name: Optional filter to select before capture
+            save_path: Optional path to save captured images
+        """
+        if not camera_client:
+            return "Camera not available"
+
+        # Safety check - verify mount is tracking if doing long exposures
+        if exposure_ms > 30000 and mount_client:  # > 30 second exposure
+            try:
+                status = mount_client.get_status()
+                if status and hasattr(status, 'is_tracking') and not status.is_tracking:
+                    return "Warning: Mount not tracking. Long exposures may trail. Start tracking first or reduce exposure."
+            except Exception:
+                pass
+
+        try:
+            # Set camera parameters
+            if hasattr(camera_client, 'set_gain') and gain is not None:
+                camera_client.set_gain(gain)
+
+            if hasattr(camera_client, 'set_binning') and binning > 1:
+                camera_client.set_binning(binning, binning)
+
+            # Select filter if specified
+            if filter_name and 'filterwheel_client' in dir() and filterwheel_client:
+                try:
+                    filterwheel_client.set_filter(filter_name)
+                except Exception as e:
+                    return f"Failed to set filter '{filter_name}': {e}"
+
+            # Start capture
+            if hasattr(camera_client, 'start_exposure'):
+                # Single or sequence capture
+                if count == 1:
+                    success = camera_client.start_exposure(exposure_ms / 1000.0)
+                    if success:
+                        exp_str = f"{exposure_ms}ms" if exposure_ms < 1000 else f"{exposure_ms/1000:.1f}s"
+                        return f"Capturing {exp_str} exposure at gain {gain}"
+                else:
+                    # Sequence capture
+                    if hasattr(camera_client, 'start_sequence'):
+                        success = camera_client.start_sequence(
+                            exposure_sec=exposure_ms / 1000.0,
+                            count=count,
+                            gain=gain,
+                            save_path=save_path
+                        )
+                        if success:
+                            exp_str = f"{exposure_ms}ms" if exposure_ms < 1000 else f"{exposure_ms/1000:.1f}s"
+                            return f"Starting sequence: {count} frames at {exp_str}, gain {gain}"
+                    else:
+                        # Fallback: start first frame
+                        success = camera_client.start_exposure(exposure_ms / 1000.0)
+                        if success:
+                            exp_str = f"{exposure_ms}ms" if exposure_ms < 1000 else f"{exposure_ms/1000:.1f}s"
+                            return f"Capturing {exp_str} (sequence of {count} not supported, single frame started)"
+
+                return "Failed to start capture - check camera connection"
+
+            elif hasattr(camera_client, 'capture'):
+                # Alternative capture method
+                result = await camera_client.capture(
+                    exposure_ms=exposure_ms,
+                    gain=gain,
+                    binning=binning
+                )
+                if result:
+                    return f"Capture complete. Image saved."
+                return "Capture failed"
+
+            return "Camera does not support capture operations"
+
+        except Exception as e:
+            return f"Error starting capture: {e}"
+
+    handlers["start_capture"] = start_capture
 
     async def stop_capture() -> str:
         """Stop current camera capture (Step 403)."""
@@ -4144,8 +4339,95 @@ def create_default_handlers(
     handlers["set_camera_exposure"] = set_camera_exposure
 
     # -------------------------------------------------------------------------
-    # FOCUS HANDLERS (Step 413)
+    # FOCUS HANDLERS (Steps 411-417)
     # -------------------------------------------------------------------------
+
+    async def auto_focus(
+        algorithm: str = "vcurve",
+        step_size: int = 100,
+        samples: int = 9,
+        timeout: float = 180.0
+    ) -> str:
+        """Run autofocus routine (Step 411).
+
+        Executes automated focusing using the specified algorithm.
+
+        Args:
+            algorithm: Focusing algorithm - vcurve, hfd, or contrast (default vcurve)
+            step_size: Focuser step size for sampling (default 100)
+            samples: Number of sample points (default 9, must be odd)
+            timeout: Maximum time to wait for completion (default 180s)
+        """
+        if not focuser_service:
+            return "Focuser not available"
+
+        # Validate algorithm
+        valid_algorithms = ["vcurve", "hfd", "contrast"]
+        if algorithm.lower() not in valid_algorithms:
+            return f"Invalid algorithm '{algorithm}'. Use: {', '.join(valid_algorithms)}"
+
+        # Ensure samples is odd for symmetric curve
+        if samples % 2 == 0:
+            samples += 1
+
+        # Check if camera is available (needed for HFD/star measurement)
+        if not camera_client and algorithm.lower() in ["vcurve", "hfd"]:
+            return f"Camera required for {algorithm} autofocus"
+
+        try:
+            # Check if autofocus is already running
+            if hasattr(focuser_service, 'is_autofocus_running'):
+                if focuser_service.is_autofocus_running():
+                    return "Autofocus already in progress"
+
+            # Start autofocus
+            if hasattr(focuser_service, 'start_autofocus'):
+                result = await asyncio.wait_for(
+                    focuser_service.start_autofocus(
+                        algorithm=algorithm.lower(),
+                        step_size=step_size,
+                        samples=samples
+                    ),
+                    timeout=timeout
+                )
+
+                if result and hasattr(result, 'success') and result.success:
+                    msg = f"Autofocus complete. Best position: {result.position}"
+                    if hasattr(result, 'hfd') and result.hfd:
+                        msg += f" (HFD: {result.hfd:.2f})"
+                    return msg
+                elif result and hasattr(result, 'error'):
+                    return f"Autofocus failed: {result.error}"
+                return "Autofocus complete"
+
+            elif hasattr(focuser_service, 'run_vcurve'):
+                # Legacy V-curve method
+                result = await asyncio.wait_for(
+                    focuser_service.run_vcurve(step_size=step_size, samples=samples),
+                    timeout=timeout
+                )
+                if result:
+                    return f"V-curve autofocus complete. Position: {result}"
+                return "V-curve autofocus failed"
+
+            elif hasattr(focuser_service, 'auto_focus'):
+                # Simple autofocus method
+                success = await asyncio.wait_for(
+                    focuser_service.auto_focus(),
+                    timeout=timeout
+                )
+                if success:
+                    return "Autofocus complete"
+                return "Autofocus failed"
+
+            return "Focuser does not support autofocus"
+
+        except asyncio.TimeoutError:
+            return f"Autofocus timed out after {timeout}s - check camera and focuser"
+        except Exception as e:
+            return f"Error during autofocus: {e}"
+
+    handlers["auto_focus"] = auto_focus
 
     async def get_focus_status() -> str:
         """Get focuser status (Step 413)."""

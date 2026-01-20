@@ -486,7 +486,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 398 | Tool Handler Implementation | guiding_tools | Implement dither handler | 397 | 3 | 2 | Complete | dither() with PHD2 settle and fallback in telescope_tools.py |
 | 399 | Tool Handler Implementation | guiding_tools | Add dither amount parameter | 398 | 2 | 1 | Complete | pixels, ra_only, wait_settle params for dither in telescope_tools.py |
 | 400 | Tool Handler Implementation | guiding_tools | Write unit tests for guiding tool handlers | 399 | 2 | 2 | Complete | TestGuidingToolHandlers in test_telescope_tools.py (5 tests) |
-| 401 | Tool Handler Implementation | camera_tools | Implement start_capture handler | 257 | 3 | 2 | Not Started | Begin imaging |
+| 401 | Tool Handler Implementation | camera_tools | Implement start_capture handler | 257 | 3 | 2 | Complete | start_capture() with exposure, gain, binning, count, filter in telescope_tools.py |
 | 402 | Tool Handler Implementation | camera_tools | Add exposure and gain parameters | 401 | 2 | 1 | Complete | exposure_ms, gain, binning params for start_capture in telescope_tools.py |
 | 403 | Tool Handler Implementation | camera_tools | Implement stop_capture handler | 402 | 2 | 1 | Complete | stop_capture() with abort_exposure fallback |
 | 404 | Tool Handler Implementation | camera_tools | Implement get_camera_status handler | 403 | 2 | 1 | Complete | get_camera_status() with settings and progress |
@@ -496,7 +496,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 408 | Tool Handler Implementation | camera_tools | Implement set_camera_exposure handler | 407 | 2 | 1 | Complete | set_camera_exposure() with smart formatting |
 | 409 | Tool Handler Implementation | camera_tools | Add exposure range validation | 408 | 2 | 1 | Complete | Dynamic range check via get_exposure_range |
 | 410 | Tool Handler Implementation | camera_tools | Write unit tests for camera tool handlers | 409 | 2 | 2 | Complete | TestCameraToolHandlers in test_telescope_tools.py (5 tests) |
-| 411 | Tool Handler Implementation | focus_tools | Implement auto_focus handler | 257 | 3 | 2 | Not Started | Begin focus |
+| 411 | Tool Handler Implementation | focus_tools | Implement auto_focus handler | 257 | 3 | 2 | Complete | auto_focus() with vcurve/hfd/contrast algorithms in telescope_tools.py |
 | 412 | Tool Handler Implementation | focus_tools | Add algorithm selection parameter | 411 | 2 | 1 | Complete | algorithm (vcurve/hfd/contrast), step_size, samples params in telescope_tools.py |
 | 413 | Tool Handler Implementation | focus_tools | Implement get_focus_status handler | 412 | 2 | 1 | Complete | get_focus_status() with position, temp, HFD |
 | 414 | Tool Handler Implementation | focus_tools | Add current position and temperature | 413 | 2 | 1 | Complete | Position, temp, temp_comp, HFD/FWHM in status |
@@ -523,7 +523,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 435 | Tool Handler Implementation | power_tools | Add battery percentage and runtime | 434 | 2 | 1 | Complete | Battery %, runtime, load in status |
 | 436 | Tool Handler Implementation | power_tools | Implement get_power_events handler | 435 | 2 | 1 | Complete | get_power_events() with history |
 | 437 | Tool Handler Implementation | power_tools | Add filtering by event type | 436 | 2 | 1 | Complete | event_type parameter for filtering |
-| 438 | Tool Handler Implementation | power_tools | Implement emergency_shutdown handler | 437 | 3 | 2 | Not Started | Critical action |
+| 438 | Tool Handler Implementation | power_tools | Implement emergency_shutdown handler | 437 | 3 | 2 | Complete | emergency_shutdown() with confirmation, staged shutdown in telescope_tools.py |
 | 439 | Tool Handler Implementation | power_tools | Add confirmation requirement | 438 | 2 | 1 | Complete | confirmed param in set_port_power(), power_cycle_port() |
 | 440 | Tool Handler Implementation | power_tools | Write unit tests for power tool handlers | 439 | 2 | 2 | Complete | TestPowerToolHandlers in test_telescope_tools.py (4 tests) |
 | 441 | Tool Handler Implementation | indi_tools | Implement indi_discover_devices handler | 257 | 3 | 2 | Complete | indi_discover_devices() with XML parsing in telescope_tools.py |
@@ -617,9 +617,9 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 529 | Hardware-in-Loop Simulation | simulators | Implement simulated image generation | 528 | 4 | 3 | Not Started | Synthetic stars |
 | 530 | Hardware-in-Loop Simulation | simulators | Add configurable star field | 529 | 3 | 2 | Not Started | Test images |
 | 531 | Hardware-in-Loop Simulation | simulators | Add noise simulation | 530 | 2 | 1 | Complete | Realistic images |
-| 532 | Hardware-in-Loop Simulation | simulators | Create phd2_simulator.py | 531 | 3 | 2 | Not Started | Guiding sim |
-| 533 | Hardware-in-Loop Simulation | simulators | Implement JSON-RPC protocol | 532 | 3 | 2 | Not Started | PHD2 API |
-| 534 | Hardware-in-Loop Simulation | simulators | Add simulated guide star tracking | 533 | 3 | 2 | Not Started | Virtual guiding |
+| 532 | Hardware-in-Loop Simulation | simulators | Create phd2_simulator.py | 531 | 3 | 2 | Complete | guider_simulator.py in services/simulators/, phd2_simulator.py in docker/simulators/ |
+| 533 | Hardware-in-Loop Simulation | simulators | Implement JSON-RPC protocol | 532 | 3 | 2 | Complete | Full JSON-RPC in docker/simulators/phd2_simulator.py |
+| 534 | Hardware-in-Loop Simulation | simulators | Add simulated guide star tracking | 533 | 3 | 2 | Complete | GuideStar class with x/y/snr tracking in guider_simulator.py |
 | 535 | Hardware-in-Loop Simulation | simulators | Add configurable RMS levels | 534 | 2 | 1 | Complete | RMSQuality enum, RMS_PRESETS in guider_simulator.py |
 | 536 | Hardware-in-Loop Simulation | test_fixtures | Create tests/fixtures/__init__.py | 501 | 1 | 1 | Complete | Package |
 | 537 | Hardware-in-Loop Simulation | test_fixtures | Create mock_mount.py fixture | 536 | 3 | 2 | Complete | Mount mock |
@@ -727,7 +727,7 @@ Create installation scripts, hardware integration guides, and prepare for Nevada
 | 639 | Deployment Preparation | testing | Write hardware integration test plan | 638 | 3 | 2 | Not Started | Real hardware |
 | 640 | Deployment Preparation | testing | Create mount communication test | 639 | 2 | 1 | Complete | tests/hardware/test_mount.py |
 | 641 | Deployment Preparation | testing | Create weather station test | 640 | 2 | 1 | Complete | tests/hardware/test_weather.py |
-| 642 | Deployment Preparation | testing | Create cloud sensor test | 641 | 2 | 1 | Not Started | AAG verify |
+| 642 | Deployment Preparation | testing | Create cloud sensor test | 641 | 2 | 1 | Complete | tests/hardware/test_cloud_sensor.py with CloudSensorTest class |
 | 643 | Deployment Preparation | testing | Create encoder test | 642 | 2 | 1 | Complete | tests/hardware/test_encoder.py |
 | 644 | Deployment Preparation | testing | Create voice pipeline test | 643 | 2 | 1 | Complete | tests/hardware/test_voice.py |
 | 645 | Deployment Preparation | testing | Create full system integration test | 644 | 3 | 2 | Not Started | All systems |
