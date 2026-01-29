@@ -9,6 +9,7 @@ Complete API documentation for NIGHTWATCH observatory services.
 - [Safety Monitor Service](#safety-monitor-service)
 - [Catalog Service](#catalog-service)
 - [Ephemeris Service](#ephemeris-service)
+- [Meteor Tracking Service](#meteor-tracking-service)
 - [Voice Pipeline](#voice-pipeline)
 - [Tool Handlers](#tool-handlers)
 
@@ -263,6 +264,74 @@ ephemeris = EphemerisService(latitude=39.0, longitude=-117.0)
     "set_time": "05:00:00"
 }
 ```
+
+---
+
+## Meteor Tracking Service
+
+**Module**: `services.meteor_tracking`
+
+### MeteorTrackingService
+
+Monitors fireball and meteor data from NASA CNEOS and American Meteor Society, generates alerts with Lexicon prayers.
+
+```python
+from services.meteor_tracking import get_meteor_service
+
+MeteorTrackingService, MeteorConfig, MeteorAlert = get_meteor_service()
+
+config = MeteorConfig(default_lat=38.9, default_lon=-117.4)
+service = MeteorTrackingService(config)
+await service.start()
+```
+
+#### Methods
+
+| Method | Parameters | Returns | Description |
+|--------|------------|---------|-------------|
+| `start()` | - | `None` | Start monitoring loop |
+| `stop()` | - | `None` | Stop monitoring |
+| `add_watch(text)` | `text: str` | `str` | Create watch from natural language |
+| `get_status()` | - | `str` | Get current status in Lexicon |
+| `get_shower_info(name)` | `name: str \| None` | `str` | Get shower information |
+| `check_now()` | - | `str` | Manual fireball check |
+| `get_active_windows()` | - | `List[WatchWindow]` | Get active watch windows |
+
+### WatchManager
+
+Natural language parsing for meteor watch requests.
+
+```python
+from services.meteor_tracking import WatchManager
+
+manager = WatchManager()
+window = manager.add_watch("Perseids peak next week from Nevada")
+```
+
+### Lexicon Prayer Generation
+
+```python
+from services.meteor_tracking import generate_prayer_of_finding
+
+prayer = generate_prayer_of_finding(
+    timestamp=datetime.now(),
+    lat=39.5, lon=-117.2,
+    magnitude=-8,
+    trajectory=trajectory_result,
+    sky_conditions="nevada-sky-clear"
+)
+# Returns Lexicon-formatted prayer with coordinates and alchemical symbol
+```
+
+### Voice Tools
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `watch_for_meteors` | `request: str` | Create watch window |
+| `get_meteor_status` | - | Get tracking status |
+| `get_meteor_shower_info` | `shower_name: str` | Get shower details |
+| `check_for_fireballs` | - | Manual database check |
+| `get_active_watch_windows` | - | List active windows |
 
 ---
 
