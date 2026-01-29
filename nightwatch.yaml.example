@@ -213,6 +213,31 @@ alerts:
   webhook_url: ""
 
 # -----------------------------------------------------------------------------
+# Meteor Tracking Configuration
+# -----------------------------------------------------------------------------
+# Fireball and meteor shower monitoring with NASA CNEOS and AMS data.
+
+meteor:
+  enabled: true
+
+  # Data source polling
+  poll_interval: 300.0              # Seconds between fireball checks
+  cneos_enabled: true               # NASA CNEOS Fireball Database
+  ams_enabled: true                 # American Meteor Society reports
+
+  # Default watch location (uses site coords if not specified)
+  # Uncomment to override site location for meteor watches:
+  # default_lat: 38.9
+  # default_lon: -117.4
+
+  # Alert thresholds
+  min_magnitude: -4.0               # Minimum magnitude to alert (brighter = more negative)
+  max_distance_km: 1000.0           # Maximum distance from watch location
+
+  # State persistence
+  state_file: "~/.nightwatch/meteor_state.json"
+
+# -----------------------------------------------------------------------------
 # Power Configuration
 # -----------------------------------------------------------------------------
 # UPS monitoring via NUT (Network UPS Tools).
